@@ -1017,6 +1017,7 @@ impl Project {
             self.next_config().turbo_minify(self.next_mode()),
             self.next_config().client_source_maps(self.next_mode()),
             self.no_mangling(),
+            self.next_config().turbo_scope_hoisting(self.next_mode()),
         ))
     }
 
@@ -1038,6 +1039,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_server_chunking_context(
@@ -1050,6 +1052,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         })
     }
@@ -1072,6 +1075,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_edge_chunking_context(
@@ -1084,6 +1088,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         })
     }
