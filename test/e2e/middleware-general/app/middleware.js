@@ -186,6 +186,9 @@ export async function middleware(request) {
   }
 
   if (url.pathname.endsWith('/root-subrequest')) {
+    if (!isValidUrl(url)) {
+      return serializeError(new Error('Invalid URL'))
+    }
     const res = await fetch(url)
     res.headers.set('x-dynamic-path', 'true')
     return res
@@ -271,4 +274,22 @@ function serializeError(error) {
 
 function withLocalIp(url) {
   return String(url).replace('localhost', '127.0.0.1')
+}
+
+function isValidUrl(url) {
+  const allowedHostnames = ['example.com', '127.0.0.1'];
+  const hostname = url.hostname;
+  const pathname = url.pathname;
+
+  // Check if hostname is in the allow-list
+  if (!allowedHostnames.includes(hostname)) {
+    return false;
+  }
+
+  // Check for path traversal in pathname
+  if (pathname.includes('..')) {
+    return false;
+  }
+
+  return true;
 }
