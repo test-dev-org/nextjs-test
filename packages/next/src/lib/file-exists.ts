@@ -16,7 +16,8 @@ export async function fileExists(
   try {
     // Normalize the file path and ensure it is within the safe root directory
     const resolvedPath = path.resolve(ROOT_DIR, fileName);
-    if (!resolvedPath.startsWith(ROOT_DIR)) {
+    const relativePath = path.relative(ROOT_DIR, resolvedPath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
       throw new Error('Access to the file path is not allowed.');
     }
 
