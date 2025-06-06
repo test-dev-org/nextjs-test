@@ -278,17 +278,32 @@ function withLocalIp(url) {
 
 function isValidUrl(url) {
   const allowedHostnames = ['example.com', '127.0.0.1'];
+  const allowedSchemes = ['http', 'https'];
   const hostname = url.hostname;
   const pathname = url.pathname;
+  const scheme = url.protocol.replace(':', '');
 
   // Check if hostname is in the allow-list
   if (!allowedHostnames.includes(hostname)) {
     return false;
   }
 
+  // Check if scheme is in the allow-list
+  if (!allowedSchemes.includes(scheme)) {
+    return false;
+  }
+
   // Check for path traversal in pathname
   if (pathname.includes('..')) {
     return false;
+  }
+
+  // Check for malicious query parameters
+  const queryParams = url.searchParams;
+  for (const [key, value] of queryParams) {
+    if (key.includes('..') || value.includes('..')) {
+      return false;
+    }
   }
 
   return true;
