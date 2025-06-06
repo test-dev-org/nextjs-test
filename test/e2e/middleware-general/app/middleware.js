@@ -300,8 +300,9 @@ function isValidUrl(url) {
 
   // Check for malicious query parameters
   const queryParams = url.searchParams;
+  const maliciousPattern = /(\.\.|%2E%2E|<script>|<\/script>|' OR |--|;|%3C|%3E)/i;
   for (const [key, value] of queryParams) {
-    if (key.includes('..') || value.includes('..')) {
+    if (maliciousPattern.test(key) || maliciousPattern.test(value)) {
       return false;
     }
   }
