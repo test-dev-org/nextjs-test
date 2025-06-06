@@ -289,6 +289,8 @@ export function getDefineEnv({
       : {}),
     'process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER':
       config.experimental.devtoolSegmentExplorer ?? false,
+    'process.env.__NEXT_DEVTOOL_NEW_PANEL_UI':
+      config.experimental.devtoolNewPanelUI ?? false,
 
     // The devtools need to know whether or not to show an option to clear the
     // bundler cache. This option may be removed later once Turbopack's
@@ -304,6 +306,8 @@ export function getDefineEnv({
     // no-op that just restarts the development server.
     'process.env.__NEXT_BUNDLER_HAS_PERSISTENT_CACHE':
       !isTurbopack || (config.experimental.turbopackPersistentCaching ?? false),
+    'process.env.__NEXT_TURBOPACK_PERSISTENT_CACHE':
+      config.experimental.turbopackPersistentCaching ?? false,
   }
 
   const userDefines = config.compiler?.define ?? {}
