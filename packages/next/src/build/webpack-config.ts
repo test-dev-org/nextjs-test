@@ -805,7 +805,8 @@ export default async function getBaseWebpackConfig(
     dir,
   })
 
-  const pageExtensionsRegex = new RegExp(`\\.(${pageExtensions.join('|')})$`)
+  const sanitizedPageExtensions = pageExtensions.map((ext) => escapeStringRegexp(ext));
+  const pageExtensionsRegex = new RegExp(`\\.(${sanitizedPageExtensions.join('|')})$`);
 
   const aliasCodeConditionTest = [codeCondition.test, pageExtensionsRegex]
 
