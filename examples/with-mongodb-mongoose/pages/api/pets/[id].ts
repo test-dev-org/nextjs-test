@@ -43,7 +43,10 @@ export default async function handler(
 
     case "DELETE" /* Delete a model by its ID */:
       try {
-        const deletedPet = await Pet.deleteOne({ _id: id });
+        if (typeof id !== "string" || !id.match(/^[0-9a-fA-F]{24}$/)) {
+          return res.status(400).json({ success: false, message: "Invalid ID format" });
+        }
+        const deletedPet = await Pet.deleteOne({ _id: { $eq: id } });
         if (!deletedPet) {
           return res.status(400).json({ success: false });
         }
