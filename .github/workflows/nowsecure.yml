@@ -21,6 +21,9 @@
 #    and review the "Security" tab once the action has run.
 
 name: "NowSecure"
+permissions:
+  contents: read
+  security-events: write
 
 on:
   push:
