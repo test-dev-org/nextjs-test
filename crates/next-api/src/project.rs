@@ -52,6 +52,7 @@ use turbopack_core::{
     context::AssetContext,
     diagnostics::DiagnosticExt,
     file_source::FileSource,
+    ident::LayerName,
     issue::{
         Issue, IssueDescriptionExt, IssueExt, IssueSeverity, IssueStage, OptionStyledString,
         StyledString,
@@ -1325,7 +1326,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            rcstr!("middleware-edge"),
+            LayerName::new(rcstr!("middleware-edge"), None),
         )))
     }
 
@@ -1380,7 +1381,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            rcstr!("middleware"),
+            LayerName::new(rcstr!("middleware"), None),
         )))
     }
 
@@ -1493,7 +1494,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            rcstr!("instrumentation"),
+            LayerName::new(rcstr!("instrumentation"), None),
         )))
     }
 
@@ -1549,7 +1550,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            rcstr!("instrumentation-edge"),
+            LayerName::new(rcstr!("instrumentation-edge"), None),
         )))
     }
 
