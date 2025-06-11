@@ -347,7 +347,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
             ..Default::default()
         }
         .cell(),
-        LayerName::new(rcstr!("test"), None),
+        LayerName::new(rcstr!("test")),
     ));
 
     let runtime_entries = maybe_load_env(asset_context, *project_path)

@@ -410,7 +410,7 @@ async fn run_test_operation(prepared_test: ResolvedVc<PreparedTest>) -> Result<V
             ..Default::default()
         }
         .cell(),
-        LayerName::new(rcstr!("test"), None),
+        LayerName::new(rcstr!("test")),
     ));
 
     let chunking_context = NodeJsChunkingContext::builder(

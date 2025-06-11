@@ -35,7 +35,7 @@ pub async fn get_runtime_asset_context(
         compile_time_info,
         module_options_context,
         Vc::default(),
-        LayerName::new(rcstr!("runtime"), None),
+        LayerName::new(rcstr!("runtime")),
     ));
 
     Ok(asset_context)
