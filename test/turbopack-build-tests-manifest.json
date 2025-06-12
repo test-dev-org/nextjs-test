@@ -5176,17 +5176,15 @@
     "runtimeError": false
   },
   "test/e2e/app-dir/scss/invalid-global-with-app/invalid-global-with-app.test.ts": {
-    "passed": [],
-    "failed": [
-      "Invalid Global CSS with Custom App production only should fail to build"
-    ],
+    "passed": ["Invalid Global CSS with Custom App should fail to build"],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
   },
   "test/e2e/app-dir/scss/invalid-global/invalid-global.test.ts": {
-    "passed": [],
-    "failed": ["Invalid Global CSS production only should fail to build"],
+    "passed": ["Invalid Global CSS should fail to build"],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
@@ -5408,10 +5406,10 @@
     "runtimeError": false
   },
   "test/e2e/app-dir/scss/valid-and-invalid-global/valid-and-invalid-global.test.ts": {
-    "passed": [],
-    "failed": [
-      "Valid and Invalid Global CSS with Custom App production only should fail to build"
+    "passed": [
+      "Valid and Invalid Global CSS with Custom App should fail to build"
     ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
