@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
 use anyhow::Result;
 use either::Either;
@@ -16,9 +16,11 @@ use turbo_tasks::{
     CollectiblesSource, FxIndexMap, FxIndexSet, ReadRef, ResolvedVc, TryFlatJoinIterExt,
     TryJoinIterExt, Vc,
 };
+use turbo_tasks_fs::FileSystemPath;
+use turbopack::css::{CssModuleAsset, ModuleCssAsset};
 use turbopack_core::{
     context::AssetContext,
-    issue::Issue,
+    issue::{Issue, IssueExt, IssueSeverity, IssueStage, OptionStyledString, StyledString},
     module::Module,
     module_graph::{GraphTraversalAction, ModuleGraph, SingleModuleGraph},
 };
@@ -399,6 +401,142 @@ impl ClientReferencesGraph {
     }
 }
 
+#[turbo_tasks::value(shared)]
+pub struct CssGlobalImportIssue {
+    parent_module: ResolvedVc<Box<dyn Module>>,
+    module: ResolvedVc<Box<dyn Module>>,
+}
+
+#[turbo_tasks::value_impl]
+impl CssGlobalImportIssue {
+    #[turbo_tasks::function]
+    pub fn new(
+        parent_module: ResolvedVc<Box<dyn Module>>,
+        module: ResolvedVc<Box<dyn Module>>,
+    ) -> Vc<Self> {
+        Self {
+            parent_module,
+            module,
+        }
+        .cell()
+    }
+}
+
+#[turbo_tasks::value_impl]
+impl Issue for CssGlobalImportIssue {
+    #[turbo_tasks::function]
+    async fn title(&self) -> Vc<StyledString> {
+        StyledString::Text(
+            format!(
+                "CSS global import in {}",
+                self.parent_module.ident().path().await.unwrap().path
+            )
+            .into(),
+        )
+        .cell()
+    }
+
+    #[turbo_tasks::function]
+    async fn description(&self) -> Vc<OptionStyledString> {
+        Vc::cell(Some(
+            StyledString::Text(
+                format!(
+                    "CSS global import in {}, cannot import {}",
+                    self.parent_module.ident().path().await.unwrap().path,
+                    self.module.ident().path().await.unwrap().path
+                )
+                .into(),
+            )
+            .resolved_cell(),
+        ))
+    }
+
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Warning.into()
+    }
+
+    #[turbo_tasks::function]
+    fn file_path(&self) -> Vc<FileSystemPath> {
+        self.parent_module.ident().path()
+    }
+
+    #[turbo_tasks::function]
+    fn stage(&self) -> Vc<IssueStage> {
+        IssueStage::ProcessModule.into()
+    }
+}
+
+#[turbo_tasks::function]
+async fn validate_pages_css_imports(
+    graph: Vc<SingleModuleGraph>,
+    is_single_page: bool,
+    entry: Vc<Box<dyn Module>>,
+    // TODO potentially more arguments
+) -> Result<()> {
+    let graph = &*graph.await?;
+    let entry = entry.to_resolved().await?;
+
+    let entries = if !is_single_page {
+        if !graph.entry_modules().any(|m| m == entry) {
+            // the graph doesn't contain the entry, e.g. for the additional module graph
+            return Ok(());
+        }
+        Either::Left(std::iter::once(entry))
+    } else {
+        Either::Right(graph.entry_modules())
+    };
+
+    let issues = Rc::new(RefCell::new(Vec::new()));
+    let issues_ref = issues.clone();
+
+    graph.traverse_edges_from_entries(entries, |parent_info, node| {
+        let module = node.module;
+        let Some((parent_node, _)) = parent_info else {
+            // root node, no parent
+            return GraphTraversalAction::Continue;
+        };
+        let parent_module = parent_node.module;
+
+        // TODO validate parent_module -> module import
+
+        if parent_module == entry
+            && ResolvedVc::try_downcast_type::<CssModuleAsset>(module).is_some()
+        {
+            println!("css import found");
+        }
+        if parent_module != entry
+            && ResolvedVc::try_downcast_type::<CssModuleAsset>(module).is_some()
+        {
+            issues_ref
+                .borrow_mut()
+                .push(CssGlobalImportIssue::new(*parent_module, *module));
+            println!("css invalid global import found");
+        }
+        if parent_module != entry
+            && ResolvedVc::try_downcast_type::<ModuleCssAsset>(module).is_some()
+        {
+            println!("css valid module import found");
+        }
+
+        GraphTraversalAction::Continue
+    })?;
+
+    CssGlobalImportIssue::new(*entry, *entry)
+        .to_resolved()
+        .await;
+
+    // resolve_issues(&issues.borrow()).await?;
+
+    Ok(())
+}
+
+async fn resolve_issues(issues: &[Vc<CssGlobalImportIssue>]) -> Result<()> {
+    for issue in issues.iter() {
+        issue.to_resolved().await?.emit();
+    }
+    Ok(())
+}
+
 /// The consumers of this shouldn't need to care about the exact contents since it's abstracted away
 /// by the accessor functions, but
 /// - In dev, contains information about the modules of the current endpoint only
@@ -408,6 +546,9 @@ pub struct ReducedGraphs {
     next_dynamic: Vec<ResolvedVc<NextDynamicGraph>>,
     server_actions: Vec<ResolvedVc<ServerActionsGraph>>,
     client_references: Vec<ResolvedVc<ClientReferencesGraph>>,
+    // Data for some more ad-hoc operations
+    bare_graphs: ResolvedVc<ModuleGraph>,
+    is_single_page: bool,
     // TODO add other graphs
 }
 
@@ -415,9 +556,9 @@ pub struct ReducedGraphs {
 impl ReducedGraphs {
     #[turbo_tasks::function]
     pub async fn new(graphs: Vc<ModuleGraph>, is_single_page: bool) -> Result<Vc<Self>> {
-        let graphs = &graphs.await?.graphs;
+        let graphs_ref = &graphs.await?.graphs;
         let next_dynamic = async {
-            graphs
+            graphs_ref
                 .iter()
                 .map(|graph| {
                     NextDynamicGraph::new_with_entries(**graph, is_single_page).to_resolved()
@@ -428,7 +569,7 @@ impl ReducedGraphs {
         .instrument(tracing::info_span!("generating next/dynamic graphs"));
 
         let server_actions = async {
-            graphs
+            graphs_ref
                 .iter()
                 .map(|graph| {
                     ServerActionsGraph::new_with_entries(**graph, is_single_page).to_resolved()
@@ -439,7 +580,7 @@ impl ReducedGraphs {
         .instrument(tracing::info_span!("generating server actions graphs"));
 
         let client_references = async {
-            graphs
+            graphs_ref
                 .iter()
                 .map(|graph| {
                     ClientReferencesGraph::new_with_entries(**graph, is_single_page).to_resolved()
@@ -456,6 +597,8 @@ impl ReducedGraphs {
             next_dynamic: next_dynamic?,
             server_actions: server_actions?,
             client_references: client_references?,
+            bare_graphs: graphs.to_resolved().await?,
+            is_single_page,
         }
         .cell())
     }
@@ -575,6 +718,29 @@ impl ReducedGraphs {
             }
 
             Ok(result.cell())
+        }
+        .instrument(span)
+        .await
+    }
+
+    #[turbo_tasks::function]
+    pub async fn validate_pages_css_imports(
+        &self,
+        entry: Vc<Box<dyn Module>>,
+        // TODO potentially more arguments
+    ) -> Result<()> {
+        let span = tracing::info_span!("validate pages css imports");
+        async move {
+            let _ = self
+                .bare_graphs
+                .await?
+                .graphs
+                .iter()
+                .map(|graph| validate_pages_css_imports(**graph, self.is_single_page, entry))
+                .try_join()
+                .await?;
+
+            Ok(())
         }
         .instrument(span)
         .await
