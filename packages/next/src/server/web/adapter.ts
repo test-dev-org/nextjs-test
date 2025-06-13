@@ -265,6 +265,7 @@ export async function adapter(
             const requestStore = createRequestStoreForAPI(
               request,
               request.nextUrl,
+              {}, // TODO(root-params): compute and pass real rootParams
               implicitTags,
               onUpdateCookies,
               previewProps
