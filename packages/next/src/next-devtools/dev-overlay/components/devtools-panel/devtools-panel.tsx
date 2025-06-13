@@ -15,6 +15,8 @@ import { Draggable } from '../errors/dev-tools-indicator/draggable'
 import { INDICATOR_PADDING } from '../devtools-indicator/devtools-indicator'
 import { FullScreenIcon } from '../../icons/fullscreen'
 import { Cross } from '../../icons/cross'
+import { QuestionIcon } from '../../icons/question'
+import { BugIcon } from '../../icons/bug'
 
 export function DevToolsPanel({
   state,
@@ -61,61 +63,85 @@ export function DevToolsPanel({
           })
         }}
       >
-        <Dialog
-          data-nextjs-devtools-panel-dialog
-          aria-labelledby="nextjs__container_dev_tools_panel_label"
-          aria-describedby="nextjs__container_dev_tools_panel_desc"
-          onClose={onClose}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <div data-nextjs-devtools-panel-header>
-                <div data-nextjs-devtools-panel-header-tab-group>
-                  <button
-                    data-nextjs-devtools-panel-header-tab={
-                      activeTab === 'issues'
-                    }
-                    onClick={() => setActiveTab('issues')}
-                  >
-                    Issues
-                    <span data-nextjs-devtools-panel-header-tab-issues-badge>
-                      {issueCount}
-                    </span>
-                  </button>
-                  <button
-                    data-nextjs-devtools-panel-header-tab={
-                      activeTab === 'route'
-                    }
-                    onClick={() => setActiveTab('route')}
-                  >
-                    Route Info
-                  </button>
-                  <button
-                    data-nextjs-devtools-panel-header-tab={
-                      activeTab === 'settings'
-                    }
-                    onClick={() => setActiveTab('settings')}
-                  >
-                    Settings
-                  </button>
+        <>
+          <Dialog
+            data-nextjs-devtools-panel-dialog
+            aria-labelledby="nextjs__container_dev_tools_panel_label"
+            aria-describedby="nextjs__container_dev_tools_panel_desc"
+            onClose={onClose}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <div data-nextjs-devtools-panel-header>
+                  <div data-nextjs-devtools-panel-header-tab-group>
+                    <button
+                      data-nextjs-devtools-panel-header-tab={
+                        activeTab === 'issues'
+                      }
+                      onClick={() => setActiveTab('issues')}
+                    >
+                      Issues
+                      <span data-nextjs-devtools-panel-header-tab-issues-badge>
+                        {issueCount}
+                      </span>
+                    </button>
+                    <button
+                      data-nextjs-devtools-panel-header-tab={
+                        activeTab === 'route'
+                      }
+                      onClick={() => setActiveTab('route')}
+                    >
+                      Route Info
+                    </button>
+                    <button
+                      data-nextjs-devtools-panel-header-tab={
+                        activeTab === 'settings'
+                      }
+                      onClick={() => setActiveTab('settings')}
+                    >
+                      Settings
+                    </button>
+                  </div>
+                  <div data-nextjs-devtools-panel-header-action-button-group>
+                    {/* TODO: Currently no-op, will add fullscreen toggle. */}
+                    <button data-nextjs-devtools-panel-header-action-button>
+                      <FullScreenIcon width={16} height={16} />
+                    </button>
+                    <button
+                      data-nextjs-devtools-panel-header-action-button
+                      onClick={onClose}
+                    >
+                      <Cross width={16} height={16} />
+                    </button>
+                  </div>
                 </div>
-                <div data-nextjs-devtools-panel-header-action-button-group>
-                  {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                  <button data-nextjs-devtools-panel-header-action-button>
-                    <FullScreenIcon width={16} height={16} />
-                  </button>
-                  <button
-                    data-nextjs-devtools-panel-header-action-button
-                    onClick={onClose}
-                  >
-                    <Cross width={16} height={16} />
-                  </button>
-                </div>
+              </DialogHeader>
+              <DialogBody></DialogBody>
+            </DialogContent>
+          </Dialog>
+          <div data-nextjs-devtools-panel-footer>
+            <div data-nextjs-devtools-panel-footer-tab-group>
+              <div data-nextjs-devtools-panel-footer-tab>
+                <span>Next.js</span>
+                <span>v15.0.0</span>
               </div>
-            </DialogHeader>
-            <DialogBody></DialogBody>
-          </DialogContent>
-        </Dialog>
+              <div data-nextjs-devtools-panel-footer-tab>
+                <span>Next.js</span>
+                <span>v15.0.0</span>
+              </div>
+            </div>
+            <div data-nextjs-devtools-panel-footer-action-button-group>
+              {/* TODO: Add help feature, details TBD */}
+              <button data-nextjs-devtools-panel-footer-action-button>
+                <QuestionIcon width={16} height={16} />
+              </button>
+              {/* TODO: Add debugging/report GitHub issue feature, details TBD */}
+              <button data-nextjs-devtools-panel-footer-action-button>
+                <BugIcon width={16} height={16} />
+              </button>
+            </div>
+          </div>
+        </>
       </Draggable>
     </Overlay>
   )
@@ -232,6 +258,71 @@ export const DEVTOOLS_PANEL_STYLES = css`
 
     &:active {
       background-color: var(--color-gray-300);
+    }
+  }
+
+  [data-nextjs-devtools-panel-footer] {
+    background-color: var(--color-background-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    border-top: 1px solid var(--color-gray-400);
+  }
+
+  [data-nextjs-devtools-panel-footer-tab-group] {
+    display: flex;
+    align-items: center;
+  }
+
+  [data-nextjs-devtools-panel-footer-tab] {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    gap: 8px;
+    align-self: stretch;
+    border-right: 1px solid var(--color-gray-400);
+
+    color: var(--color-gray-900);
+    font-size: 12px;
+    font-family: var(--font-stack-monospace);
+  }
+
+  [data-nextjs-devtools-panel-footer-action-button-group] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 8px;
+  }
+
+  [data-nextjs-devtools-panel-footer-action-button] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 4px;
+    background: var(--color-background-100);
+    background-clip: padding-box;
+    border: 1px solid var(--color-gray-alpha-400);
+    box-shadow: var(--shadow-small);
+    border-radius: var(--rounded-full);
+    color: var(--color-gray-800);
+
+    &:focus {
+      outline: var(--focus-ring);
+    }
+
+    &:not(:disabled):hover {
+      background: var(--color-gray-alpha-100);
+    }
+
+    &:not(:disabled):active {
+      background: var(--color-gray-alpha-200);
+    }
+
+    &:disabled {
+      background-color: var(--color-gray-100);
+      cursor: not-allowed;
     }
   }
 `
