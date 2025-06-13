@@ -1078,6 +1078,7 @@ function bindingToApi(
   }
 }
 
+// helper for tryLoadWasmWithFallback / loadBindings.
 async function loadWasm(importPath = '') {
   let attempts = []
   let rawBindings: RawWasmBindings | null = null
@@ -1086,7 +1087,7 @@ async function loadWasm(importPath = '') {
   // unstable and subject to change.
   const testWasmDir = process.env.NEXT_TEST_WASM_DIR
 
-  if (testWasmDir != null) {
+  if (testWasmDir) {
     // assume these are node.js bindings and don't need a call to `.default()`
     rawBindings = await import(
       pathToFileURL(path.join(testWasmDir, 'wasm.js')).toString()
