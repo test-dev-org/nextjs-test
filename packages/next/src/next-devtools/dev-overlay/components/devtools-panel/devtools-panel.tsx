@@ -19,9 +19,11 @@ import { Cross } from '../../icons/cross'
 export function DevToolsPanel({
   state,
   dispatch,
+  issueCount,
 }: {
   state: OverlayState
   dispatch: OverlayDispatch
+  issueCount: number
 }) {
   const [activeTab, setActiveTab] = useState<'issues' | 'route' | 'settings'>(
     'settings'
@@ -68,12 +70,15 @@ export function DevToolsPanel({
           <DialogContent>
             <DialogHeader>
               <div data-nextjs-devtools-panel-header>
-                <div data-nextjs-devtools-panel-tabs>
+                <div data-nextjs-devtools-panel-tab-group>
                   <button
                     data-nextjs-devtools-panel-tab={activeTab === 'issues'}
                     onClick={() => setActiveTab('issues')}
                   >
-                    Issues <span className="badge">1</span>
+                    Issues
+                    <span data-nextjs-devtools-panel-tab-issues-badge>
+                      {issueCount}
+                    </span>
                   </button>
                   <button
                     data-nextjs-devtools-panel-tab={activeTab === 'route'}
@@ -88,18 +93,30 @@ export function DevToolsPanel({
                     Settings
                   </button>
                 </div>
-                <div data-nextjs-devtools-panel-action-buttons>
+                <div data-nextjs-devtools-panel-action-button-group>
                   {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                  <button data-nextjs-devtools-panel-fullscreen-button>
+                  <button data-nextjs-devtools-panel-action-button>
                     <FullScreenIcon width={16} height={16} />
                   </button>
                   <button
-                    data-nextjs-devtools-panel-close-button
+                    data-nextjs-devtools-panel-action-button
                     onClick={onClose}
                   >
                     <Cross width={16} height={16} />
                   </button>
                 </div>
+              </div>
+              <div data-nextjs-devtools-panel-action-buttons>
+                {/* TODO: Currently no-op, will add fullscreen toggle. */}
+                <button data-nextjs-devtools-panel-fullscreen-button>
+                  <FullScreenIcon width={16} height={16} />
+                </button>
+                <button
+                  data-nextjs-devtools-panel-close-button
+                  onClick={onClose}
+                >
+                  <Cross width={16} height={16} />
+                </button>
               </div>
               <div data-nextjs-devtools-panel-action-buttons>
                 {/* TODO: Currently no-op, will add fullscreen toggle. */}
@@ -170,6 +187,8 @@ export const DEVTOOLS_PANEL_STYLES = css`
   }
 
   [data-nextjs-devtools-panel-tab] {
+    display: flex;
+    align-items: center;
     color: var(--color-gray-900);
     border-radius: var(--rounded-md-2);
     padding: 4px 12px;
