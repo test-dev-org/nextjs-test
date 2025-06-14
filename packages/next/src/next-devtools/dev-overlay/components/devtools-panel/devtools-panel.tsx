@@ -3,6 +3,7 @@ import type { OverlayDispatch, OverlayState } from '../../shared'
 import { useState } from 'react'
 
 import { DevToolsPanelFooter } from './devtools-panel-footer'
+import { DevToolsPanelTab } from './devtools-panel-tab/devtools-panel-tab'
 import { Dialog, DialogContent, DialogHeader, DialogBody } from '../dialog'
 import { Overlay } from '../overlay/overlay'
 import {
@@ -16,6 +17,8 @@ import { Draggable } from '../errors/dev-tools-indicator/draggable'
 import { INDICATOR_PADDING } from '../devtools-indicator/devtools-indicator'
 import { FullScreenIcon } from '../../icons/fullscreen'
 import { Cross } from '../../icons/cross'
+
+export type DevToolsPanelTabType = 'issues' | 'route' | 'settings'
 
 export function DevToolsPanel({
   state,
@@ -115,7 +118,9 @@ export function DevToolsPanel({
                   </div>
                 </div>
               </DialogHeader>
-              <DialogBody></DialogBody>
+              <DialogBody>
+                <DevToolsPanelTab activeTab={activeTab} />
+              </DialogBody>
             </DialogContent>
             <DevToolsPanelFooter versionInfo={state.versionInfo} />
           </Dialog>
