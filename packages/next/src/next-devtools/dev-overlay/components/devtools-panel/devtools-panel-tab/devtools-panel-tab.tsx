@@ -1,5 +1,7 @@
 import type { DevToolsPanelTabType } from '../devtools-panel'
 
+import { Settings } from './settings'
+
 export function DevToolsPanelTab({
   activeTab,
 }: {
@@ -7,7 +9,7 @@ export function DevToolsPanelTab({
 }) {
   switch (activeTab) {
     case 'settings':
-      return <div>Settings</div>
+      return <Settings />
     case 'route':
       return <div>Route</div>
     case 'issues':
