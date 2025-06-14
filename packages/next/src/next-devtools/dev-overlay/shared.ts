@@ -10,6 +10,14 @@ import { isConsoleError } from '../shared/console-error'
 
 export type Corners = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
+const BASE_SIZE = 16
+
+export const NEXT_DEV_TOOLS_SCALE = {
+  Small: BASE_SIZE / 14,
+  Medium: BASE_SIZE / 16,
+  Large: BASE_SIZE / 18,
+}
+
 type FastRefreshState =
   /** No refresh in progress. */
   | { type: 'idle' }
@@ -33,6 +41,7 @@ export interface OverlayState {
   isErrorOverlayOpen: boolean
   isDevToolsPanelOpen: boolean
   devToolsPosition: Corners
+  scale: number
 }
 export type OverlayDispatch = React.Dispatch<DispatcherEvent>
 
@@ -61,6 +70,7 @@ export const ACTION_DEVTOOLS_PANEL_CLOSE = 'devtools-panel-close'
 export const ACTION_DEVTOOLS_PANEL_TOGGLE = 'devtools-panel-toggle'
 
 export const ACTION_DEVTOOLS_POSITION = 'devtools-position'
+export const ACTION_DEVTOOLS_SCALE = 'devtools-scale'
 
 export const STORAGE_KEY_THEME = '__nextjs-dev-tools-theme'
 export const STORAGE_KEY_POSITION = '__nextjs-dev-tools-position'
@@ -148,6 +158,11 @@ export interface DevToolsIndicatorPositionAction {
   devToolsPosition: Corners
 }
 
+export interface DevToolsScaleAction {
+  type: typeof ACTION_DEVTOOLS_SCALE
+  scale: number
+}
+
 export type DispatcherEvent =
   | BuildOkAction
   | BuildErrorAction
@@ -170,6 +185,7 @@ export type DispatcherEvent =
   | DevToolsPanelCloseAction
   | DevToolsPanelToggleAction
   | DevToolsIndicatorPositionAction
+  | DevToolsScaleAction
 
 const REACT_ERROR_STACK_BOTTOM_FRAME_REGEX =
   // 1st group: v8
@@ -210,6 +226,7 @@ export const INITIAL_OVERLAY_STATE: Omit<
   debugInfo: { devtoolsFrontendUrl: undefined },
   isDevToolsPanelOpen: false,
   devToolsPosition: 'bottom-left',
+  scale: NEXT_DEV_TOOLS_SCALE.Medium,
 }
 
 function getInitialState(
@@ -383,6 +400,9 @@ export function useErrorOverlayReducer(
         }
         case ACTION_DEVTOOLS_POSITION: {
           return { ...state, devToolsPosition: action.devToolsPosition }
+        }
+        case ACTION_DEVTOOLS_SCALE: {
+          return { ...state, scale: action.scale }
         }
         default: {
           return state
