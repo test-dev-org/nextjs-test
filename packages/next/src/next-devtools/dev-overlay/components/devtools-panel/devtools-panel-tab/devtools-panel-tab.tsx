@@ -1,7 +1,7 @@
 import type { DevToolsPanelTabType } from '../devtools-panel'
 import type { OverlayDispatch, OverlayState } from '../../../shared'
 
-import { Settings } from './settings'
+import { SettingsTab } from './settings-tab'
 
 export function DevToolsPanelTab({
   activeTab,
@@ -14,7 +14,7 @@ export function DevToolsPanelTab({
 }) {
   switch (activeTab) {
     case 'settings':
-      return <Settings state={state} dispatch={dispatch} />
+      return <SettingsTab state={state} dispatch={dispatch} />
     case 'route':
       return <div>Route</div>
     case 'issues':
