@@ -10,7 +10,7 @@ import {
   type SetIncrementalResponseCacheContext,
 } from '../../response-cache'
 
-import { LRUCache } from '../lru-cache'
+import type { LRUCache } from '../lru-cache'
 import path from '../../../shared/lib/isomorphic/path'
 import {
   NEXT_CACHE_TAGS_HEADER,
@@ -23,6 +23,7 @@ import {
 } from '../../../lib/constants'
 import { isStale, tagsManifest } from './tags-manifest.external'
 import { MultiFileWriter } from '../../../lib/multi-file-writer'
+import { getMemoryCache } from './memory-cache.external'
 
 type FileSystemCacheContext = Omit<
   CacheHandlerContext,
@@ -52,31 +53,7 @@ export default class FileSystemCache implements CacheHandler {
           console.log('using memory store for fetch cache')
         }
 
-        FileSystemCache.memoryCache = new LRUCache(
-          ctx.maxMemoryCacheSize,
-          function length({ value }) {
-            if (!value) {
-              return 25
-            } else if (value.kind === CachedRouteKind.REDIRECT) {
-              return JSON.stringify(value.props).length
-            } else if (value.kind === CachedRouteKind.IMAGE) {
-              throw new Error('invariant image should not be incremental-cache')
-            } else if (value.kind === CachedRouteKind.FETCH) {
-              return JSON.stringify(value.data || '').length
-            } else if (value.kind === CachedRouteKind.APP_ROUTE) {
-              return value.body.length
-            }
-            // rough estimate of size of cache value
-            return (
-              value.html.length +
-              (JSON.stringify(
-                value.kind === CachedRouteKind.APP_PAGE
-                  ? value.rscData
-                  : value.pageData
-              )?.length || 0)
-            )
-          }
-        )
+        FileSystemCache.memoryCache = getMemoryCache(ctx.maxMemoryCacheSize)
       } else if (FileSystemCache.debug) {
         console.log('memory store already initialized')
       }

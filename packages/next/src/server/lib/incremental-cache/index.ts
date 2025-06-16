@@ -452,23 +452,6 @@ export class IncrementalCache implements IncrementalCacheType {
         return null
       }
 
-      // As we're able to get the cache entry for this fetch, and the prerender
-      // resume data cache (RDC) is available, it must have been populated by a
-      // previous fetch, but was not yet present in the in-memory cache. This
-      // could be the case when performing multiple renders in parallel during
-      // build time where we de-duplicate the fetch calls.
-      //
-      // We add it to the RDC so that the next fetch call will be able to use it
-      // and it won't have to reach into the fetch cache implementation.
-      const workUnitStore = workUnitAsyncStorage.getStore()
-      if (workUnitStore) {
-        const prerenderResumeDataCache =
-          getPrerenderResumeDataCache(workUnitStore)
-        if (prerenderResumeDataCache) {
-          prerenderResumeDataCache.fetch.set(cacheKey, cacheData.value)
-        }
-      }
-
       const revalidate = ctx.revalidate || cacheData.value.revalidate
       const age =
         (performance.timeOrigin +
