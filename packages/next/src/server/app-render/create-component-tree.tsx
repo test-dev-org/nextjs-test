@@ -118,7 +118,7 @@ async function createComponentTreeInternal({
     query,
   } = ctx
 
-  const { page, layoutOrPagePath, segment, modules, parallelRoutes } =
+  const { page, conventionPath, segment, modules, parallelRoutes } =
     parseLoaderTree(tree)
 
   const {
@@ -140,7 +140,7 @@ async function createComponentTreeInternal({
   const layerAssets = getLayerAssets({
     preloadCallbacks,
     ctx,
-    layoutOrPagePath,
+    layoutOrPagePath: conventionPath,
     injectedCSS: injectedCSSWithCurrentLayout,
     injectedJS: injectedJSWithCurrentLayout,
     injectedFontPreloadTags: injectedFontPreloadTagsWithCurrentLayout,
@@ -421,6 +421,17 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
+  const dir = ctx.renderOpts.dir || process.cwd()
+  const normalizedConventionUrl = normalizeConventionFilePath(
+    dir,
+    conventionPath
+  )
+
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const nodeName = modType ?? 'page'
+
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
   const parallelRouteMap = await Promise.all(
@@ -491,7 +502,7 @@ async function createComponentTreeInternal({
             // to provide more helpful debug information during development mode.
             const parsedTree = parseLoaderTree(parallelRoute)
             if (
-              parsedTree.layoutOrPagePath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
+              parsedTree.conventionPath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
             ) {
               missingSlots.add(parallelRouteKey)
             }
@@ -526,6 +537,11 @@ async function createComponentTreeInternal({
           childCacheNodeSeedData = seedData
         }
 
+        const templateNode = (
+          <Template>
+            <RenderFromTemplateContext />
+          </Template>
+        )
         // This is turned back into an object below.
         return [
           parallelRouteKey,
@@ -536,9 +552,16 @@ async function createComponentTreeInternal({
             errorStyles={errorStyles}
             errorScripts={errorScripts}
             template={
-              <Template>
-                <RenderFromTemplateContext />
-              </Template>
+              isSegmentViewEnabled ? (
+                <SegmentViewNode
+                  type="template"
+                  pagePath={normalizedConventionUrl}
+                >
+                  {templateNode}
+                </SegmentViewNode>
+              ) : (
+                templateNode
+              )
             }
             templateStyles={templateStyles}
             templateScripts={templateScripts}
@@ -628,20 +651,11 @@ async function createComponentTreeInternal({
     )
   }
 
-  const dir = ctx.renderOpts.dir || process.cwd()
-  const isSegmentViewEnabled =
-    process.env.NODE_ENV === 'development' &&
-    ctx.renderOpts.devtoolSegmentExplorer
-  const nodeName = modType ?? 'page'
-
   if (isPage) {
     const PageComponent = isSegmentViewEnabled
       ? (pageProps: any) => {
           return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
+            <SegmentViewNode type={nodeName} pagePath={normalizedConventionUrl}>
               <Component {...pageProps} />
             </SegmentViewNode>
           )
@@ -730,10 +744,7 @@ async function createComponentTreeInternal({
     const SegmentComponent = isSegmentViewEnabled
       ? (segmentProps: any) => {
           return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
+            <SegmentViewNode type={nodeName} pagePath={normalizedConventionUrl}>
               <Component {...segmentProps} />
             </SegmentViewNode>
           )
@@ -1010,11 +1021,11 @@ function getRootParamsImpl(
   }
 }
 
-function normalizePageOrLayoutFilePath(
+function normalizeConventionFilePath(
   projectDir: string,
-  layoutOrPagePath: string | undefined
+  conventionPath: string | undefined
 ) {
-  const relativePath = (layoutOrPagePath || '')
+  const relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
     // remove the process.cwd() prefix

@@ -41,6 +41,7 @@ describe('segment-explorer', () => {
     expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
      "app/layout.tsx
      (v2)/layout.tsx
+     blog/template.tsx
      (team)/layout.tsx
      (overview)/layout.tsx
      grid/page.tsx"
