@@ -1267,10 +1267,10 @@ export default async function loadConfig(
       throw err
     }
 
-    const userConfig = (await normalizeConfig(
-      phase,
-      userConfigModule.default || userConfigModule
-    )) as NextConfig
+    // Clone a new userConfig each time to avoid mutating the original
+    const userConfig = structuredClone(
+      await normalizeConfig(phase, userConfigModule.default || userConfigModule)
+    ) as NextConfig
 
     if (!process.env.NEXT_MINIMAL) {
       // We only validate the config against schema in non minimal mode
