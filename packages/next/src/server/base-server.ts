@@ -2637,7 +2637,7 @@ export default abstract class Server<
             const parsedInitUrl = parseUrl(
               getRequestMeta(req, 'initURL') || req.url
             )
-            request.url = `${parsedInitUrl.pathname}${parsedInitUrl.search || ''}`
+            request.url = `${parsedInitUrl.pathname?.replace(/(\.prefetch\.rsc|\.rsc)$/, '')}${parsedInitUrl.search || ''}`
 
             // propagate the request context for dev
             setRequestMeta(request, getRequestMeta(req))
@@ -2774,9 +2774,9 @@ export default abstract class Server<
 
                 // If the warmup is successful, we should use the resume data
                 // cache from the warmup.
-                if (warmup.metadata.devRenderResumeDataCache) {
-                  renderOpts.devRenderResumeDataCache =
-                    warmup.metadata.devRenderResumeDataCache
+                if (warmup.metadata.renderResumeDataCache) {
+                  renderOpts.renderResumeDataCache =
+                    warmup.metadata.renderResumeDataCache
                 }
               }
 
