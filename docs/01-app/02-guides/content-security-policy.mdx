@@ -232,14 +232,23 @@ export async function getServerSideProps({ req }) {
 You can also access the nonce in `_document.tsx` for Pages Router applications:
 
 ```tsx filename="pages/_document.tsx" switcher
-import Document, { Html, Head, Main, NextScript, DocumentContext, DocumentInitialProps } from 'next/document'
+import Document, {
+  Html,
+  Head,
+  Main,
+  NextScript,
+  DocumentContext,
+  DocumentInitialProps,
+} from 'next/document'
 
 interface ExtendedDocumentProps extends DocumentInitialProps {
   nonce?: string
 }
 
 class MyDocument extends Document<ExtendedDocumentProps> {
-  static async getInitialProps(ctx: DocumentContext): Promise<ExtendedDocumentProps> {
+  static async getInitialProps(
+    ctx: DocumentContext
+  ): Promise<ExtendedDocumentProps> {
     const initialProps = await Document.getInitialProps(ctx)
     const nonce = ctx.req?.headers?.['x-nonce'] as string | undefined
 
@@ -251,7 +260,7 @@ class MyDocument extends Document<ExtendedDocumentProps> {
 
   render() {
     const { nonce } = this.props
-    
+
     return (
       <Html lang="en">
         <Head nonce={nonce} />
@@ -283,7 +292,7 @@ class MyDocument extends Document {
 
   render() {
     const { nonce } = this.props
-    
+
     return (
       <Html lang="en">
         <Head nonce={nonce} />
@@ -349,10 +358,11 @@ Using nonces has important implications for how your Next.js application renders
 
 When you use nonces in your CSP, **all pages become dynamically rendered**. This means:
 
-- Pages cannot be statically generated at build time
+- Pages will build successfully but may encounter runtime errors if not properly configured for dynamic rendering
 - Each request generates a fresh page with a new nonce
 - Static optimization and Incremental Static Regeneration (ISR) are disabled
 - Pages cannot be cached by CDNs without additional configuration
+- **Partial Prerendering (PPR) is incompatible** with nonce-based CSP since static shell scripts won't have access to the nonce
 
 ### Performance Implications
 
@@ -366,6 +376,7 @@ The shift from static to dynamic rendering affects performance:
 ### When to use nonces
 
 Consider nonces when:
+
 - You have strict security requirements that prohibit `'unsafe-inline'`
 - Your application handles sensitive data
 - You need to allow specific inline scripts while blocking others
@@ -397,6 +408,8 @@ export default function Page() {
 
 </AppOnly>
 
+<AppOnly>
+
 ## Hash-based CSP with Subresource Integrity (Experimental)
 
 As an alternative to nonces, Next.js offers experimental support for hash-based CSP using Subresource Integrity (SRI). This approach allows you to maintain static generation while still having a strict CSP.
@@ -416,9 +429,9 @@ Add the experimental SRI configuration to your `next.config.js`:
 const nextConfig = {
   experimental: {
     sri: {
-      algorithm: 'sha256' // or 'sha384' or 'sha512'
-    }
-  }
+      algorithm: 'sha256', // or 'sha384' or 'sha512'
+    },
+  },
 }
 
 module.exports = nextConfig
@@ -445,8 +458,8 @@ const cspHeader = `
 module.exports = {
   experimental: {
     sri: {
-      algorithm: 'sha256'
-    }
+      algorithm: 'sha256',
+    },
   },
   async headers() {
     return [
@@ -478,6 +491,8 @@ module.exports = {
 - **App Router only**: Not supported in Pages Router
 - **Build-time only**: Cannot handle dynamically generated scripts
 
+</AppOnly>
+
 ## Development vs Production Considerations
 
 CSP implementation differs between development and production environments:
@@ -490,7 +505,7 @@ In development, you may need to allow `'unsafe-eval'` for Hot Module Replacement
 export function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV === 'development'
-  
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
@@ -503,7 +518,7 @@ export function middleware(request: NextRequest) {
     frame-ancestors 'none';
     upgrade-insecure-requests;
 `
-  
+
   // Rest of middleware implementation
 }
 ```
@@ -512,7 +527,7 @@ export function middleware(request: NextRequest) {
 export function middleware(request) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV === 'development'
-  
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
@@ -525,7 +540,7 @@ export function middleware(request) {
     frame-ancestors 'none';
     upgrade-insecure-requests;
 `
-  
+
   // Rest of middleware implementation
 }
 ```
@@ -576,6 +591,83 @@ export default function NotFound() {
 
 2. **Error boundary**: Use error boundaries to handle CSP violations gracefully
 
+```tsx filename="app/components/CSPErrorBoundary.tsx" switcher
+'use client'
+
+import { Component, ErrorInfo, ReactNode } from 'react'
+
+interface Props {
+  children: ReactNode
+}
+
+interface State {
+  hasError: boolean
+  error?: Error
+}
+
+export class CSPErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('CSP Error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Content Security Policy Error</h2>
+          <p>This content was blocked by your security policy.</p>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+```
+
+```jsx filename="app/components/CSPErrorBoundary.jsx" switcher
+'use client'
+
+import { Component } from 'react'
+
+export class CSPErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('CSP Error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Content Security Policy Error</h2>
+          <p>This content was blocked by your security policy.</p>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+```
+
 </AppOnly>
 
 <PagesOnly>
@@ -614,7 +706,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const nonce = (await headers()).get('x-nonce')
-  
+
   return (
     <html lang="en">
       <body>
@@ -632,7 +724,7 @@ import { headers } from 'next/headers'
 
 export default async function RootLayout({ children }) {
   const nonce = (await headers()).get('x-nonce')
-  
+
   return (
     <html lang="en">
       <body>
@@ -656,7 +748,7 @@ import Script from 'next/script'
 
 export default function App({ Component, pageProps }: AppProps) {
   const nonce = pageProps.nonce
-  
+
   return (
     <>
       <Component {...pageProps} />
@@ -675,7 +767,7 @@ import Script from 'next/script'
 
 export default function App({ Component, pageProps }) {
   const nonce = pageProps.nonce
-  
+
   return (
     <>
       <Component {...pageProps} />
@@ -720,6 +812,8 @@ const cspHeader = `
 
 ## Examples
 
+<AppOnly>
+
 ### Static Site with Hash-based CSP
 
 For static sites that need strict CSP, use the experimental SRI feature:
@@ -730,8 +824,8 @@ const nextConfig = {
   output: 'export', // Static export
   experimental: {
     sri: {
-      algorithm: 'sha256'
-    }
+      algorithm: 'sha256',
+    },
   },
   async headers() {
     return [
@@ -750,7 +844,9 @@ const nextConfig = {
               base-uri 'self';
               form-action 'self';
               frame-ancestors 'none';
-            `.replace(/\s+/g, ' ').trim(),
+            `
+              .replace(/\s+/g, ' ')
+              .trim(),
           },
         ],
       },
@@ -760,6 +856,8 @@ const nextConfig = {
 
 module.exports = nextConfig
 ```
+
+</AppOnly>
 
 ### Dynamic Site with Nonce-based CSP
 
@@ -771,7 +869,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV === 'development'
-  
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
@@ -791,12 +889,14 @@ export function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   })
-  response.headers.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
+  response.headers.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
 
   return response
 }
@@ -820,7 +920,7 @@ import { NextResponse } from 'next/server'
 export function middleware(request) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const isDev = process.env.NODE_ENV === 'development'
-  
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''};
@@ -840,12 +940,14 @@ export function middleware(request) {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   })
-  response.headers.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
+  response.headers.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
 
   return response
 }
@@ -872,8 +974,8 @@ You can combine both approaches for different parts of your application:
 const nextConfig = {
   experimental: {
     sri: {
-      algorithm: 'sha256'
-    }
+      algorithm: 'sha256',
+    },
   },
   // Use static CSP for marketing pages
   async headers() {
