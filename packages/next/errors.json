@@ -712,5 +712,7 @@
   "711": "Can't resolve %s",
   "712": "`rspack.warnForEdgeRuntime` is not supported by the wasm bindings.",
   "713": "Unexpected error during process lookup",
-  "714": "cannot run loadNative when `NEXT_TEST_WASM` is set"
+  "714": "cannot run loadNative when `NEXT_TEST_WASM` is set",
+  "715": "expected a result to be returned",
+  "716": "expected a page response, got %s"
 }
