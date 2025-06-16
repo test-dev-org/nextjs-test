@@ -1323,7 +1323,19 @@ export const defaultConfig = {
     serverSourceMaps: false,
     linkNoTouchStart: false,
     caseSensitiveRoutes: false,
-    clientSegmentCache: false,
+    clientSegmentCache:
+      // TODO: Remove once we've made clientSegmentCache the default. We're
+      // piggybacking on the PPR test flag, instead of introducing a separate
+      // CI run.
+      //
+      // If we're testing, and the `__NEXT_EXPERIMENTAL_PPR` environment
+      // variable has been set to `true`, enable the experimental
+      // clientSegmentCache feature so long as it wasn't explicitly disabled in
+      // the config.
+      !!(
+        process.env.__NEXT_TEST_MODE &&
+        process.env.__NEXT_EXPERIMENTAL_PPR === 'true'
+      ),
     dynamicOnHover: false,
     appDocumentPreloading: undefined,
     preloadEntriesOnStart: true,
