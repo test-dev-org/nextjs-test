@@ -431,8 +431,8 @@ When SRI is enabled, you can use hash-based CSP policies:
 ```js filename="next.config.js"
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'sha256-{hash-will-be-generated}';
-    style-src 'self' 'sha256-{hash-will-be-generated}';
+    script-src 'self'; /* Next.js will automatically add hashes */
+    style-src 'self'; /* Next.js will automatically add hashes */
     img-src 'self' blob: data:;
     font-src 'self';
     object-src 'none';
