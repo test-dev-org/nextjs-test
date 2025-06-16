@@ -33,7 +33,7 @@ function PageSegmentTreeLayerPresentation({
 }) {
   const pagePath = node.value?.pagePath || ''
   const nodeName = node.value?.type
-  const isFile = !!nodeName
+  const isFile = !!nodeName && !!pagePath
 
   const segments = pagePath.split('/') || []
   const fileName = isFile ? segments.pop() || '' : ''
