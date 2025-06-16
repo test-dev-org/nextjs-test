@@ -6516,6 +6516,33 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace-base-path.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace basePath should be able to connect to Chrome DevTools in dev with a configured basePath"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace-custom-disable.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace custom disable can be disabled by providing your own endpoint"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace default should be able to connect to Chrome DevTools in dev"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/config-promise-export/async-function.test.ts": {
     "passed": ["async export should work"],
     "failed": [],
@@ -17766,7 +17793,6 @@
   "test/integration/server-side-dev-errors/test/index.test.js": {
     "passed": [
       "server-side dev errors should show server-side error for api route correctly",
-      "server-side dev errors should show server-side error for dynamic api route correctly",
       "server-side dev errors should show server-side error for dynamic gssp page correctly",
       "server-side dev errors should show server-side error for gsp page correctly",
       "server-side dev errors should show server-side error for gssp page correctly",
@@ -17775,7 +17801,9 @@
       "server-side dev errors should show server-side error for uncaught exception correctly",
       "server-side dev errors should show server-side error for uncaught rejection correctly"
     ],
-    "failed": [],
+    "failed": [
+      "server-side dev errors should show server-side error for dynamic api route correctly"
+    ],
     "pending": [],
     "flakey": [],
     "runtimeError": false
@@ -19878,6 +19906,15 @@
   },
   "test/production/typescript-basic/typechecking.test.ts": {
     "passed": ["typechecking should typecheck"],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/production/typescript-checked-side-effect-imports/index.test.ts": {
+    "passed": [
+      "Imports of server/client-only with noUncheckedSideEffectImports Should build without typescript errors"
+    ],
     "failed": [],
     "pending": [],
     "flakey": [],
