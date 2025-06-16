@@ -1,5 +1,5 @@
 import type { RouteMetadata } from '../../../export/routes/types'
-import type { CacheHandler, CacheHandlerContext, CacheHandlerValue } from './'
+import type { CacheHandler, CacheHandlerContext, CacheHandlerValue } from '.'
 import type { CacheFs } from '../../../shared/lib/utils'
 import {
   CachedRouteKind,
@@ -32,54 +32,55 @@ type FileSystemCacheContext = Omit<
   serverDistDir: string
 }
 
-let memoryCache: LRUCache<CacheHandlerValue> | undefined
-
 export default class FileSystemCache implements CacheHandler {
   private fs: FileSystemCacheContext['fs']
   private flushToDisk?: FileSystemCacheContext['flushToDisk']
   private serverDistDir: FileSystemCacheContext['serverDistDir']
   private revalidatedTags: string[]
-  private debug: boolean
+  private static debug: boolean = !!process.env.NEXT_PRIVATE_DEBUG_CACHE
+  private static memoryCache: LRUCache<CacheHandlerValue> | undefined
 
   constructor(ctx: FileSystemCacheContext) {
     this.fs = ctx.fs
     this.flushToDisk = ctx.flushToDisk
     this.serverDistDir = ctx.serverDistDir
     this.revalidatedTags = ctx.revalidatedTags
-    this.debug = !!process.env.NEXT_PRIVATE_DEBUG_CACHE
 
     if (ctx.maxMemoryCacheSize) {
-      if (!memoryCache) {
-        if (this.debug) {
+      if (!FileSystemCache.memoryCache) {
+        if (FileSystemCache.debug) {
           console.log('using memory store for fetch cache')
         }
 
-        memoryCache = new LRUCache(ctx.maxMemoryCacheSize, function length({
-          value,
-        }) {
-          if (!value) {
-            return 25
-          } else if (value.kind === CachedRouteKind.REDIRECT) {
-            return JSON.stringify(value.props).length
-          } else if (value.kind === CachedRouteKind.IMAGE) {
-            throw new Error('invariant image should not be incremental-cache')
-          } else if (value.kind === CachedRouteKind.FETCH) {
-            return JSON.stringify(value.data || '').length
-          } else if (value.kind === CachedRouteKind.APP_ROUTE) {
-            return value.body.length
+        FileSystemCache.memoryCache = new LRUCache(
+          ctx.maxMemoryCacheSize,
+          function length({ value }) {
+            if (!value) {
+              return 25
+            } else if (value.kind === CachedRouteKind.REDIRECT) {
+              return JSON.stringify(value.props).length
+            } else if (value.kind === CachedRouteKind.IMAGE) {
+              throw new Error('invariant image should not be incremental-cache')
+            } else if (value.kind === CachedRouteKind.FETCH) {
+              return JSON.stringify(value.data || '').length
+            } else if (value.kind === CachedRouteKind.APP_ROUTE) {
+              return value.body.length
+            }
+            // rough estimate of size of cache value
+            return (
+              value.html.length +
+              (JSON.stringify(
+                value.kind === CachedRouteKind.APP_PAGE
+                  ? value.rscData
+                  : value.pageData
+              )?.length || 0)
+            )
           }
-          // rough estimate of size of cache value
-          return (
-            value.html.length +
-            (JSON.stringify(
-              value.kind === CachedRouteKind.APP_PAGE
-                ? value.rscData
-                : value.pageData
-            )?.length || 0)
-          )
-        })
+        )
+      } else if (FileSystemCache.debug) {
+        console.log('memory store already initialized')
       }
-    } else if (this.debug) {
+    } else if (FileSystemCache.debug) {
       console.log('not using memory store for fetch cache')
     }
   }
@@ -92,7 +93,7 @@ export default class FileSystemCache implements CacheHandler {
     let [tags] = args
     tags = typeof tags === 'string' ? [tags] : tags
 
-    if (this.debug) {
+    if (FileSystemCache.debug) {
       console.log('revalidateTag', tags)
     }
 
@@ -111,9 +112,9 @@ export default class FileSystemCache implements CacheHandler {
     const [key, ctx] = args
     const { kind } = ctx
 
-    let data = memoryCache?.get(key)
+    let data = FileSystemCache.memoryCache?.get(key)
 
-    if (this.debug) {
+    if (FileSystemCache.debug) {
       if (kind === IncrementalCacheKind.FETCH) {
         console.log('get', key, ctx.tags, kind, !!data)
       } else {
@@ -182,7 +183,7 @@ export default class FileSystemCache implements CacheHandler {
             // TODO: remove this when we can send the tags
             // via header on GET same as SET
             if (!tags?.every((tag) => storedTags?.includes(tag))) {
-              if (this.debug) {
+              if (FileSystemCache.debug) {
                 console.log('tags vs storedTags mismatch', tags, storedTags)
               }
               await this.set(key, data.value, {
@@ -291,7 +292,7 @@ export default class FileSystemCache implements CacheHandler {
         }
 
         if (data) {
-          memoryCache?.set(key, data)
+          FileSystemCache.memoryCache?.set(key, data)
         }
       } catch {
         return null
@@ -345,12 +346,12 @@ export default class FileSystemCache implements CacheHandler {
     data: IncrementalCacheValue | null,
     ctx: SetIncrementalFetchCacheContext | SetIncrementalResponseCacheContext
   ) {
-    memoryCache?.set(key, {
+    FileSystemCache.memoryCache?.set(key, {
       value: data,
       lastModified: Date.now(),
     })
 
-    if (this.debug) {
+    if (FileSystemCache.debug) {
       console.log('set', key)
     }
 
