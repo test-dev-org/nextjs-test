@@ -248,7 +248,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
         for chunk_group in &chunk_group_info.chunk_groups {
             // A partition of all modules in the chunk into several execution traces (orderings),
             // stored in the top-level lists and referenced here by index.
-            let mut chunk_lists: FxHashMap<RoaringBitmapWrapper, usize> =
+            let mut chunk_lists: FxHashMap<&RoaringBitmapWrapper, usize> =
                 FxHashMap::with_capacity_and_hasher(
                     module_merged_groups.len() / chunk_group_info.chunk_groups.len(),
                     Default::default(),
@@ -279,7 +279,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                             && let Some(mergeable_module) =
                                 ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
                         {
-                            match chunk_lists.entry(bitmap.clone()) {
+                            match chunk_lists.entry(bitmap) {
                                 Entry::Vacant(e) => {
                                     // New list, insert the module
                                     let idx = lists.len();
