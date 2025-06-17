@@ -253,6 +253,7 @@ function leafLayerName(items: PlainTraceItem[]): string | undefined {
   }
   return undefined
 }
+
 /**
  * Returns whether or not all items share the same layer.
  * If a layer is absent we ignore it in this analysis
