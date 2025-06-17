@@ -71,8 +71,8 @@ pub use transform::{
 };
 use turbo_rcstr::rcstr;
 use turbo_tasks::{
-    FxIndexMap, NonLocalValue, ReadRef, ResolvedVc, TaskInput, TryJoinIterExt, ValueToString, Vc,
-    trace::TraceRawVcs,
+    FxIndexMap, IntoTraitRef, NonLocalValue, ReadRef, ResolvedVc, TaskInput, TryJoinIterExt,
+    ValueToString, Vc, trace::TraceRawVcs,
 };
 use turbo_tasks_fs::{FileJsonContent, FileSystemPath, glob::Glob, rope::Rope};
 use turbopack_core::{
@@ -645,7 +645,7 @@ impl Module for EcmascriptModuleAsset {
             }
         }
         ident.add_modifier(rcstr!("ecmascript"));
-        ident.layer = Some(self.asset_context.layer().owned().await?);
+        ident.layer = Some(self.asset_context.into_trait_ref().await?.layer());
         Ok(AssetIdent::new(ident))
     }
 
