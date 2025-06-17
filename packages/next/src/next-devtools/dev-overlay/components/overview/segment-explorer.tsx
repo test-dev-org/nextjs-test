@@ -174,6 +174,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
 
   .segment-explorer-item {
     margin: 4px 0;
+    border-radius: 6px;
   }
 
   .segment-explorer-item:nth-child(odd) {
@@ -183,14 +184,17 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
   .segment-explorer-item-row {
     display: flex;
     align-items: center;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     padding-right: 4px;
-    border-radius: 6px;
   }
 
   .segment-explorer-children--intended {
     padding-left: 16px;
+  }
+
+  .segment-explorer-filename {
+    display: inline-flex;
   }
 
   .segment-explorer-filename--path {
@@ -216,8 +220,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
 
   .segment-explorer-files {
     display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    gap: 8px;
   }
 
   .segment-explorer-file-label {
@@ -225,14 +228,16 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     border-radius: 16px;
     font-size: var(--size-12);
     line-height: 16px;
+    font-weight: 500;
+    user-select: none;
   }
   .segment-explorer-file-label--layout,
   .segment-explorer-file-label--template {
-    background-color: var(--color-gray-100);
+    background-color: var(--color-gray-300);
     color: var(--color-gray-1000);
   }
   .segment-explorer-file-label--page {
-    background-color: var(--color-blue-100);
+    background-color: var(--color-blue-300);
     color: var(--color-blue-800);
   }
 `

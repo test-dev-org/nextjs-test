@@ -421,9 +421,7 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
-  const dir =
-    ctx.renderOpts.dir ||
-    (process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd())
+  const dir = ctx.renderOpts.dir || ''
 
   const isSegmentViewEnabled =
     process.env.NODE_ENV === 'development' &&
@@ -1030,11 +1028,14 @@ function normalizeConventionFilePath(
   projectDir: string,
   conventionPath: string | undefined
 ) {
+  const cwd = process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd()
   const relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
     // remove the project root from the path
     .replace(projectDir, '')
+    // remove cwd prefix
+    .replace(cwd, '')
     // remove /(src/)?app/ dir prefix
     .replace(/^([\\/])*(src[\\/])?app[\\/]/, '')
 
@@ -1042,13 +1043,13 @@ function normalizeConventionFilePath(
 }
 
 function getConventionPathByType(
-  tree_: LoaderTree,
+  tree: LoaderTree,
   dir: string,
   conventionType: 'layout' | 'template' | 'page'
 ) {
-  const modules_ = tree_[2]
-  const conventionPath_ = modules_[conventionType]
-    ? modules_[conventionType][1]
+  const modules = tree[2]
+  const conventionPath_ = modules[conventionType]
+    ? modules[conventionType][1]
     : undefined
   if (conventionPath_) {
     return normalizeConventionFilePath(dir, conventionPath_)
