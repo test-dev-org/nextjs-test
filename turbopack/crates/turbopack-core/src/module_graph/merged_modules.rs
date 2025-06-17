@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, collections::hash_map::Entry};
 
 use anyhow::{Context, Result, bail};
-use roaring::RoaringBitmap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::Instrument;
 use turbo_tasks::{
@@ -166,26 +165,12 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                             let idx = next_index;
                             next_index += 1;
 
-                            match module_merged_groups.entry(module) {
-                                Entry::Occupied(mut entry) => {
-                                    let current = entry.get_mut();
-                                    if !current.contains(idx) {
-                                        // Mark and continue traversal because modified
-                                        current.insert(idx);
-                                        GraphTraversalAction::Continue
-                                    } else {
-                                        // Unchanged, no need to forward to children
-                                        GraphTraversalAction::Skip
-                                    }
-                                }
-                                Entry::Vacant(entry) => {
-                                    // First visit
-                                    entry.insert(RoaringBitmapWrapper(
-                                        RoaringBitmap::from_sorted_iter(std::iter::once(idx))
-                                            .unwrap(),
-                                    ));
-                                    GraphTraversalAction::Continue
-                                }
+                            if module_merged_groups.entry(module).or_default().insert(idx) {
+                                // Mark and continue traversal because modified (or first visit)
+                                GraphTraversalAction::Continue
+                            } else {
+                                // Unchanged, no need to forward to children
+                                GraphTraversalAction::Skip
                             }
                         } else {
                             // Already visited and assigned a new group, no need to forward to
