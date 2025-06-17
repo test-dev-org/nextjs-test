@@ -274,10 +274,12 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                     },
                     |parent_info, node, _| {
                         let module = node.module;
+                        let bitmap = module_merged_groups
+                            .get(&module)
+                            .context("every module should have a bitmap at this point")?;
 
-                        if let Some(bitmap) = module_merged_groups.get(&module)
-                            && let Some(mergeable_module) =
-                                ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
+                        if let Some(mergeable_module) =
+                            ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
                         {
                             match chunk_lists.entry(bitmap) {
                                 Entry::Vacant(e) => {
