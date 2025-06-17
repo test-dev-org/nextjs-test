@@ -81,6 +81,7 @@ impl ParseCss for CssModuleAsset {
             Vc::upcast(self),
             this.import_context.map(|v| *v),
             this.ty,
+            this.browserslist_query.clone(),
         ))
     }
 }

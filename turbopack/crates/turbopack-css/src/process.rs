@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{Context, Result, bail};
 use lightningcss::{
     css_modules::{CssModuleExport, CssModuleExports, Pattern, Segment},
-    stylesheet::{ParserOptions, PrinterOptions, StyleSheet, ToCssResult},
+    stylesheet::{MinifyOptions, ParserOptions, PrinterOptions, StyleSheet, ToCssResult},
     targets::{Features, Targets},
     traits::ToCss,
     values::url::Url,
@@ -53,6 +53,29 @@ impl PartialEq for StyleSheetLike<'_, '_> {
 
 pub type CssOutput = (ToCssResult, Option<Rope>);
 
+/// Returns the LightningCSS targets for the given browserslist query.
+fn get_lightningcss_browser_targets(
+    browserslist_query: RcStr,
+    handle_nesting: bool,
+) -> Result<Targets> {
+    println!("browserslist_query: {:?}", browserslist_query);
+    let browserslist_browsers =
+        lightningcss::targets::Browsers::from_browserslist(browserslist_query.split(','))?;
+
+    Ok(if handle_nesting {
+        Targets {
+            browsers: browserslist_browsers,
+            include: Features::Nesting,
+            ..Default::default()
+        }
+    } else {
+        Targets {
+            browsers: browserslist_browsers,
+            ..Default::default()
+        }
+    })
+}
+
 impl StyleSheetLike<'_, '_> {
     pub fn to_static(
         &self,
@@ -77,21 +100,7 @@ impl StyleSheetLike<'_, '_> {
             None
         };
 
-        let browserslist_browsers =
-            lightningcss::targets::Browsers::from_browserslist(browserslist_query.split(','))?;
-
-        let targets = if handle_nesting {
-            Targets {
-                browsers: browserslist_browsers,
-                include: Features::Nesting,
-                ..Default::default()
-            }
-        } else {
-            Targets {
-                browsers: browserslist_browsers,
-                ..Default::default()
-            }
-        };
+        let targets = get_lightningcss_browser_targets(browserslist_query, handle_nesting)?;
 
         let result = ss.to_css(PrinterOptions {
             minify: matches!(minify_type, MinifyType::Minify { .. }),
@@ -336,6 +345,7 @@ pub async fn parse_css(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
+    browserslist_query: RcStr,
 ) -> Result<Vc<ParseCssResult>> {
     let span = {
         let name = source.ident().to_string().await?.to_string();
@@ -361,6 +371,7 @@ pub async fn parse_css(
                             origin,
                             import_context,
                             ty,
+                            browserslist_query,
                         )
                         .await?
                     }
@@ -381,6 +392,7 @@ async fn process_content(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
+    browserslist_query: RcStr,
 ) -> Result<Vc<ParseCssResult>> {
     #[allow(clippy::needless_lifetimes)]
     fn without_warnings<'o, 'i>(config: ParserOptions<'o, 'i>) -> ParserOptions<'o, 'static> {
@@ -475,13 +487,18 @@ async fn process_content(
                     }
                 }
 
+                let targets = get_lightningcss_browser_targets(browserslist_query, true)?;
+
                 // minify() is actually transform, and it performs operations like CSS modules
                 // handling.
                 //
                 //
                 // See: https://github.com/parcel-bundler/lightningcss/issues/935#issuecomment-2739325537
-                ss.minify(Default::default())
-                    .context("failed to transform css")?;
+                ss.minify(MinifyOptions {
+                    targets,
+                    ..Default::default()
+                })
+                .context("failed to transform css")?;
 
                 stylesheet_into_static(&ss, without_warnings(config.clone()))
             }
