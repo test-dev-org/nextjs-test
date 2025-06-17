@@ -552,7 +552,8 @@ async function createComponentTreeInternal({
             errorStyles={errorStyles}
             errorScripts={errorScripts}
             template={
-              isSegmentViewEnabled ? (
+              // Only render SegmentViewNode when there's an actual template
+              isSegmentViewEnabled && normalizedConventionUrl ? (
                 <SegmentViewNode
                   type="template"
                   pagePath={normalizedConventionUrl}
