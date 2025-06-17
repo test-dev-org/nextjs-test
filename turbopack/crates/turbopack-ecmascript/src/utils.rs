@@ -25,8 +25,9 @@ pub fn unparen(expr: &Expr) -> &Expr {
     expr
 }
 
+/// Converts a js-value into a Pattern for matching resources.
 pub fn js_value_to_pattern(value: &JsValue) -> Pattern {
-    let mut result = match value {
+    match value {
         JsValue::Constant(v) => Pattern::Constant(match v {
             ConstantValue::Str(str) => {
                 // Normalize windows file paths when constructing the pattern.
@@ -50,9 +51,16 @@ pub fn js_value_to_pattern(value: &JsValue) -> Pattern {
             total_nodes: _,
             values,
             logical_property: _,
-        } => Pattern::Alternatives(values.iter().map(js_value_to_pattern).collect()),
+        } => {
+            let mut alts = Pattern::Alternatives(values.iter().map(js_value_to_pattern).collect());
+            alts.normalize();
+            alts
+        }
         JsValue::Concat(_, parts) => {
-            Pattern::Concatenation(parts.iter().map(js_value_to_pattern).collect())
+            let mut concats =
+                Pattern::Concatenation(parts.iter().map(js_value_to_pattern).collect());
+            concats.normalize();
+            concats
         }
         JsValue::Add(..) => {
             // TODO do we need to handle that here
@@ -60,9 +68,7 @@ pub fn js_value_to_pattern(value: &JsValue) -> Pattern {
             Pattern::Dynamic
         }
         _ => Pattern::Dynamic,
-    };
-    result.normalize();
-    result
+    }
 }
 
 const JS_MAX_SAFE_INTEGER: u64 = (1u64 << 53) - 1;
@@ -208,4 +214,33 @@ pub fn module_value_to_well_known_object(module_value: &ModuleValue) -> Option<J
         "@grpc/proto-loader" => JsValue::WellKnownObject(WellKnownObjectKind::NodeProtobufLoader),
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use turbo_rcstr::rcstr;
+    use turbopack_core::resolve::pattern::Pattern;
+
+    use crate::{
+        analyzer::{ConstantString, ConstantValue, JsValue},
+        utils::js_value_to_pattern,
+    };
+
+    #[test]
+    fn test_path_normalization_in_pattern() {
+        assert_eq!(
+            Pattern::Constant(rcstr!("hello/world")),
+            js_value_to_pattern(&JsValue::Constant(ConstantValue::Str(
+                ConstantString::RcStr(rcstr!("hello\\world"))
+            )))
+        );
+
+        assert_eq!(
+            Pattern::Constant(rcstr!("hello/world")),
+            js_value_to_pattern(&JsValue::Concat(
+                1,
+                vec!["hello".into(), "\\".into(), "world".into()]
+            ))
+        );
+    }
 }
