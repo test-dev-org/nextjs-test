@@ -35,7 +35,7 @@ use crate::{
 #[turbo_tasks::value]
 pub struct EcmascriptModuleFacadeModule {
     module: ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>,
-    ty: ModulePart,
+    part: ModulePart,
     remove_unused_exports: bool,
 }
 
@@ -44,12 +44,12 @@ impl EcmascriptModuleFacadeModule {
     #[turbo_tasks::function]
     pub fn new(
         module: ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>,
-        ty: ModulePart,
+        part: ModulePart,
         remove_unused_exports: bool,
     ) -> Vc<Self> {
         EcmascriptModuleFacadeModule {
             module,
-            ty,
+            part,
             remove_unused_exports,
         }
         .cell()
@@ -81,7 +81,7 @@ impl EcmascriptModuleFacadeModule {
         ResolvedVc<EsmAssetReferences>,
         Vec<ResolvedVc<EcmascriptModulePartReference>>,
     )> {
-        Ok(match &self.ty {
+        Ok(match &self.part {
             ModulePart::Evaluation => {
                 let Some(module) =
                     ResolvedVc::try_sidecast::<Box<dyn EcmascriptAnalyzable>>(self.module)
@@ -150,7 +150,7 @@ impl EcmascriptModuleFacadeModule {
             ModulePart::RenamedNamespace { .. } => (
                 EsmAssetReferences::empty().to_resolved().await?,
                 vec![
-                    EcmascriptModulePartReference::new_normal(*self.module, self.ty.clone())
+                    EcmascriptModulePartReference::new_normal(*self.module, self.part.clone())
                         .to_resolved()
                         .await?,
                 ],
@@ -158,7 +158,7 @@ impl EcmascriptModuleFacadeModule {
             ModulePart::RenamedExport { .. } => (
                 EsmAssetReferences::empty().to_resolved().await?,
                 vec![
-                    EcmascriptModulePartReference::new_normal(*self.module, self.ty.clone())
+                    EcmascriptModulePartReference::new_normal(*self.module, self.part.clone())
                         .to_resolved()
                         .await?,
                 ],
@@ -174,7 +174,7 @@ impl EcmascriptModuleFacadeModule {
 impl Module for EcmascriptModuleFacadeModule {
     #[turbo_tasks::function]
     fn ident(&self) -> Vc<AssetIdent> {
-        self.module.ident().with_part(self.ty.clone())
+        self.module.ident().with_part(self.part.clone())
     }
 
     #[turbo_tasks::function]
@@ -275,7 +275,7 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleFacadeModule {
         let mut exports = BTreeMap::new();
         let mut star_exports = Vec::new();
 
-        match &self.ty {
+        match &self.part {
             ModulePart::Exports => {
                 let EcmascriptExports::EsmExports(esm_exports) = *self.module.get_exports().await?
                 else {
@@ -373,7 +373,7 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleFacadeModule {
                         ResolvedVc::upcast(
                             EcmascriptModulePartReference::new_normal(
                                 *self.module,
-                                self.ty.clone(),
+                                self.part.clone(),
                             )
                             .to_resolved()
                             .await?,
@@ -387,7 +387,7 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleFacadeModule {
                 exports.insert(
                     export.clone(),
                     EsmExport::ImportedNamespace(ResolvedVc::upcast(
-                        EcmascriptModulePartReference::new_normal(*self.module, self.ty.clone())
+                        EcmascriptModulePartReference::new_normal(*self.module, self.part.clone())
                             .to_resolved()
                             .await?,
                     )),
@@ -412,7 +412,7 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleFacadeModule {
         &self,
         side_effect_free_packages: Vc<Glob>,
     ) -> Result<Vc<bool>> {
-        Ok(match self.ty {
+        Ok(match self.part {
             ModulePart::Evaluation | ModulePart::Facade => self
                 .module
                 .is_marked_as_side_effect_free(side_effect_free_packages),
