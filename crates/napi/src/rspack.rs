@@ -7,8 +7,7 @@ use swc_core::{
         try_with_handler,
     },
     common::{
-        FileName, FilePathMapping, GLOBALS, Mark, SourceMap, SyntaxContext,
-        errors::ColorConfig,
+        FileName, FilePathMapping, GLOBALS, Mark, SourceMap, SyntaxContext, errors::ColorConfig,
     },
     ecma::{
         ast::{Decl, EsVersion, Id},
