@@ -422,10 +422,6 @@ async function createComponentTreeInternal({
   ) : undefined
 
   const dir = ctx.renderOpts.dir || process.cwd()
-  const normalizedConventionUrl = normalizeConventionFilePath(
-    dir,
-    conventionPath
-  )
 
   const isSegmentViewEnabled =
     process.env.NODE_ENV === 'development' &&
@@ -542,7 +538,12 @@ async function createComponentTreeInternal({
             <RenderFromTemplateContext />
           </Template>
         )
-        // This is turned back into an object below.
+
+        const templateFilePath = getConventionPathByType(
+          parallelRoute,
+          dir,
+          'template'
+        )
         return [
           parallelRouteKey,
           <LayoutRouter
@@ -552,11 +553,9 @@ async function createComponentTreeInternal({
             errorStyles={errorStyles}
             errorScripts={errorScripts}
             template={
-              isSegmentViewEnabled ? (
-                <SegmentViewNode
-                  type="template"
-                  pagePath={normalizedConventionUrl}
-                >
+              // Only render SegmentViewNode when there's an actual template
+              isSegmentViewEnabled && templateFilePath ? (
+                <SegmentViewNode type="template" pagePath={templateFilePath}>
                   {templateNode}
                 </SegmentViewNode>
               ) : (
@@ -652,15 +651,17 @@ async function createComponentTreeInternal({
   }
 
   if (isPage) {
-    const PageComponent = isSegmentViewEnabled
-      ? (pageProps: any) => {
-          return (
-            <SegmentViewNode type={nodeName} pagePath={normalizedConventionUrl}>
-              <Component {...pageProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
+    const pageFilePath = getConventionPathByType(tree, dir, 'page')
+    const PageComponent =
+      isSegmentViewEnabled && pageFilePath
+        ? (pageProps: any) => {
+            return (
+              <SegmentViewNode type={nodeName} pagePath={pageFilePath}>
+                <Component {...pageProps} />
+              </SegmentViewNode>
+            )
+          }
+        : Component
 
     // Assign searchParams to props if this is a page
     let pageElement: React.ReactNode
@@ -741,15 +742,17 @@ async function createComponentTreeInternal({
       isPossiblyPartialResponse,
     ]
   } else {
-    const SegmentComponent = isSegmentViewEnabled
-      ? (segmentProps: any) => {
-          return (
-            <SegmentViewNode type={nodeName} pagePath={normalizedConventionUrl}>
-              <Component {...segmentProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
+    const layoutFilePath = getConventionPathByType(tree, dir, 'layout')
+    const SegmentComponent =
+      isSegmentViewEnabled && layoutFilePath
+        ? (segmentProps: any) => {
+            return (
+              <SegmentViewNode type={nodeName} pagePath={layoutFilePath}>
+                <Component {...segmentProps} />
+              </SegmentViewNode>
+            )
+          }
+        : Component
 
     const isRootLayoutWithChildrenSlotAndAtLeastOneMoreSlot =
       rootLayoutAtThisLevel &&
@@ -1029,11 +1032,26 @@ function normalizeConventionFilePath(
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
     // remove the process.cwd() prefix
-    .replace(process.cwd() + '/', '')
+    .replace(process.cwd(), '')
     // remove the project root from the path
     .replace(projectDir, '')
     // remove /(src/)?app/ dir prefix
     .replace(/^[\\/](src[\\/])?app[\\/]/, '')
 
   return relativePath
+}
+
+function getConventionPathByType(
+  tree_: LoaderTree,
+  dir: string,
+  conventionType: 'layout' | 'template' | 'page'
+) {
+  const modules_ = tree_[2]
+  const conventionPath_ = modules_[conventionType]
+    ? modules_[conventionType][1]
+    : undefined
+  if (conventionPath_) {
+    return normalizeConventionFilePath(dir, conventionPath_)
+  }
+  return undefined
 }
