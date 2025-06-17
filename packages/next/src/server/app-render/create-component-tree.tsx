@@ -1036,7 +1036,7 @@ function normalizeConventionFilePath(
     // remove the project root from the path
     .replace(projectDir, '')
     // remove /(src/)?app/ dir prefix
-    .replace(/^[\\/](src[\\/])?app[\\/]/, '')
+    .replace(/^([\\/])*(src[\\/])?app[\\/]/, '')
 
   return relativePath
 }
