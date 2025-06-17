@@ -1058,7 +1058,7 @@ impl EcmascriptModuleContent {
 
     /// Creates a new [`Vc<EcmascriptModuleContent>`] from multiple modules, performing scope
     /// hoisting.
-    /// - The `modules` argument is a list of all modules to be merged (and whethey their exports
+    /// - The `modules` argument is a list of all modules to be merged (and whether their exports
     ///   should be exposed).
     /// - The `entries` argument is a list of modules that should be treated as entry points for the
     ///   merged module (used to determine execution order).
@@ -1494,7 +1494,10 @@ impl<'a> ScopeHoistingContext<'a> {
         match self {
             ScopeHoistingContext::Some {
                 module, modules, ..
-            } => !modules.get(module).unwrap().is_exposed(),
+            } => match modules.get(module).unwrap() {
+                MergeableModuleExposure::None => true,
+                MergeableModuleExposure::Internal | MergeableModuleExposure::External => false,
+            },
             ScopeHoistingContext::None => false,
         }
     }

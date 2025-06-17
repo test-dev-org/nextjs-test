@@ -160,19 +160,15 @@ impl MergeableModules {
     Hash,
 )]
 pub enum MergeableModuleExposure {
-    // Only individual export of this module are used, and only within this group.
+    // This module is only used from within the current group, and only individual exports are
+    // used (and no namespace object is required).
     None,
-    // Individual exports and the namespace object of this module are used, but only within this
-    // group.
+    // This module is only used from within the current group, and but the namespace object is
+    // needed.
     Internal,
-    // The exports of this module are read from outside this group.
+    // The exports of this module are read from outside this group (necessitating a namespace
+    // object anyway).
     External,
-}
-
-impl MergeableModuleExposure {
-    pub fn is_exposed(&self) -> bool {
-        self != &MergeableModuleExposure::None
-    }
 }
 
 #[turbo_tasks::value(transparent)]
