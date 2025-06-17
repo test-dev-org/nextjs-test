@@ -421,7 +421,9 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
-  const dir = ctx.renderOpts.dir || process.cwd()
+  const dir =
+    ctx.renderOpts.dir ||
+    (process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd())
 
   const isSegmentViewEnabled =
     process.env.NODE_ENV === 'development' &&
@@ -1031,8 +1033,6 @@ function normalizeConventionFilePath(
   const relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
-    // remove the process.cwd() prefix
-    .replace(process.cwd(), '')
     // remove the project root from the path
     .replace(projectDir, '')
     // remove /(src/)?app/ dir prefix
