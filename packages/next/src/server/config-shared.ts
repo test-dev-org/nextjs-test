@@ -453,7 +453,7 @@ export interface ExperimentalConfig {
   turbopackMinify?: boolean
 
   /**
-   * Enable scope hoisting. Defaults to true in build mode and false in dev mode.
+   * Enable scope hoisting. Defaults to true in build mode. Always disabled in development mode.
    */
   turbopackScopeHoisting?: boolean
 
