@@ -228,7 +228,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
             FxIndexSet<ListOccurence>,
         > = FxIndexMap::default();
 
-        // A map of all references betwee modules with the same bitmap. These are all references,
+        // A map of all references between modules with the same bitmap. These are all references,
         // including reexecution edges and cycles. Used to expose additional modules if the
         // bitmap-groups are split up further.
         #[allow(clippy::type_complexity)]
@@ -236,7 +236,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
             ResolvedVc<Box<dyn Module>>,
             FxIndexSet<ResolvedVc<Box<dyn Module>>>,
         > = FxIndexMap::default();
-        // A map of all references betwee modules with the same bitmap. These are only the
+        // A map of all references between modules with the same bitmap. These are only the
         // references relevant for execution (ignoring cycles), to find the entries of a group.
         #[allow(clippy::type_complexity)]
         let mut intra_group_references_rev: FxIndexMap<

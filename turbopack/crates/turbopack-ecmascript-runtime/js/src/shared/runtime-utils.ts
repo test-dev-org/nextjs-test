@@ -65,7 +65,7 @@ function getOverwrittenModule(
 ): Module {
   let module = moduleCache[id]
   if (!module) {
-    // This is invoked when a module is merged into another module, thus it wasn't invoced via
+    // This is invoked when a module is merged into another module, thus it wasn't invoked via
     // instantiateModule and the cache entry wasn't created yet.
     module = {
       exports: {},
