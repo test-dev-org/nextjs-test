@@ -492,7 +492,7 @@ async fn walk_asset(
             .await?
             .iter()
             .copied()
-            .flat_map(|asset| ResolvedVc::try_downcast::<Box<dyn OutputAsset>>(asset)),
+            .flat_map(ResolvedVc::try_downcast::<Box<dyn OutputAsset>>),
     );
 
     Ok(())
