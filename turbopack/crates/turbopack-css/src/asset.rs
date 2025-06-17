@@ -1,5 +1,5 @@
 use anyhow::Result;
-use turbo_rcstr::rcstr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{IntoTraitRef, ResolvedVc, TryJoinIterExt, ValueToString, Vc};
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
@@ -38,6 +38,7 @@ pub struct CssModuleAsset {
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
     minify_type: MinifyType,
+    browserslist_query: RcStr,
 }
 
 #[turbo_tasks::value_impl]
@@ -50,6 +51,7 @@ impl CssModuleAsset {
         ty: CssModuleAssetType,
         minify_type: MinifyType,
         import_context: Option<ResolvedVc<ImportContext>>,
+        browserslist_query: RcStr,
     ) -> Vc<Self> {
         Self::cell(CssModuleAsset {
             source,
@@ -57,10 +59,11 @@ impl CssModuleAsset {
             import_context,
             ty,
             minify_type,
+            browserslist_query,
         })
     }
 
-    /// Retrns the asset ident of the source without the "css" modifier
+    /// Returns the asset ident of the source without the "css" modifier
     #[turbo_tasks::function]
     pub fn source_ident(&self) -> Vc<AssetIdent> {
         self.source.ident()
@@ -85,10 +88,14 @@ impl ParseCss for CssModuleAsset {
 #[turbo_tasks::value_impl]
 impl ProcessCss for CssModuleAsset {
     #[turbo_tasks::function]
-    fn get_css_with_placeholder(self: Vc<Self>) -> Vc<CssWithPlaceholderResult> {
+    async fn get_css_with_placeholder(self: Vc<Self>) -> Result<Vc<CssWithPlaceholderResult>> {
+        let this = self.await?;
         let parse_result = self.parse_css();
 
-        process_css_with_placeholder(parse_result)
+        Ok(process_css_with_placeholder(
+            parse_result,
+            this.browserslist_query.clone(),
+        ))
     }
 
     #[turbo_tasks::function]
@@ -99,8 +106,9 @@ impl ProcessCss for CssModuleAsset {
     ) -> Result<Vc<FinalCssResult>> {
         let process_result = self.get_css_with_placeholder();
 
+        let this = self.await?;
         let origin_source_map =
-            match ResolvedVc::try_sidecast::<Box<dyn GenerateSourceMap>>(self.await?.source) {
+            match ResolvedVc::try_sidecast::<Box<dyn GenerateSourceMap>>(this.source) {
                 Some(gsm) => gsm.generate_source_map(),
                 None => Vc::cell(None),
             };
@@ -109,6 +117,7 @@ impl ProcessCss for CssModuleAsset {
             chunking_context,
             minify_type,
             origin_source_map,
+            this.browserslist_query.clone(),
         ))
     }
 }

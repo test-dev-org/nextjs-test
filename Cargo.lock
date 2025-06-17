@@ -3611,6 +3611,7 @@ checksum = "9a73ffa17de66534e4b527232f44aa0a89fad22c4f4e0735f9be35494f058e54"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.9.0",
+ "browserslist-rs",
  "const-str",
  "cssparser",
  "cssparser-color",

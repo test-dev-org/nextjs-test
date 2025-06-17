@@ -236,7 +236,10 @@ async fn apply_module_type(
                 .await?,
         ),
 
-        ModuleType::Css { ty } => ResolvedVc::upcast(
+        ModuleType::Css {
+            ty,
+            browserslist_query,
+        } => ResolvedVc::upcast(
             CssModuleAsset::new(
                 *source,
                 Vc::upcast(module_asset_context),
@@ -247,6 +250,7 @@ async fn apply_module_type(
                     .css
                     .minify_type,
                 css_import_context,
+                browserslist_query.clone(),
             )
             .to_resolved()
             .await?,
@@ -564,7 +568,7 @@ async fn process_default_internal(
                         }
                     }
                     ModuleRuleEffect::ModuleType(module) => {
-                        current_module_type = Some(*module);
+                        current_module_type = Some(module.clone());
                     }
                     ModuleRuleEffect::ExtendEcmascriptTransforms { prepend, append } => {
                         current_module_type = match current_module_type {

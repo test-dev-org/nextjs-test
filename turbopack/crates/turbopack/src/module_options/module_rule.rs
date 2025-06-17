@@ -1,5 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use turbo_rcstr::RcStr;
 use turbo_tasks::{NonLocalValue, ResolvedVc, trace::TraceRawVcs};
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
@@ -77,7 +78,7 @@ pub enum ModuleRuleEffect {
 }
 
 #[turbo_tasks::value(shared)]
-#[derive(Hash, Debug, Copy, Clone)]
+#[derive(Hash, Debug, Clone)]
 pub enum ModuleType {
     Ecmascript {
         transforms: ResolvedVc<EcmascriptInputTransforms>,
@@ -103,6 +104,7 @@ pub enum ModuleType {
     CssModule,
     Css {
         ty: CssModuleAssetType,
+        browserslist_query: RcStr,
     },
     StaticUrlJs,
     StaticUrlCss,

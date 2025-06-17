@@ -68,6 +68,7 @@ impl StyleSheetLike<'_, '_> {
         enable_srcmap: bool,
         handle_nesting: bool,
         mut origin_source_map: Option<parcel_sourcemap::SourceMap>,
+        browserslist_query: RcStr,
     ) -> Result<CssOutput> {
         let ss = &self.0;
         let mut srcmap = if enable_srcmap {
@@ -76,13 +77,20 @@ impl StyleSheetLike<'_, '_> {
             None
         };
 
+        let browserslist_browsers =
+            lightningcss::targets::Browsers::from_browserslist(browserslist_query.split(','))?;
+
         let targets = if handle_nesting {
             Targets {
+                browsers: browserslist_browsers,
                 include: Features::Nesting,
                 ..Default::default()
             }
         } else {
-            Default::default()
+            Targets {
+                browsers: browserslist_browsers,
+                ..Default::default()
+            }
         };
 
         let result = ss.to_css(PrinterOptions {
@@ -180,6 +188,7 @@ impl PartialEq for FinalCssResult {
 #[turbo_tasks::function]
 pub async fn process_css_with_placeholder(
     parse_result: ResolvedVc<ParseCssResult>,
+    browserslist_query: RcStr,
 ) -> Result<Vc<CssWithPlaceholderResult>> {
     let result = parse_result.await?;
 
@@ -199,7 +208,14 @@ pub async fn process_css_with_placeholder(
 
             // We use NoMinify because this is not a final css. We need to replace url references,
             // and we do final codegen with proper minification.
-            let (result, _) = stylesheet.to_css(&code, MinifyType::NoMinify, false, false, None)?;
+            let (result, _) = stylesheet.to_css(
+                &code,
+                MinifyType::NoMinify,
+                false,
+                false,
+                None,
+                browserslist_query,
+            )?;
 
             let exports = result.exports.map(|exports| {
                 let mut exports = exports.into_iter().collect::<FxIndexMap<_, _>>();
@@ -229,6 +245,7 @@ pub async fn finalize_css(
     chunking_context: Vc<Box<dyn ChunkingContext>>,
     minify_type: MinifyType,
     origin_source_map: Vc<OptionStringifiedSourceMap>,
+    browserslist_query: RcStr,
 ) -> Result<Vc<FinalCssResult>> {
     let result = result.await?;
     match &*result {
@@ -273,8 +290,14 @@ pub async fn finalize_css(
                 None
             };
 
-            let (result, srcmap) =
-                stylesheet.to_css(&code, minify_type, true, true, origin_source_map)?;
+            let (result, srcmap) = stylesheet.to_css(
+                &code,
+                minify_type,
+                true,
+                true,
+                origin_source_map,
+                browserslist_query,
+            )?;
 
             Ok(FinalCssResult::Ok {
                 output_code: result.code,
