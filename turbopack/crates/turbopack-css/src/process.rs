@@ -58,7 +58,6 @@ fn get_lightningcss_browser_targets(
     browserslist_query: RcStr,
     handle_nesting: bool,
 ) -> Result<Targets> {
-    println!("browserslist_query: {:?}", browserslist_query);
     let browserslist_browsers =
         lightningcss::targets::Browsers::from_browserslist(browserslist_query.split(','))?;
 
