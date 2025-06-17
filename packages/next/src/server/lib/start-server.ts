@@ -95,11 +95,13 @@ async function getProcessIdUsingPort(port: number): Promise<string | null> {
     }
   })
 
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     processLookupController.abort(
       `PID detection timed out after ${timeoutMs}ms for port ${port}.`
     )
   }, timeoutMs)
+
+  pidPromise.finally(() => clearTimeout(timeoutId))
 
   return pidPromise
 }
