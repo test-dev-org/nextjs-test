@@ -31,6 +31,9 @@ impl ConnectChildOperation {
     ) {
         if !ctx.should_track_children() {
             let mut task = ctx.task(child_task_id, TaskDataCategory::All);
+            if is_immutable {
+                task.mark_as_immutable();
+            }
             if !task.has_key(&CachedDataItemKey::Output {}) {
                 let description = ctx.get_task_desc_fn(child_task_id);
                 let should_schedule = task.add(CachedDataItem::new_scheduled(description));
@@ -49,9 +52,10 @@ impl ConnectChildOperation {
         };
 
         // Quick skip if the child was already connected before
-        if !new_children.insert(child_task_id) {
+        if new_children.insert(child_task_id, is_immutable).is_some() {
             return;
         }
+
         if parent_task.has_key(&CachedDataItemKey::Child {
             task: child_task_id,
         }) {
@@ -78,6 +82,10 @@ impl ConnectChildOperation {
             });
         } else {
             let mut task = ctx.task(child_task_id, TaskDataCategory::All);
+            if is_immutable {
+                task.mark_as_immutable();
+            }
+
             if !task.has_key(&CachedDataItemKey::Output {}) {
                 let description = ctx.get_task_desc_fn(child_task_id);
                 let should_schedule = task.add(CachedDataItem::new_scheduled(description));
