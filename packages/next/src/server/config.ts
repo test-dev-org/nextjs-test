@@ -1268,9 +1268,11 @@ export default async function loadConfig(
     }
 
     // Clone a new userConfig each time to avoid mutating the original
-    const userConfig = cloneObject(
-      await normalizeConfig(phase, userConfigModule.default || userConfigModule)
-    ) as NextConfig
+    const loadedConfig = (await normalizeConfig(
+      phase,
+      interopDefault(userConfigModule)
+    )) as NextConfig
+    const userConfig = cloneObject(loadedConfig) as NextConfig
 
     if (!process.env.NEXT_MINIMAL) {
       // We only validate the config against schema in non minimal mode
@@ -1388,7 +1390,7 @@ export default async function loadConfig(
       userConfig.htmlLimitedBots = userConfig.htmlLimitedBots.source
     }
 
-    onLoadUserConfig?.(userConfig)
+    onLoadUserConfig?.(Object.freeze(loadedConfig))
     const completeConfig = assignDefaults(
       dir,
       {
