@@ -1,8 +1,8 @@
-export type OverlayBackDropProps = {
+export type OverlayBackdropProps = {
   fixed?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
-export function OverlayBackdrop({ fixed, ...props }: OverlayBackDropProps) {
+export function OverlayBackdrop({ fixed, ...props }: OverlayBackdropProps) {
   return (
     <div
       data-nextjs-dialog-backdrop
