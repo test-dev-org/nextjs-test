@@ -4,13 +4,19 @@ id: turbo-async-fn-without-await
 message: 'Async function is denoted as `#[turbo_tasks::function]` but does not have `await`.'
 severity: error # error, warning, info, hint
 language: Rust
+
 rule:
-  all:
-    - pattern: 'async fn'
-      kind: function_item
-      follows:
-        pattern: '#[turbo_tasks::function]'
-      has:
-        kind: block
-        field: body
-        pattern: $BODY
+  any:
+    - all:
+        - pattern: 'async fn'
+          kind: function_item
+          follows:
+            pattern: '#[turbo_tasks::function]'
+        - has:
+            kind: block
+            field: body
+            pattern: $BODY
+            not:
+              follows:
+                kind: await_expression
+                stopBy: end
