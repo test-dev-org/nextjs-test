@@ -94,6 +94,8 @@ const initialState: OverlayState = {
     staleness: 'fresh',
   },
   isErrorOverlayOpen: true,
+  // TODO: This will be handled on the next stack——with proper story.
+  isDevToolsPanelOpen: false,
 }
 
 function useOverlayReducer() {
