@@ -306,8 +306,6 @@ export function getDefineEnv({
     // no-op that just restarts the development server.
     'process.env.__NEXT_BUNDLER_HAS_PERSISTENT_CACHE':
       !isTurbopack || (config.experimental.turbopackPersistentCaching ?? false),
-    'process.env.__NEXT_TURBOPACK_PERSISTENT_CACHE':
-      config.experimental.turbopackPersistentCaching ?? false,
   }
 
   const userDefines = config.compiler?.define ?? {}
