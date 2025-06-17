@@ -1670,12 +1670,12 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         let mut old_edges = Vec::new();
 
         let has_children = !new_children.is_empty();
-        let has_mutable_chidlren =
+        let has_mutable_children =
             has_children && new_children.values().any(|is_immutable| !*is_immutable);
 
         // If the task is not stateful and has no children, it does not have a way to be invalidated
         // and we can mark it as immutable.
-        if !stateful && !has_mutable_chidlren {
+        if !stateful && !has_mutable_children {
             task.mark_as_immutable();
         }
 
