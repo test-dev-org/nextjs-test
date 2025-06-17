@@ -13782,9 +13782,7 @@
     "passed": [],
     "failed": [],
     "pending": [
-      "Browserslist: New production mode should have compiled successfully",
       "Browserslist: New production mode should've emitted a single CSS file",
-      "Browserslist: Old production mode should have compiled successfully",
       "Browserslist: Old production mode should've emitted a single CSS file"
     ],
     "flakey": [],

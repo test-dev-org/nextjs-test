@@ -330,7 +330,7 @@ pub trait EcmascriptAnalyzable: Module + Asset {
     ) -> Result<Vc<EcmascriptModuleContentOptions>>;
 
     #[turbo_tasks::function]
-    async fn module_content(
+    fn module_content(
         self: Vc<Self>,
         module_graph: Vc<ModuleGraph>,
         chunking_context: Vc<Box<dyn ChunkingContext>>,
@@ -650,7 +650,7 @@ impl Module for EcmascriptModuleAsset {
     }
 
     #[turbo_tasks::function]
-    async fn references(self: Vc<Self>) -> Result<Vc<ModuleReferences>> {
+    fn references(self: Vc<Self>) -> Result<Vc<ModuleReferences>> {
         Ok(self.analyze().references())
     }
 
