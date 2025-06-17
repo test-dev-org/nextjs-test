@@ -7,7 +7,7 @@ use swc_core::{
         try_with_handler,
     },
     common::{
-        FileName, FilePathMapping, GLOBALS, Mark, SourceMap, SyntaxContext, comments::Comments,
+        FileName, FilePathMapping, GLOBALS, Mark, SourceMap, SyntaxContext,
         errors::ColorConfig,
     },
     ecma::{
@@ -121,12 +121,6 @@ impl Task for FinderTask {
                 is_module: IsModule::Unknown,
                 target: EsVersion::default(),
             };
-            let comments = c.comments().clone();
-            let comments: Option<&dyn Comments> = if options.comments {
-                Some(&comments)
-            } else {
-                None
-            };
             let fm =
                 c.cm.new_source_file(Arc::new(FileName::Real(resource_path)), src);
             let program = try_with_handler(
@@ -142,7 +136,7 @@ impl Task for FinderTask {
                         options.target,
                         options.syntax,
                         options.is_module,
-                        comments,
+                        None,
                     )
                 },
             )
@@ -214,12 +208,6 @@ impl Task for AnalyzeTask {
                 is_module: IsModule::Unknown,
                 target: EsVersion::default(),
             };
-            let comments = c.comments().clone();
-            let comments: Option<&dyn Comments> = if options.comments {
-                Some(&comments)
-            } else {
-                None
-            };
             let source = self.source.take().unwrap();
             let fm =
                 c.cm.new_source_file(Arc::new(FileName::Anon), source);
@@ -236,7 +224,7 @@ impl Task for AnalyzeTask {
                         options.target,
                         options.syntax,
                         options.is_module,
-                        comments,
+                        None,
                     )
                 },
             )
