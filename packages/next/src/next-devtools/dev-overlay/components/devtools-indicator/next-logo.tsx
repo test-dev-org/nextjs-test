@@ -1,10 +1,12 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
-import { css } from '../../../utils/css'
-import mergeRefs from '../../../utils/merge-refs'
-import type { DevToolsScale } from './dev-tools-info/preferences'
-import { useMinimumLoadingTimeMultiple } from '../../devtools-indicator/hooks/use-minimum-loading-time-multiple'
-import { useUpdateAnimation } from '../../devtools-indicator/hooks/use-update-animation'
-import { useMeasureWidth } from '../../devtools-indicator/hooks/use-measure-width'
+import type { DevToolsScale } from '../errors/dev-tools-indicator/dev-tools-info/preferences'
+
+import { useEffect, useRef, useState } from 'react'
+import { useUpdateAnimation } from './hooks/use-update-animation'
+import { useMeasureWidth } from './hooks/use-measure-width'
+import { useMinimumLoadingTimeMultiple } from './hooks/use-minimum-loading-time-multiple'
+import { Cross } from '../../icons/cross'
+import { Warning } from '../../icons/warning'
+import { css } from '../../utils/css'
 
 interface Props extends React.ComponentProps<'button'> {
   issueCount: number
@@ -18,20 +20,17 @@ interface Props extends React.ComponentProps<'button'> {
 
 const SHORT_DURATION_MS = 150
 
-export const NextLogo = forwardRef(function NextLogo(
-  {
-    disabled,
-    issueCount,
-    isDevBuilding,
-    isDevRendering,
-    isBuildError,
-    onTriggerClick,
-    toggleErrorOverlay,
-    scale = 1,
-    ...props
-  }: Props,
-  propRef: React.Ref<HTMLButtonElement>
-) {
+export function NextLogo({
+  disabled,
+  issueCount,
+  isDevBuilding,
+  isDevRendering,
+  isBuildError,
+  onTriggerClick,
+  toggleErrorOverlay,
+  scale = 1,
+  ...props
+}: Props) {
   const SIZE = 36 / scale
 
   const hasError = issueCount > 0
@@ -399,7 +398,7 @@ export const NextLogo = forwardRef(function NextLogo(
           {/* Children */}
           {!disabled && (
             <button
-              ref={mergeRefs(triggerRef, propRef)}
+              ref={triggerRef}
               data-next-mark
               data-next-mark-loading={isLoading}
               onClick={onTriggerClick}
@@ -467,7 +466,7 @@ export const NextLogo = forwardRef(function NextLogo(
       <div aria-hidden data-dot />
     </div>
   )
-})
+}
 
 function AnimateCount({
   children: count,
@@ -554,45 +553,6 @@ function NextMark({
           <rect width="5" height="1.5" fill="black" />
         </mask>
       </defs>
-    </svg>
-  )
-}
-
-function Warning() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M3.98071 1.125L1.125 3.98071L1.125 8.01929L3.98071 10.875H8.01929L10.875 8.01929V3.98071L8.01929 1.125H3.98071ZM3.82538 0C3.62647 0 3.4357 0.0790176 3.29505 0.21967L0.21967 3.29505C0.0790176 3.4357 0 3.62647 0 3.82538V8.17462C0 8.37353 0.0790178 8.5643 0.21967 8.70495L3.29505 11.7803C3.4357 11.921 3.62647 12 3.82538 12H8.17462C8.37353 12 8.5643 11.921 8.70495 11.7803L11.7803 8.70495C11.921 8.5643 12 8.37353 12 8.17462V3.82538C12 3.62647 11.921 3.4357 11.7803 3.29505L8.70495 0.21967C8.5643 0.0790177 8.37353 0 8.17462 0H3.82538ZM6.5625 2.8125V3.375V6V6.5625H5.4375V6V3.375V2.8125H6.5625ZM6 9C6.41421 9 6.75 8.66421 6.75 8.25C6.75 7.83579 6.41421 7.5 6 7.5C5.58579 7.5 5.25 7.83579 5.25 8.25C5.25 8.66421 5.58579 9 6 9Z"
-        fill="#EAEAEA"
-      />
-    </svg>
-  )
-}
-
-export function Cross(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 14 14"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M3.08889 11.8384L2.62486 12.3024L1.69678 11.3744L2.16082 10.9103L6.07178 6.99937L2.16082 3.08841L1.69678 2.62437L2.62486 1.69629L3.08889 2.16033L6.99986 6.07129L10.9108 2.16033L11.3749 1.69629L12.3029 2.62437L11.8389 3.08841L7.92793 6.99937L11.8389 10.9103L12.3029 11.3744L11.3749 12.3024L10.9108 11.8384L6.99986 7.92744L3.08889 11.8384Z"
-        fill="currentColor"
-      />
     </svg>
   )
 }

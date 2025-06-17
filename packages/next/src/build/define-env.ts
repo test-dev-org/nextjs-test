@@ -289,6 +289,8 @@ export function getDefineEnv({
       : {}),
     'process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER':
       config.experimental.devtoolSegmentExplorer ?? false,
+    'process.env.__NEXT_DEVTOOL_NEW_PANEL_UI':
+      config.experimental.devtoolNewPanelUI ?? false,
 
     // The devtools need to know whether or not to show an option to clear the
     // bundler cache. This option may be removed later once Turbopack's
