@@ -127,16 +127,15 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                     Ok(if parent_module.is_some_and(|p| p == module) {
                         // A self-reference
                         GraphTraversalAction::Skip
-                    } else if let (Some(parent_module), true, true, true) = (
-                        parent_module.filter(|m| {
-                            ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(*m).is_some()
-                        }),
-                        mergeable.contains(&module),
-                        hoisted,
-                        // TODO technically we could merge a sync child into an async parent
-                        !parent_module.is_some_and(|p| async_module_info.contains(&p))
-                            && !async_module_info.contains(&module),
-                    ) {
+                    } else if let Some(parent_module) = parent_module.filter(|m| {
+                        ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(*m).is_some()
+                    }) && mergeable.contains(&module)
+                        && hoisted
+                        && !async_module_info.contains(&parent_module)
+                        && !async_module_info.contains(&module)
+                    {
+                        // ^ TODO technically we could merge a sync child into an async parent
+
                         // A hoisted reference from a mergeable module to a non-async mergeable
                         // module, inherit bitmaps from parent.
                         module_merged_groups.entry(node.module).or_default();
