@@ -70,7 +70,7 @@ async function getProcessIdUsingPort(port: number): Promise<string | null> {
       } else {
         // Use netstat on Windows
         exec(
-          `netstat -ano | findstr :${port} | findstr LISTENING`,
+          `netstat -ano | findstr /C:":${port} " | findstr LISTENING`,
           { signal: processLookupController.signal },
           (error, stdout) => {
             if (error) {
