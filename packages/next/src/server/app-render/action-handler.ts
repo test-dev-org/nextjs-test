@@ -50,7 +50,6 @@ import { RedirectStatusCode } from '../../client/components/redirect-status-code
 import { synchronizeMutableCookies } from '../async-storage/request-store'
 import type { TemporaryReferenceSet } from 'react-server-dom-webpack/server.edge'
 import { workUnitAsyncStorage } from '../app-render/work-unit-async-storage.external'
-import { InvariantError } from '../../shared/lib/invariant-error'
 import { executeRevalidates } from '../revalidation-utils'
 import { getRequestMeta } from '../request-meta'
 
@@ -695,15 +694,16 @@ export async function handleAction({
             return { type: 'done', result: undefined, formState }
           }
         } else {
+          if (!actionId) {
+            // We don't consider this a server action when there's no actionId.
+            return undefined
+          }
+
           try {
             actionModId = getActionModIdOrError(actionId, serverModuleMap)
           } catch (err) {
-            if (actionId !== null) {
-              console.warn(err)
-            }
-            return {
-              type: 'not-found',
-            }
+            console.warn(err)
+            return { type: 'not-found' }
           }
 
           const chunks: Buffer[] = []
@@ -881,15 +881,16 @@ export async function handleAction({
             return { type: 'done', result: undefined, formState }
           }
         } else {
+          if (!actionId) {
+            // We don't consider this a server action when there's no actionId.
+            return undefined
+          }
+
           try {
             actionModId = getActionModIdOrError(actionId, serverModuleMap)
           } catch (err) {
-            if (actionId !== null) {
-              console.warn(err)
-            }
-            return {
-              type: 'not-found',
-            }
+            console.warn(err)
+            return { type: 'not-found' }
           }
 
           const chunks: Buffer[] = []
@@ -930,15 +931,16 @@ export async function handleAction({
       // / -> fire action -> POST / -> appRender1 -> modId for the action file
       // /foo -> fire action -> POST /foo -> appRender2 -> modId for the action file
 
+      if (!actionId) {
+        // We don't consider this a server action when there's no actionId.
+        return undefined
+      }
+
       try {
         actionModId ??= getActionModIdOrError(actionId, serverModuleMap)
       } catch (err) {
-        if (actionId !== null) {
-          console.warn(err)
-        }
-        return {
-          type: 'not-found',
-        }
+        console.warn(err)
+        return { type: 'not-found' }
       }
 
       const actionMod = (await ComponentMod.__next_app__.require(
@@ -1131,14 +1133,9 @@ function getActionIdFromReactError(err: unknown): string | undefined {
  * In either case, we'll throw an error to be handled by the caller.
  */
 function getActionModIdOrError(
-  actionId: string | null,
+  actionId: string,
   serverModuleMap: ServerModuleMap
 ): string {
-  // if we're missing the action ID header, we can't do any further processing
-  if (!actionId) {
-    throw new InvariantError("Missing 'next-action' header.")
-  }
-
   const actionModId = serverModuleMap[actionId]?.id
 
   if (!actionModId) {
