@@ -1032,7 +1032,7 @@ function normalizeConventionFilePath(
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
     // remove the process.cwd() prefix
-    .replace(process.cwd() + '/', '')
+    .replace(process.cwd(), '')
     // remove the project root from the path
     .replace(projectDir, '')
     // remove /(src/)?app/ dir prefix

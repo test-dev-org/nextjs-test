@@ -40,32 +40,51 @@ function PageSegmentTreeLayerPresentation({
     if (aHasExt && !bHasExt) return -1
     if (!aHasExt && bHasExt) return 1
     // Otherwise sort alphabetically
+
+    // If it's file, sort by order: layout > template > page
+    if (aHasExt && bHasExt) {
+      const aType = node.children[a]?.value?.type
+      const bType = node.children[b]?.value?.type
+
+      if (aType === 'layout' && bType !== 'layout') return -1
+      if (aType !== 'layout' && bType === 'layout') return 1
+      if (aType === 'template' && bType !== 'template') return -1
+      if (aType !== 'template' && bType === 'template') return 1
+
+      // If both are the same type, sort by pagePath
+      const aFilePath = node.children[a]?.value?.pagePath || ''
+      const bFilePath = node.children[b]?.value?.pagePath || ''
+      return aFilePath.localeCompare(bFilePath)
+    }
+
     return a.localeCompare(b)
   })
 
-  // check if it has file children
-  const hasFileChildren = sortedChildrenKeys.some((key) => {
-    const childNode = node.children[key]
-    return !!childNode?.value?.type
-  })
-
   // If it's the 1st level and contains a file, use 'app' as the folder name
-  const folderName = level === 0 ? 'app' : segment
+  const folderName = level === 0 && !segment ? 'app' : segment
 
-  const folderChildrenKeys = sortedChildrenKeys.filter((key) => {
-    const childNode = node.children[key]
-    return childNode && !childNode.value?.type && childNode.children
-  })
-  const filesChildrenKeys = sortedChildrenKeys.filter((key) => {
-    const childNode = node.children[key]
-    return childNode && isFileNode(childNode)
-  })
+  const folderChildrenKeys: string[] = []
+  const filesChildrenKeys: string[] = []
+
+  for (const childKey of sortedChildrenKeys) {
+    const childNode = node.children[childKey]
+    if (!childNode) continue
+
+    // If it's a file node, add it to filesChildrenKeys
+    if (isFileNode(childNode)) {
+      filesChildrenKeys.push(childKey)
+      continue
+    }
+
+    // Otherwise, it's a folder node, add it to folderChildrenKeys
+    folderChildrenKeys.push(childKey)
+  }
 
   return (
     <>
       <div
         className="segment-explorer-item"
-        data-nextjs-devtool-segment-explorer-segment={segment}
+        data-nextjs-devtool-segment-explorer-segment={segment + '-' + level}
       >
         <div
           className="segment-explorer-item-row"
@@ -126,7 +145,7 @@ function PageSegmentTreeLayerPresentation({
             key={childSegment}
             segment={childSegment}
             node={child}
-            level={hasFileChildren ? level + 1 : level}
+            level={level + 1}
           />
         )
       })}
@@ -140,7 +159,7 @@ export function SegmentsExplorer(
   const tree = useSegmentTree()
 
   return (
-    <DevToolsInfo title="Segment Explorer" {...props}>
+    <DevToolsInfo title="Routes Info" {...props}>
       <PageSegmentTree tree={tree} />
     </DevToolsInfo>
   )
