@@ -127,12 +127,12 @@ impl Module for CachedExternalModule {
     }
 
     #[turbo_tasks::function]
-    async fn references(&self) -> Result<Vc<ModuleReferences>> {
+    fn references(&self) -> Result<Vc<ModuleReferences>> {
         Ok(Vc::cell(self.additional_references.clone()))
     }
 
     #[turbo_tasks::function]
-    async fn is_self_async(&self) -> Result<Vc<bool>> {
+    fn is_self_async(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(
             self.external_type == CachedExternalType::EcmaScriptViaImport,
         ))

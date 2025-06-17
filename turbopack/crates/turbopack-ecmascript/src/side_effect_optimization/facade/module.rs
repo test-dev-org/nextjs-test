@@ -432,7 +432,7 @@ impl EcmascriptChunkPlaceable for EcmascriptModuleFacadeModule {
 #[turbo_tasks::value_impl]
 impl ChunkableModule for EcmascriptModuleFacadeModule {
     #[turbo_tasks::function]
-    async fn as_chunk_item(
+    fn as_chunk_item(
         self: ResolvedVc<Self>,
         module_graph: ResolvedVc<ModuleGraph>,
         chunking_context: ResolvedVc<Box<dyn ChunkingContext>>,
