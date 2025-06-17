@@ -10,3 +10,7 @@ rule:
       kind: function_item
       follows:
         pattern: '#[turbo_tasks::function]'
+      has:
+        kind: block
+        field: body
+        pattern: $BODY
