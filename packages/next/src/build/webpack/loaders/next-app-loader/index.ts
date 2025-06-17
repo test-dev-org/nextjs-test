@@ -84,6 +84,13 @@ const defaultNotFoundPath = 'next/dist/client/components/not-found-error'
 const defaultLayoutPath = 'next/dist/client/components/default-layout'
 const defaultGlobalNotFoundPath = 'next/dist/client/components/global-not-found'
 
+// This will strip the project directory from the absolute path of file.
+const createPrefixDirStripper =
+  (dir: string) =>
+  (absolutePath: string): string => {
+    return absolutePath.slice(dir.length).replace(/\\/g, '/')
+  }
+
 type DirResolver = (pathToResolve: string) => string
 type PathResolver = (
   pathname: string
@@ -120,6 +127,7 @@ async function createTreeCodeFromPath(
   pagePath: string,
   {
     page,
+    appDir,
     resolveDir,
     resolver,
     resolveParallelSegments,
@@ -130,6 +138,7 @@ async function createTreeCodeFromPath(
     isGlobalNotFoundEnabled,
   }: {
     page: string
+    appDir: string
     resolveDir: DirResolver
     resolver: PathResolver
     metadataResolver: MetadataResolver
@@ -155,6 +164,9 @@ async function createTreeCodeFromPath(
 
   const appDirPrefix = isDefaultNotFound ? APP_DIR_ALIAS : splittedPath[0]
   const pages: string[] = []
+
+  // Strip the <project directory> or src/<project directory> from the file path.
+  const stripAppDir = createPrefixDirStripper(path.dirname(appDir))
 
   let rootLayout: string | undefined
   let globalError: string | undefined
@@ -247,7 +259,7 @@ async function createTreeCodeFromPath(
           // Use '' for segment as it's the page. There can't be a segment called '' so this is the safest way to add it.
           props[normalizeParallelKey(parallelKey)] =
             `['${PAGE_SEGMENT_KEY}', {}, {
-          page: [${varName}, ${JSON.stringify(resolvedPagePath)}],
+          page: [${varName}, ${JSON.stringify(stripAppDir(resolvedPagePath))}],
           ${createMetadataExportsCode(metadata)}
         }]`
           continue
@@ -410,7 +422,7 @@ async function createTreeCodeFromPath(
                 children: ['${PAGE_SEGMENT_KEY}', {}, {
                   page: [
                     ${varName},
-                    ${JSON.stringify(matchedGlobalNotFound)}
+                    ${JSON.stringify(stripAppDir(matchedGlobalNotFound))}
                   ]
                 }]
               }, {}]
@@ -428,7 +440,7 @@ async function createTreeCodeFromPath(
                 children: ['${PAGE_SEGMENT_KEY}', {}, {
                   page: [
                     ${varName},
-                    ${JSON.stringify(notFoundPath)}
+                    ${JSON.stringify(stripAppDir(notFoundPath))}
                   ]
                 }]
               }, {}]
@@ -451,7 +463,7 @@ async function createTreeCodeFromPath(
           .map(([file, filePath]) => {
             const varName = `module${nestedCollectedDeclarations.length}`
             nestedCollectedDeclarations.push([varName, filePath])
-            return `'${file}': [${varName}, ${JSON.stringify(filePath)}],`
+            return `'${file}': [${varName}, ${JSON.stringify(stripAppDir(filePath))}],`
           })
           .join('\n')}
         ${createMetadataExportsCode(metadata)}
@@ -749,6 +761,7 @@ const nextAppLoader: AppLoader = async function nextAppLoader() {
 
   let treeCodeResult = await createTreeCodeFromPath(pagePath, {
     page,
+    appDir,
     resolveDir,
     resolver,
     metadataResolver,
@@ -804,6 +817,7 @@ const nextAppLoader: AppLoader = async function nextAppLoader() {
       if (this._compilation) filesInDirMapMap.get(this._compilation)?.clear()
       treeCodeResult = await createTreeCodeFromPath(pagePath, {
         page,
+        appDir,
         resolveDir,
         resolver,
         metadataResolver,

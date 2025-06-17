@@ -421,6 +421,13 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
+  const dir = ctx.renderOpts.dir || ''
+
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const nodeName = modType ?? 'page'
+
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
   const parallelRouteMap = await Promise.all(
@@ -627,12 +634,6 @@ async function createComponentTreeInternal({
       `"params" is a reserved prop in Layouts and Pages and cannot be used as the name of a parallel route in ${segment}`
     )
   }
-
-  const dir = ctx.renderOpts.dir || process.cwd()
-  const isSegmentViewEnabled =
-    process.env.NODE_ENV === 'development' &&
-    ctx.renderOpts.devtoolSegmentExplorer
-  const nodeName = modType ?? 'page'
 
   if (isPage) {
     const PageComponent = isSegmentViewEnabled
@@ -1017,12 +1018,10 @@ function normalizePageOrLayoutFilePath(
   const relativePath = (layoutOrPagePath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
-    // remove the process.cwd() prefix
-    .replace(process.cwd() + '/', '')
     // remove the project root from the path
     .replace(projectDir, '')
-    // remove /(src/)?app/ dir prefix
-    .replace(/^[\\/](src[\\/])?app[\\/]/, '')
+    // remove app/ dir prefix
+    .replace(/^[\\/]?app[\\/]/, '')
 
   return relativePath
 }
