@@ -2,7 +2,7 @@
 
 id: turbo-async-fn-without-await
 message: 'Async function is denoted as `#[turbo_tasks::function]` but does not have `await`.'
-severity: error # error, warning, info, hint
+severity: warning # error, warning, info, hint
 language: Rust
 
 rule:
