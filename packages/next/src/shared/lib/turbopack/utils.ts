@@ -212,32 +212,31 @@ export function formatIssue(issue: Issue) {
 
   if (importTraces?.length) {
     // This is the same logic as in turbopack/crates/turbopack-cli-utils/src/issue.rs
-    if (importTraces.length > 1) {
+    if (importTraces.length === 1) {
+      const trace = importTraces[0]
+      // We only display the layer if there is more than one for the trace
+      message += `Import trace:\n${formatIssueTrace(trace, '  ', !identicalLayers(trace))}`
+    } else {
       // We end up with multiple traces when the file with the error is reachable from multiple
       // different entry points (e.g. ssr, client)
       message += 'Import traces:\n'
       const everyTraceHasADistinctRootLayer =
-        new Set(importTraces.map((t) => t[0].layer).filter((l) => l != null))
+        new Set(importTraces.map(leafLayerName).filter((l) => l != null))
           .size === importTraces.length
       for (let i = 0; i < importTraces.length; i++) {
         const trace = importTraces[i]
-        const layer = trace[0].layer
+        const layer = leafLayerName(trace)
         if (everyTraceHasADistinctRootLayer) {
           message += `  ${layer}:\n`
         } else {
           message += `  #${i + 1}`
-          let lableLayer = layer ?? trace[0].layer
-          if (lableLayer) {
-            message += ` [${lableLayer}]`
+          if (layer) {
+            message += ` [${layer}]`
           }
           message += ':\n'
         }
         message += formatIssueTrace(trace, '    ', !identicalLayers(trace))
       }
-    } else {
-      const trace = importTraces[0]
-      // We only display the layer if there is more than one for the trace
-      message += `Import trace:\n${formatIssueTrace(trace, '  ', !identicalLayers(trace))}`
     }
   }
   if (documentationLink) {
@@ -246,11 +245,25 @@ export function formatIssue(issue: Issue) {
   return message
 }
 
-/** Returns whether or not all items share the same layer. */
+/** Returns the first present layer name in the trace */
+function leafLayerName(items: PlainTraceItem[]): string | undefined {
+  for (const item of items) {
+    const layer = item.layer
+    if (layer != null) return layer
+  }
+  return undefined
+}
+/**
+ * Returns whether or not all items share the same layer.
+ * If a layer is absent we ignore it in this analysis
+ */
 function identicalLayers(items: PlainTraceItem[]): boolean {
-  let layer = items[0].layer
-  for (let i = 1; i < items.length; i++) {
-    if (items[i].layer !== layer) {
+  const firstPresentLayer = items.findIndex((t) => t.layer != null)
+  if (firstPresentLayer === -1) return true // all layers are absent
+  const layer = items[firstPresentLayer].layer
+  for (let i = firstPresentLayer + 1; i < items.length; i++) {
+    const itemLayer = items[i].layer
+    if (itemLayer == null || itemLayer !== layer) {
       return false
     }
   }
