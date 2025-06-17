@@ -73,7 +73,6 @@ function createTrie<Value = string>({
   }
 
   function insert(value: Value) {
-    console.log('insert', value)
     let currentNode = root
     const segments = getCharacters(value)
 
