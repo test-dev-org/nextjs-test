@@ -17,7 +17,6 @@ describe('nx-handling', () => {
         start: 'nx run next-nx-test:serve:production',
       },
       dependencies: {
-        next: '15.4.0-canary.72',
         react: '19.0.0',
         'react-dom': '19.0.0',
         '@nx/js': '21.1.3',
