@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::hash_map::Entry};
+use std::collections::hash_map::Entry;
 
 use anyhow::{Context, Result, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -185,23 +185,12 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
 
         span.record("visit_count", visit_count);
 
-        #[derive(Debug, PartialEq, Eq, Hash)]
+        #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
         struct ListOccurence {
-            list: usize,
+            // The field order here is important, these structs will get ordered by the entry
+            // index.
             entry: usize,
-        }
-        impl PartialOrd for ListOccurence {
-            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-                Some(self.cmp(other))
-            }
-        }
-        impl Ord for ListOccurence {
-            fn cmp(&self, other: &Self) -> Ordering {
-                self.entry
-                    .cmp(&other.entry)
-                    // don't matter but needed to make it a total ordering
-                    .then_with(|| self.list.cmp(&other.list))
-            }
+            list: usize,
         }
 
         // A list of all different execution traces (orderings) of all modules, initially a union of
