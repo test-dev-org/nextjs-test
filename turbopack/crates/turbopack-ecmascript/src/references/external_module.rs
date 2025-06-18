@@ -44,6 +44,7 @@ pub enum CachedExternalType {
     CommonJs,
     EcmaScriptViaRequire,
     EcmaScriptViaImport,
+    Global,
 }
 
 impl Display for CachedExternalType {
@@ -52,6 +53,7 @@ impl Display for CachedExternalType {
             CachedExternalType::CommonJs => write!(f, "cjs"),
             CachedExternalType::EcmaScriptViaRequire => write!(f, "esm_require"),
             CachedExternalType::EcmaScriptViaImport => write!(f, "esm_import"),
+            CachedExternalType::Global => write!(f, "global"),
         }
     }
 }
@@ -82,19 +84,33 @@ impl CachedExternalModule {
     pub fn content(&self) -> Result<Vc<EcmascriptModuleContent>> {
         let mut code = RopeBuilder::default();
 
-        if self.external_type == CachedExternalType::EcmaScriptViaImport {
-            writeln!(
-                code,
-                "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
-                StringifyJs(&self.request)
-            )?;
-        } else {
-            writeln!(
-                code,
-                "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
-                StringifyJs(&self.request),
-                StringifyJs(&self.request)
-            )?;
+        match self.external_type {
+            CachedExternalType::EcmaScriptViaImport => {
+                writeln!(
+                    code,
+                    "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
+                    StringifyJs(&self.request)
+                )?;
+            }
+            CachedExternalType::Global => {
+                if self.request.is_empty() {
+                    writeln!(code, "const mod = {{}};")?;
+                } else {
+                    writeln!(
+                        code,
+                        "const mod = globalThis[{}];",
+                        StringifyJs(&self.request)
+                    )?;
+                }
+            }
+            CachedExternalType::EcmaScriptViaRequire | CachedExternalType::CommonJs => {
+                writeln!(
+                    code,
+                    "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
+                    StringifyJs(&self.request),
+                    StringifyJs(&self.request)
+                )?;
+            }
         }
 
         writeln!(code)?;
