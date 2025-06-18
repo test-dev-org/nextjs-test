@@ -701,9 +701,8 @@ impl AssetContext for ModuleAssetContext {
         *self.compile_time_info
     }
 
-    #[turbo_tasks::function]
-    fn layer(&self) -> Vc<RcStr> {
-        Vc::cell(self.layer.clone())
+    fn layer(&self) -> RcStr {
+        self.layer.clone()
     }
 
     #[turbo_tasks::function]

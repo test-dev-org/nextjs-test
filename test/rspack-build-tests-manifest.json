@@ -5682,10 +5682,11 @@
       "segment cache (revalidation) call router.prefetch(..., {onInvalidate}) after cache is revalidated",
       "segment cache (revalidation) evict client cache when Server Action calls revalidatePath",
       "segment cache (revalidation) evict client cache when Server Action calls revalidateTag",
-      "segment cache (revalidation) re-fetch visible links after a navigation, if needed",
       "segment cache (revalidation) refetch visible Form components after cache is revalidated"
     ],
-    "failed": [],
+    "failed": [
+      "segment cache (revalidation) re-fetch visible links after a navigation, if needed"
+    ],
     "pending": [],
     "flakey": [],
     "runtimeError": false
@@ -10389,9 +10390,7 @@
   },
   "test/integration/css-features/test/browserslist.test.js": {
     "passed": [
-      "Browserslist: New production mode should have compiled successfully",
       "Browserslist: New production mode should've emitted a single CSS file",
-      "Browserslist: Old production mode should have compiled successfully",
       "Browserslist: Old production mode should've emitted a single CSS file"
     ],
     "failed": [],
@@ -17797,7 +17796,6 @@
   },
   "test/integration/server-side-dev-errors/test/index.test.js": {
     "passed": [
-      "server-side dev errors should show server-side error for dynamic api route correctly",
       "server-side dev errors should show server-side error for dynamic gssp page correctly",
       "server-side dev errors should show server-side error for gsp page correctly",
       "server-side dev errors should show server-side error for gssp page correctly",
@@ -17807,7 +17805,8 @@
       "server-side dev errors should show server-side error for uncaught rejection correctly"
     ],
     "failed": [
-      "server-side dev errors should show server-side error for api route correctly"
+      "server-side dev errors should show server-side error for api route correctly",
+      "server-side dev errors should show server-side error for dynamic api route correctly"
     ],
     "pending": [],
     "flakey": [],
