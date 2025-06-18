@@ -168,7 +168,7 @@ export function SegmentsExplorer(
   const tree = useSegmentTree()
 
   return (
-    <DevToolsInfo title="Routes Info" {...props}>
+    <DevToolsInfo title="Route Info" {...props}>
       <PageSegmentTree tree={tree} />
     </DevToolsInfo>
   )

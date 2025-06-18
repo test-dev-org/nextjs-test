@@ -336,7 +336,7 @@ function DevToolsPopover({
         setScale={setScale}
       />
 
-      {/* Page Routes Info */}
+      {/* Page Route Info */}
       {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER ? (
         <SegmentsExplorer
           isOpen={isSegmentExplorerOpen}
@@ -414,7 +414,7 @@ function DevToolsPopover({
               {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER ? (
                 <MenuItem
                   data-segment-explorer
-                  label="Routes Info"
+                  label="Route Info"
                   value={<ChevronRight />}
                   onClick={() => setOpen(OVERLAYS.SegmentExplorer)}
                   index={isTurbopack ? 3 : 4}
