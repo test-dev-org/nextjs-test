@@ -807,6 +807,7 @@ export default async function build(
   dir: string,
   reactProductionProfiling = false,
   debugOutput = false,
+  debugPrerender = false,
   runLint = true,
   noMangling = false,
   appDirOnly = false,
@@ -826,9 +827,6 @@ export default async function build(
       isTurboBuild: String(isTurbopack),
       version: process.env.__NEXT_VERSION as string,
     })
-
-    // TODO: Use dedicated `debugPrerender` CLI flag.
-    const debugPrerender = debugOutput
 
     NextBuildContext.nextBuildSpan = nextBuildSpan
     NextBuildContext.dir = dir

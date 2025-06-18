@@ -13,6 +13,7 @@ import { disableMemoryDebuggingMode } from '../lib/memory/shutdown'
 
 export type NextBuildOptions = {
   debug?: boolean
+  debugPrerender?: boolean
   profile?: boolean
   lint: boolean
   mangling: boolean
@@ -31,6 +32,7 @@ const nextBuild = (options: NextBuildOptions, directory?: string) => {
 
   const {
     debug,
+    debugPrerender,
     experimentalDebugMemoryUsage,
     profile,
     lint,
@@ -51,13 +53,19 @@ const nextBuild = (options: NextBuildOptions, directory?: string) => {
 
   if (!mangling) {
     warn(
-      'Mangling is disabled. Note: This may affect performance and should only be used for debugging purposes.'
+      `Mangling is disabled. ${italic('Note: This may affect performance and should only be used for debugging purposes.')}`
     )
   }
 
   if (profile) {
     warn(
       `Profiling is enabled. ${italic('Note: This may affect performance.')}`
+    )
+  }
+
+  if (debugPrerender) {
+    warn(
+      `Debug prerendering is enabled. ${italic('Note: This may affect performance and should only be used for debugging purposes.')}`
     )
   }
 
@@ -83,6 +91,7 @@ const nextBuild = (options: NextBuildOptions, directory?: string) => {
     dir,
     profile,
     debug || Boolean(process.env.NEXT_DEBUG_BUILD),
+    debugPrerender,
     lint,
     !mangling,
     experimentalAppOnly,
