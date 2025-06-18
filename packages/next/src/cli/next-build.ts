@@ -65,8 +65,8 @@ const nextBuild = (options: NextBuildOptions, directory?: string) => {
 
   if (debugPrerender) {
     warn(
-      `Debug prerendering is enabled. ${italic(
-        'Note: This may affect performance, should only be used for debugging purposes, and must not be deployed to production.'
+      `Prerendering is running in debug mode. ${italic(
+        'Note: This may affect performance and should not be used for production.'
       )}`
     )
   }

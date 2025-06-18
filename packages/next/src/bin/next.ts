@@ -126,7 +126,7 @@ program
   .option('-d, --debug', 'Enables a more verbose build output.')
   .option(
     '--debug-prerender',
-    'Show usable stack traces during pre-rendering. Not for production use!'
+    'Enables debug mode for prerendering. Not for production use!'
   )
   .option('--no-lint', 'Disables linting.')
   .option('--no-mangling', 'Disables mangling.')
