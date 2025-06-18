@@ -2116,17 +2116,16 @@ impl FileContent {
 #[turbo_tasks::value_impl]
 impl FileContent {
     #[turbo_tasks::function]
-    pub async fn len(self: Vc<Self>) -> Result<Vc<Option<u64>>> {
-        Ok(Vc::cell(match &*self.await? {
+    pub fn len(&self) -> Result<Vc<Option<u64>>> {
+        Ok(Vc::cell(match self {
             FileContent::Content(file) => Some(file.content.len() as u64),
             FileContent::NotFound => None,
         }))
     }
 
     #[turbo_tasks::function]
-    pub async fn parse_json(self: Vc<Self>) -> Result<Vc<FileJsonContent>> {
-        let this = self.await?;
-        Ok(this.parse_json_ref().into())
+    pub fn parse_json(&self) -> Result<Vc<FileJsonContent>> {
+        Ok(self.parse_json_ref().into())
     }
 
     #[turbo_tasks::function]
