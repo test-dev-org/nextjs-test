@@ -5,10 +5,7 @@ import {
   PHASE_DEVELOPMENT_SERVER,
   PHASE_PRODUCTION_BUILD,
 } from '../../shared/lib/constants'
-import loadConfig, {
-  getConfiguredExperimentalFeatures,
-  type ConfiguredExperimentalFeature,
-} from '../config'
+import loadConfig, { type ConfiguredExperimentalFeature } from '../config'
 
 export function logStartInfo({
   networkUrl,
@@ -57,8 +54,9 @@ export function logStartInfo({
           : '·'
 
       const suffix = exp.type === 'number' ? `: ${exp.value}` : ''
+      const reason = exp.reason ? ` (${exp.reason})` : ''
 
-      Log.bootstrap(`  ${symbol} ${exp.name}${suffix}`)
+      Log.bootstrap(`  ${symbol} ${exp.name}${suffix}${reason}`)
     }
     /* indicate if there are more than the maximum shown no. flags */
     if (experimentalFeatures.length > maxExperimentalFeatures) {
@@ -87,11 +85,8 @@ export async function getStartServerInfo({
     dev ? PHASE_DEVELOPMENT_SERVER : PHASE_PRODUCTION_BUILD,
     dir,
     {
-      onLoadUserConfig(userConfig) {
-        const configuredExperimentalFeatures =
-          getConfiguredExperimentalFeatures(userConfig.experimental)
-
-        experimentalFeatures = configuredExperimentalFeatures.sort(
+      reportExperimentalFeatures(features) {
+        experimentalFeatures = features.sort(
           ({ name: a }, { name: b }) => a.length - b.length
         )
       },
