@@ -1215,7 +1215,7 @@ impl PageEndpoint {
     }
 
     #[turbo_tasks::function]
-    async fn react_loadable_manifest(
+    fn react_loadable_manifest(
         &self,
         dynamic_import_entries: Vc<DynamicImportedChunks>,
         runtime: NextRuntime,

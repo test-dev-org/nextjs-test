@@ -77,7 +77,7 @@ pub struct VisitedModules {
 #[turbo_tasks::value_impl]
 impl VisitedModules {
     #[turbo_tasks::function]
-    pub async fn empty() -> Vc<Self> {
+    pub fn empty() -> Vc<Self> {
         Self {
             modules: Default::default(),
             next_graph_idx: 0,
@@ -110,7 +110,7 @@ impl VisitedModules {
     }
 
     #[turbo_tasks::function]
-    pub async fn with_incremented_index(&self) -> Result<Vc<Self>> {
+    pub fn with_incremented_index(&self) -> Result<Vc<Self>> {
         Ok(Self {
             modules: self.modules.clone(),
             next_graph_idx: self.next_graph_idx + 1,

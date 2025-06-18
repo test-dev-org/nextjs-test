@@ -657,7 +657,7 @@ impl Issue for ParsingIssue {
     }
 
     #[turbo_tasks::function]
-    async fn description(&self) -> Result<Vc<OptionStyledString>> {
+    fn description(&self) -> Result<Vc<OptionStyledString>> {
         Ok(Vc::cell(Some(
             StyledString::Text(self.msg.clone()).resolved_cell(),
         )))
