@@ -1199,6 +1199,8 @@ async fn merge_modules(
         /// The export syntax contexts in the current AST, which will be mapped to merged_ctxts
         reverse_module_contexts:
             FxIndexMap<SyntaxContext, ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>>,
+        /// For a given module, the `eval_context.imports.exports`. So for a given export, this
+        /// allows looking up the corresponding local binding's name and context.
         export_contexts:
             &'a FxHashMap<ResolvedVc<Box<dyn EcmascriptChunkPlaceable>>, &'a FxHashMap<RcStr, Id>>,
         /// A fresh global SyntaxContext for each module-local context, so that we can merge them
@@ -1232,6 +1234,8 @@ async fn merge_modules(
                 sym, ctxt, span, ..
             } = ident;
 
+            // If this ident is an imported binding, rewrite the name and context to the
+            // corresponding export in the module that exports it.
             if let Some(&module) = self.reverse_module_contexts.get(ctxt) {
                 let eval_context_exports = self.export_contexts.get(&module).unwrap();
                 // TODO looking up an Atom in a Map<RcStr, _>
@@ -1266,6 +1270,8 @@ async fn merge_modules(
         }
 
         fn visit_mut_syntax_context(&mut self, local_ctxt: &mut SyntaxContext) {
+            // The modules have their own local syntax contexts, which needs to be mapped to
+            // contexts that were actually created in the merged Globals.
             let module = self
                 .reverse_module_contexts
                 .get(local_ctxt)
@@ -1276,6 +1282,8 @@ async fn merge_modules(
             *local_ctxt = global_ctxt;
         }
         fn visit_mut_span(&mut self, span: &mut Span) {
+            // Encode the module index into the span, to be able to retrieve the module later for
+            // finding the correct Comments and SourceMap.
             span.lo = CodeGenResultComments::encode_bytepos(
                 self.modules_header_width,
                 self.current_module_idx,
