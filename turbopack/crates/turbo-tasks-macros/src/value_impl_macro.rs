@@ -252,7 +252,7 @@ pub fn value_impl(args: TokenStream, input: TokenStream) -> TokenStream {
                     filter_trait_call_args: turbo_fn.filter_trait_call_args(),
                     local,
                     invalidator,
-                    immutable: is_immutable(&sig) && !invalidator,
+                    immutable: is_immutable(sig) && !invalidator,
                 };
 
                 let native_function_ident =
