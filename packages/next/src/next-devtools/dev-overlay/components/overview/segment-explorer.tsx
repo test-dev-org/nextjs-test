@@ -80,59 +80,63 @@ function PageSegmentTreeLayerPresentation({
     folderChildrenKeys.push(childKey)
   }
 
+  const hasFilesChildren = filesChildrenKeys.length > 0
+
   return (
     <>
-      <div
-        className="segment-explorer-item"
-        data-nextjs-devtool-segment-explorer-segment={segment + '-' + level}
-      >
+      {hasFilesChildren && (
         <div
-          className="segment-explorer-item-row"
-          style={{
-            // If it's children levels, show indents if there's any file at that level.
-            // Otherwise it's empty folder, no need to show indents.
-            ...{ paddingLeft: `${(level + 1) * 8}px` },
-          }}
+          className="segment-explorer-item"
+          data-nextjs-devtool-segment-explorer-segment={segment + '-' + level}
         >
-          <div className="segment-explorer-line">
-            <div className={`segment-explorer-line-text-${nodeName}`}>
-              <div className="segment-explorer-filename">
-                {folderName && (
-                  <span className="segment-explorer-filename--path">
-                    {folderName}
-                    {/* hidden slashes for testing snapshots */}
-                    <small>{'/'}</small>
-                  </span>
-                )}
-                {/* display all the file segments in this level */}
-                {filesChildrenKeys.length > 0 && (
-                  <span className="segment-explorer-files">
-                    {filesChildrenKeys.map((fileChildSegment) => {
-                      const childNode = node.children[fileChildSegment]
-                      if (!childNode || !childNode.value) {
-                        return null
-                      }
-                      const fileName =
-                        childNode.value.pagePath.split('/').pop() || ''
-                      return (
-                        <span
-                          key={fileChildSegment}
-                          className={cx(
-                            'segment-explorer-file-label',
-                            `segment-explorer-file-label--${childNode.value.type}`
-                          )}
-                        >
-                          {fileName}
-                        </span>
-                      )
-                    })}
-                  </span>
-                )}
+          <div
+            className="segment-explorer-item-row"
+            style={{
+              // If it's children levels, show indents if there's any file at that level.
+              // Otherwise it's empty folder, no need to show indents.
+              ...{ paddingLeft: `${(level + 1) * 8}px` },
+            }}
+          >
+            <div className="segment-explorer-line">
+              <div className={`segment-explorer-line-text-${nodeName}`}>
+                <div className="segment-explorer-filename">
+                  {folderName && (
+                    <span className="segment-explorer-filename--path">
+                      {folderName}
+                      {/* hidden slashes for testing snapshots */}
+                      <small>{'/'}</small>
+                    </span>
+                  )}
+                  {/* display all the file segments in this level */}
+                  {filesChildrenKeys.length > 0 && (
+                    <span className="segment-explorer-files">
+                      {filesChildrenKeys.map((fileChildSegment) => {
+                        const childNode = node.children[fileChildSegment]
+                        if (!childNode || !childNode.value) {
+                          return null
+                        }
+                        const fileName =
+                          childNode.value.pagePath.split('/').pop() || ''
+                        return (
+                          <span
+                            key={fileChildSegment}
+                            className={cx(
+                              'segment-explorer-file-label',
+                              `segment-explorer-file-label--${childNode.value.type}`
+                            )}
+                          >
+                            {fileName}
+                          </span>
+                        )
+                      })}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {folderChildrenKeys.map((childSegment) => {
         const child = node.children[childSegment]
@@ -140,12 +144,17 @@ function PageSegmentTreeLayerPresentation({
           return null
         }
 
+        // If it's an folder segment without any files under it,
+        // merge it with the segment in the next level.
+        const nextSegment = hasFilesChildren
+          ? childSegment
+          : segment + ' / ' + childSegment
         return (
           <PageSegmentTreeLayerPresentation
             key={childSegment}
-            segment={childSegment}
+            segment={nextSegment}
             node={child}
-            level={level + 1}
+            level={hasFilesChildren ? level + 1 : level}
           />
         )
       })}

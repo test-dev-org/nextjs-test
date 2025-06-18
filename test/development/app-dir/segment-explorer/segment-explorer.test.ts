@@ -47,12 +47,10 @@ describe('segment-explorer', () => {
      layout.tsx
      (v2)/
      layout.tsx
-     blog/
-     (team)/
+     blog / (team)/
      layout.tsx
      template.tsx
-     ~/
-     (overview)/
+     ~ / (overview)/
      layout.tsx
      grid/
      page.tsx"
@@ -64,8 +62,7 @@ describe('segment-explorer', () => {
     expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
      "app/
      layout.tsx
-     soft-navigation/
-     a/
+     soft-navigation / a/
      page.tsx"
     `)
 
@@ -77,8 +74,7 @@ describe('segment-explorer', () => {
     expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
      "app/
      layout.tsx
-     soft-navigation/
-     b/
+     soft-navigation / b/
      page.tsx"
     `)
   })
@@ -88,8 +84,7 @@ describe('segment-explorer', () => {
     expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
      "app/
      layout.tsx
-     (all)/
-     file-segments/
+     (all) / file-segments/
      layout.tsx
      template.tsx
      page.tsx"
