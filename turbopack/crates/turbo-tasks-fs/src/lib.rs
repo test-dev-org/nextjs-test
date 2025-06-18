@@ -1180,14 +1180,13 @@ impl FileSystemPath {
     /// contain ".." or "." seqments, but it must not leave the root of the
     /// filesystem.
     #[turbo_tasks::function]
-    pub async fn join(self: Vc<Self>, path: RcStr) -> Result<Vc<Self>> {
-        let this = self.await?;
-        if let Some(path) = join_path(&this.path, &path) {
-            Ok(Self::new_normalized(*this.fs, path.into()))
+    pub fn join(&self, path: RcStr) -> Result<Vc<Self>> {
+        if let Some(path) = join_path(&self.path, &path) {
+            Ok(Self::new_normalized(*self.fs, path.into()))
         } else {
             bail!(
                 "Vc<FileSystemPath>(\"{}\").join(\"{}\") leaves the filesystem root",
-                this.path,
+                self.path,
                 path
             );
         }
@@ -1195,42 +1194,40 @@ impl FileSystemPath {
 
     /// Adds a suffix to the filename. [path] must not contain `/`.
     #[turbo_tasks::function]
-    pub async fn append(self: Vc<Self>, path: RcStr) -> Result<Vc<Self>> {
-        let this = self.await?;
+    pub fn append(&self, path: RcStr) -> Result<Vc<Self>> {
         if path.contains('/') {
             bail!(
-                "Vc<FileSystemPath>(\"{}\").append(\"{}\") must not append '/'",
-                this.path,
+                "FileSystemPath(\"{}\").append(\"{}\") must not append '/'",
+                self.path,
                 path
             )
         }
         Ok(Self::new_normalized(
-            *this.fs,
-            format!("{}{}", this.path, path).into(),
+            *self.fs,
+            format!("{}{}", self.path, path).into(),
         ))
     }
 
     /// Adds a suffix to the basename of the filename. [appending] must not
     /// contain `/`. Extension will stay intact.
     #[turbo_tasks::function]
-    pub async fn append_to_stem(self: Vc<Self>, appending: RcStr) -> Result<Vc<Self>> {
-        let this = self.await?;
+    pub fn append_to_stem(&self, appending: RcStr) -> Result<Vc<Self>> {
         if appending.contains('/') {
             bail!(
-                "Vc<FileSystemPath>(\"{}\").append_to_stem(\"{}\") must not append '/'",
-                this.path,
+                "FileSystemPath(\"{}\").append_to_stem(\"{}\") must not append '/'",
+                self.path,
                 appending
             )
         }
-        if let (path, Some(ext)) = this.split_extension() {
+        if let (path, Some(ext)) = self.split_extension() {
             return Ok(Self::new_normalized(
-                *this.fs,
+                *self.fs,
                 format!("{path}{appending}.{ext}").into(),
             ));
         }
         Ok(Self::new_normalized(
-            *this.fs,
-            format!("{}{}", this.path, appending).into(),
+            *self.fs,
+            format!("{}{}", self.path, appending).into(),
         ))
     }
 
