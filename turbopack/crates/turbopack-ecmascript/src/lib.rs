@@ -1240,7 +1240,7 @@ async fn merge_modules(
                     eval_context_exports.get(&sym_rc_str)
                 {
                     (Some(local), *local_ctxt)
-                } else if sym.starts_with("__TURBOPACK__imported__module__$") {
+                } else if sym.starts_with("__TURBOPACK__imported__module__") {
                     // The variable corresponding to the `export * as foo from "...";` is generated
                     // in the module generating the reexport (and it's not listed in the
                     // eval_context). `EsmAssetReference::code_gen` uses a dummy span when
@@ -1248,8 +1248,8 @@ async fn merge_modules(
                     (None, SyntaxContext::empty())
                 } else {
                     panic!(
-                        "Expected to find a local export for {sym} with ctxt {ctxt:#?} in {:?}",
-                        self.reverse_module_contexts
+                        "Expected to find a local export for {sym} with ctxt {ctxt:#?} in \
+                         {eval_context_exports:?}",
                     );
                 };
 
@@ -1382,10 +1382,9 @@ async fn merge_modules(
                     Stmt::Decl(Decl::Var(var)) => {
                         if let [decl] = &*var.decls
                             && let Some(name) = decl.name.as_ident()
-                            && name.sym.starts_with("__TURBOPACK__imported__module__$")
+                            && name.sym.starts_with("__TURBOPACK__imported__module__")
                         {
-                            // var __TURBOPACK__imported__module__$... =
-                            // __turbopack_context__.i("...");
+                            // var __TURBOPACK__imported__module__.. = __turbopack_context__.i(..);
 
                             // Even if these imports are not side-effect free, they only execute
                             // once, so no need to insert multiple times.
