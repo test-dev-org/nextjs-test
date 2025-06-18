@@ -66,7 +66,10 @@ pub enum ExecutionEnvironment {
 async fn resolve_browserslist(browser_env: ResolvedVc<BrowserEnvironment>) -> Result<Vec<Distrib>> {
     Ok(browserslist::resolve(
         browser_env.await?.browserslist_query.split(','),
-        &browserslist::Opts::default(),
+        &browserslist::Opts {
+            ignore_unknown_versions: true,
+            ..Default::default()
+        },
     )?)
 }
 
@@ -88,9 +91,10 @@ impl Environment {
         Ok(match self.execution {
             ExecutionEnvironment::NodeJsBuildTime(node_env, ..)
             | ExecutionEnvironment::NodeJsLambda(node_env) => node_env.runtime_versions(),
-            ExecutionEnvironment::Browser(browser_env) => Vc::cell(Versions::parse_versions(
-                resolve_browserslist(browser_env).await?,
-            )?),
+            ExecutionEnvironment::Browser(browser_env) => {
+                let distribs = resolve_browserslist(browser_env).await?;
+                Vc::cell(Versions::parse_versions(distribs)?)
+            }
             ExecutionEnvironment::EdgeWorker(_) => todo!(),
             ExecutionEnvironment::Custom(_) => todo!(),
         })

@@ -435,4 +435,6 @@ vergen-gitcl = { version = "1.0.8", features = [
 webbrowser = "0.8.7"
 
 [patch.crates-io]
+lightningcss = { git = "https://github.com/timneutkens/lightningcss", branch = "add/browserslist-options"}
+parcel_selectors = { git = "https://github.com/timneutkens/lightningcss", branch = "add/browserslist-options"}
 mdxjs = { git = "https://github.com/kdy1/mdxjs-rs.git", branch = "swc-core-29" }

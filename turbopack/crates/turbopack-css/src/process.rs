@@ -4,7 +4,7 @@ use anyhow::{Context, Result, bail};
 use lightningcss::{
     css_modules::{CssModuleExport, CssModuleExports, Pattern, Segment},
     stylesheet::{MinifyOptions, ParserOptions, PrinterOptions, StyleSheet, ToCssResult},
-    targets::{Features, Targets},
+    targets::{BrowserslistConfig, Features, Targets},
     traits::ToCss,
     values::url::Url,
     visit_types,
@@ -58,8 +58,13 @@ fn get_lightningcss_browser_targets(
     browserslist_query: RcStr,
     handle_nesting: bool,
 ) -> Result<Targets> {
-    let browserslist_browsers =
-        lightningcss::targets::Browsers::from_browserslist(browserslist_query.split(','))?;
+    let browserslist_browsers = lightningcss::targets::Browsers::from_browserslist_with_config(
+        browserslist_query.split(','),
+        BrowserslistConfig {
+            ignore_unknown_versions: true,
+            ..Default::default()
+        },
+    )?;
 
     Ok(if handle_nesting {
         Targets {
