@@ -354,7 +354,7 @@ pub async fn chunk_group_content(
                             {
                                 true
                             } else {
-                                modified.store(true, std::sync::atomic::Ordering::Release);
+                                modified.store(true, std::sync::atomic::Ordering::Relaxed);
                                 false
                             }
                         })
@@ -362,7 +362,7 @@ pub async fn chunk_group_content(
                             if let Some(replacement) =
                                 merged_modules.should_replace_module(ResolvedVc::upcast(module))
                             {
-                                modified.store(true, std::sync::atomic::Ordering::Release);
+                                modified.store(true, std::sync::atomic::Ordering::Relaxed);
                                 replacement
                             } else {
                                 module
@@ -371,7 +371,7 @@ pub async fn chunk_group_content(
                         .map(ChunkableModuleOrBatch::Module)
                         .collect::<SmallVec<[_; 1]>>();
 
-                    if modified.load(std::sync::atomic::Ordering::Acquire) {
+                    if modified.load(std::sync::atomic::Ordering::Relaxed) {
                         Ok(modules)
                     } else {
                         Ok(smallvec![ChunkableModuleOrBatch::Batch(batch)])
