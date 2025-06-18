@@ -1271,10 +1271,29 @@ export default async function loadConfig(
       )) as NextConfig
     )
 
+    const configuredExperimentalFeatures: ConfiguredExperimentalFeature[] = []
+
+    if (reportExperimentalFeatures && loadedConfig.experimental) {
+      for (const name of Object.keys(
+        loadedConfig.experimental
+      ) as (keyof ExperimentalConfig)[]) {
+        const value = loadedConfig.experimental[name]
+
+        if (name === 'turbo' && !process.env.TURBOPACK) {
+          // Ignore any Turbopack config if Turbopack is not enabled
+          continue
+        }
+
+        addConfiguredExperimentalFeature(
+          configuredExperimentalFeatures,
+          name,
+          value
+        )
+      }
+    }
+
     // Clone a new userConfig each time to avoid mutating the original
     const userConfig = cloneObject(loadedConfig) as NextConfig
-
-    const configuredExperimentalFeatures: ConfiguredExperimentalFeature[] = []
 
     if (!process.env.NEXT_MINIMAL) {
       // We only validate the config against schema in non minimal mode
@@ -1390,25 +1409,6 @@ export default async function loadConfig(
     if (userConfig?.htmlLimitedBots instanceof RegExp) {
       // @ts-expect-error: override the htmlLimitedBots with default string, type covert: RegExp -> string
       userConfig.htmlLimitedBots = userConfig.htmlLimitedBots.source
-    }
-
-    if (reportExperimentalFeatures && userConfig.experimental) {
-      for (const name of Object.keys(
-        userConfig.experimental
-      ) as (keyof ExperimentalConfig)[]) {
-        const value = userConfig.experimental[name]
-
-        if (name === 'turbo' && !process.env.TURBOPACK) {
-          // Ignore any Turbopack config if Turbopack is not enabled
-          continue
-        }
-
-        addConfiguredExperimentalFeature(
-          configuredExperimentalFeatures,
-          name,
-          value
-        )
-      }
     }
 
     if (
