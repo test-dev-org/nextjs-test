@@ -144,9 +144,18 @@ function getPreambleOutput(cliOutput: string): string {
       break
     }
 
-    if (!line.includes('Loading config from')) {
-      lines.push(line.replace(nextVersion, 'x.y.x'))
+    // Ignore the test-only warning that `experimental.ppr` has been defaulted
+    // to `true` when `__NEXT_EXPERIMENTAL_PPR` is set to `true`.
+    if (line.includes('__NEXT_EXPERIMENTAL_PPR')) {
+      continue
     }
+
+    // Ignore the test-only config log. Can be removed when #80666 is merged.
+    if (line.includes('Loading config from')) {
+      continue
+    }
+
+    lines.push(line.replace(nextVersion, 'x.y.x'))
   }
 
   return lines.join('\n').trim()
