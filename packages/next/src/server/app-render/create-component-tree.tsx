@@ -118,7 +118,7 @@ async function createComponentTreeInternal({
     query,
   } = ctx
 
-  const { page, layoutOrPagePath, segment, modules, parallelRoutes } =
+  const { page, conventionPath, segment, modules, parallelRoutes } =
     parseLoaderTree(tree)
 
   const {
@@ -140,7 +140,7 @@ async function createComponentTreeInternal({
   const layerAssets = getLayerAssets({
     preloadCallbacks,
     ctx,
-    layoutOrPagePath,
+    layoutOrPagePath: conventionPath,
     injectedCSS: injectedCSSWithCurrentLayout,
     injectedJS: injectedJSWithCurrentLayout,
     injectedFontPreloadTags: injectedFontPreloadTagsWithCurrentLayout,
@@ -421,6 +421,13 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
+  const dir = ctx.renderOpts.dir || ''
+
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const nodeName = modType ?? 'page'
+
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
   const parallelRouteMap = await Promise.all(
@@ -491,7 +498,7 @@ async function createComponentTreeInternal({
             // to provide more helpful debug information during development mode.
             const parsedTree = parseLoaderTree(parallelRoute)
             if (
-              parsedTree.layoutOrPagePath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
+              parsedTree.conventionPath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
             ) {
               missingSlots.add(parallelRouteKey)
             }
@@ -526,7 +533,17 @@ async function createComponentTreeInternal({
           childCacheNodeSeedData = seedData
         }
 
-        // This is turned back into an object below.
+        const templateNode = (
+          <Template>
+            <RenderFromTemplateContext />
+          </Template>
+        )
+
+        const templateFilePath = getConventionPathByType(
+          parallelRoute,
+          dir,
+          'template'
+        )
         return [
           parallelRouteKey,
           <LayoutRouter
@@ -536,9 +553,14 @@ async function createComponentTreeInternal({
             errorStyles={errorStyles}
             errorScripts={errorScripts}
             template={
-              <Template>
-                <RenderFromTemplateContext />
-              </Template>
+              // Only render SegmentViewNode when there's an actual template
+              isSegmentViewEnabled && templateFilePath ? (
+                <SegmentViewNode type="template" pagePath={templateFilePath}>
+                  {templateNode}
+                </SegmentViewNode>
+              ) : (
+                templateNode
+              )
             }
             templateStyles={templateStyles}
             templateScripts={templateScripts}
@@ -628,25 +650,18 @@ async function createComponentTreeInternal({
     )
   }
 
-  const dir = ctx.renderOpts.dir || process.cwd()
-  const isSegmentViewEnabled =
-    process.env.NODE_ENV === 'development' &&
-    ctx.renderOpts.devtoolSegmentExplorer
-  const nodeName = modType ?? 'page'
-
   if (isPage) {
-    const PageComponent = isSegmentViewEnabled
-      ? (pageProps: any) => {
-          return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
-              <Component {...pageProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
+    const pageFilePath = getConventionPathByType(tree, dir, 'page')
+    const PageComponent =
+      isSegmentViewEnabled && pageFilePath
+        ? (pageProps: any) => {
+            return (
+              <SegmentViewNode type={nodeName} pagePath={pageFilePath}>
+                <Component {...pageProps} />
+              </SegmentViewNode>
+            )
+          }
+        : Component
 
     // Assign searchParams to props if this is a page
     let pageElement: React.ReactNode
@@ -727,18 +742,17 @@ async function createComponentTreeInternal({
       isPossiblyPartialResponse,
     ]
   } else {
-    const SegmentComponent = isSegmentViewEnabled
-      ? (segmentProps: any) => {
-          return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
-              <Component {...segmentProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
+    const layoutFilePath = getConventionPathByType(tree, dir, 'layout')
+    const SegmentComponent =
+      isSegmentViewEnabled && layoutFilePath
+        ? (segmentProps: any) => {
+            return (
+              <SegmentViewNode type={nodeName} pagePath={layoutFilePath}>
+                <Component {...segmentProps} />
+              </SegmentViewNode>
+            )
+          }
+        : Component
 
     const isRootLayoutWithChildrenSlotAndAtLeastOneMoreSlot =
       rootLayoutAtThisLevel &&
@@ -1010,19 +1024,35 @@ function getRootParamsImpl(
   }
 }
 
-function normalizePageOrLayoutFilePath(
+function normalizeConventionFilePath(
   projectDir: string,
-  layoutOrPagePath: string | undefined
+  conventionPath: string | undefined
 ) {
-  const relativePath = (layoutOrPagePath || '')
+  const cwd = process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd()
+  const relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
-    // remove the process.cwd() prefix
-    .replace(process.cwd() + '/', '')
     // remove the project root from the path
     .replace(projectDir, '')
+    // remove cwd prefix
+    .replace(cwd, '')
     // remove /(src/)?app/ dir prefix
-    .replace(/^[\\/](src[\\/])?app[\\/]/, '')
+    .replace(/^([\\/])*(src[\\/])?app[\\/]/, '')
 
   return relativePath
+}
+
+function getConventionPathByType(
+  tree: LoaderTree,
+  dir: string,
+  conventionType: 'layout' | 'template' | 'page'
+) {
+  const modules = tree[2]
+  const conventionPath_ = modules[conventionType]
+    ? modules[conventionType][1]
+    : undefined
+  if (conventionPath_) {
+    return normalizeConventionFilePath(dir, conventionPath_)
+  }
+  return undefined
 }

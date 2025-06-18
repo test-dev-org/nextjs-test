@@ -1,7 +1,6 @@
 'use client'
 
 import React, {
-  use,
   useEffect,
   useMemo,
   startTransition,
@@ -329,7 +328,10 @@ function Router({
     // TODO-APP: Should we listen to navigateerror here to catch failed
     // navigations somehow? And should we call window.stop() if a SPA navigation
     // should interrupt an MPA one?
-    use(unresolvedThenable)
+    // NOTE: This is intentionally using `throw` instead of `use` because we're
+    // inside an externally mutable condition (pushRef.mpaNavigation), which
+    // violates the rules of hooks.
+    throw unresolvedThenable
   }
 
   useEffect(() => {
