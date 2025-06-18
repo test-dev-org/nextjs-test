@@ -1,16 +1,4 @@
 {
-  "test/e2e/app-dir/nx-handling/nx-handling.test.ts": {
-    "passed": [],
-    "failed": [
-      "nx-handling should work for pages page",
-      "nx-handling should work for pages API",
-      "nx-handling should work with app page",
-      "nx-handling should work with app route"
-    ],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
   "packages/font/src/google/find-font-files-in-css.test.ts": {
     "passed": [
       "findFontFilesInCss should find all font files and preload requested subsets",
@@ -6948,6 +6936,7 @@
   },
   "test/e2e/app-dir/metadata-streaming/metadata-streaming-customized-rule.test.ts": {
     "passed": [
+      "app-dir - metadata-streaming-customized-rule should not have schema issue",
       "app-dir - metadata-streaming-customized-rule should send streaming response for headless browser bots",
       "app-dir - metadata-streaming-customized-rule should send the blocking response for html limited bots"
     ],
@@ -7687,6 +7676,18 @@
     "passed": [
       "app dir - not-found - group route with default runtime should use the not-found page under group routes",
       "app dir - not-found - group route with runtime = edge should use the not-found page under group routes"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/nx-handling/nx-handling.test.ts": {
+    "passed": [
+      "nx-handling should work for pages API",
+      "nx-handling should work for pages page",
+      "nx-handling should work with app page",
+      "nx-handling should work with app route"
     ],
     "failed": [],
     "pending": [],
