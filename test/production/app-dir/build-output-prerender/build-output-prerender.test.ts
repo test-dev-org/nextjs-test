@@ -63,7 +63,6 @@ describe('build-output-prerender', () => {
               ✓ dynamicIO
               ⨯ turbopackMinify (disabled by \`--debug-prerender\`)
               ✓ serverSourceMaps (enabled by \`--debug-prerender\`)
-              ⨯ serverMinification (disabled by \`--debug-prerender\`)
               ⨯ prerenderEarlyExit (disabled by \`--debug-prerender\`)
               ✓ enablePrerenderSourceMaps (enabled by \`--debug-prerender\`)"
         `)
@@ -73,7 +72,6 @@ describe('build-output-prerender', () => {
             ▲ Next.js x.y.x
             - Experiments (use with caution):
               ✓ dynamicIO
-              ⨯ turbopackMinify (disabled by \`--debug-prerender\`)
               ✓ serverSourceMaps (enabled by \`--debug-prerender\`)
               ⨯ serverMinification (disabled by \`--debug-prerender\`)
               ⨯ prerenderEarlyExit (disabled by \`--debug-prerender\`)
