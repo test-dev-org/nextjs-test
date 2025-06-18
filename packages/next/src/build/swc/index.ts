@@ -1078,10 +1078,9 @@ function bindingToApi(
   }
 }
 
-// helper for tryLoadWasmWithFallback / loadBindings.
-async function loadWasm(importPath = '') {
+// helper for loadWasm
+async function loadWasmRawBindings(importPath = ''): Promise<RawWasmBindings> {
   let attempts = []
-  let rawBindings: RawWasmBindings | null = null
 
   // Used by `run-tests` to force use of a locally-built wasm binary. This environment variable is
   // unstable and subject to change.
@@ -1089,10 +1088,11 @@ async function loadWasm(importPath = '') {
 
   if (testWasmDir) {
     // assume these are node.js bindings and don't need a call to `.default()`
-    rawBindings = await import(
+    const rawBindings = await import(
       pathToFileURL(path.join(testWasmDir, 'wasm.js')).toString()
     )
     infoLog(`next-swc build: wasm build ${testWasmDir}`)
+    return rawBindings
   } else {
     for (let pkg of ['@next/swc-wasm-nodejs', '@next/swc-wasm-web']) {
       try {
@@ -1105,6 +1105,7 @@ async function loadWasm(importPath = '') {
         const importedRawBindings = await import(
           pathToFileURL(pkgPath).toString()
         )
+        let rawBindings
         if (pkg === '@next/swc-wasm-web') {
           // https://rustwasm.github.io/docs/wasm-bindgen/examples/without-a-bundler.html
           // `default` must be called to initialize the module
@@ -1113,6 +1114,7 @@ async function loadWasm(importPath = '') {
           rawBindings = importedRawBindings
         }
         infoLog(`next-swc build: wasm build ${pkg}`)
+        return rawBindings
       } catch (e: any) {
         // Only log attempts for loading wasm when loading as fallback
         if (importPath) {
@@ -1128,9 +1130,12 @@ async function loadWasm(importPath = '') {
     }
   }
 
-  if (rawBindings == null) {
-    throw attempts
-  }
+  throw attempts
+}
+
+// helper for tryLoadWasmWithFallback / loadBindings.
+async function loadWasm(importPath = '') {
+  const rawBindings = await loadWasmRawBindings(importPath)
 
   function removeUndefined(obj: any): any {
     // serde-wasm-bindgen expect that `undefined` values map to `()` in rust, but we want to treat
