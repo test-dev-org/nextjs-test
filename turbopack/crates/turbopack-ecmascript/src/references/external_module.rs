@@ -103,7 +103,7 @@ impl CachedExternalModule {
                     )?;
                 }
             }
-            _ => {
+            CachedExternalType::EcmaScriptViaRequire | CachedExternalType::CommonJs => {
                 writeln!(
                     code,
                     "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
