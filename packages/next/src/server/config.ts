@@ -1430,6 +1430,14 @@ export default async function loadConfig(
         false,
         reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
       )
+
+      setExperimentalFeatureForDebugPrerender(
+        userConfig.experimental,
+        'turbopackMinify',
+        false,
+        reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
+      )
+
       setExperimentalFeatureForDebugPrerender(
         userConfig.experimental,
         'enablePrerenderSourceMaps',
@@ -1507,10 +1515,7 @@ export function addConfiguredExperimentalFeature<
   value: ExperimentalConfig[KeyType],
   reason?: string
 ) {
-  if (
-    key in defaultConfig.experimental &&
-    value !== (defaultConfig.experimental as Record<string, unknown>)[key]
-  ) {
+  if (value !== (defaultConfig.experimental as Record<string, unknown>)[key]) {
     configuredExperimentalFeatures.push({ key, value, reason })
   }
 }
