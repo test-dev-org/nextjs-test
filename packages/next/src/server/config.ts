@@ -7,6 +7,7 @@ import * as ciEnvironment from '../server/ci-info'
 import {
   CONFIG_FILES,
   PHASE_DEVELOPMENT_SERVER,
+  PHASE_EXPORT,
   PHASE_PRODUCTION_BUILD,
   PHASE_PRODUCTION_SERVER,
 } from '../shared/lib/constants'
@@ -1158,12 +1159,14 @@ export default async function loadConfig(
     silent = true,
     onLoadUserConfig,
     reactProductionProfiling,
+    debugPrerender,
   }: {
     customConfig?: object | null
     rawConfig?: boolean
     silent?: boolean
     onLoadUserConfig?: (conf: NextConfig) => void
     reactProductionProfiling?: boolean
+    debugPrerender?: boolean
   } = {}
 ): Promise<NextConfigComplete> {
   if (!process.env.__NEXT_PRIVATE_RENDER_WORKER) {
@@ -1259,11 +1262,14 @@ export default async function loadConfig(
       throw err
     }
 
+    const loadedConfig = Object.freeze(
+      (await normalizeConfig(
+        phase,
+        interopDefault(userConfigModule)
+      )) as NextConfig
+    )
+
     // Clone a new userConfig each time to avoid mutating the original
-    const loadedConfig = (await normalizeConfig(
-      phase,
-      interopDefault(userConfigModule)
-    )) as NextConfig
     const userConfig = cloneObject(loadedConfig) as NextConfig
 
     if (!process.env.NEXT_MINIMAL) {
@@ -1382,7 +1388,42 @@ export default async function loadConfig(
       userConfig.htmlLimitedBots = userConfig.htmlLimitedBots.source
     }
 
-    onLoadUserConfig?.(Object.freeze(loadedConfig))
+    if (
+      debugPrerender &&
+      (phase === PHASE_PRODUCTION_BUILD || phase === PHASE_EXPORT)
+    ) {
+      userConfig.experimental ??= {}
+
+      userConfig.experimental.serverSourceMaps = true
+      if (!silent) {
+        Log.warn(
+          `\`experimental.serverSourceMaps\` has been set to \`true\` because \`next build\` was run with \`--debug-prerender\`.`
+        )
+      }
+
+      userConfig.experimental.serverMinification = false
+      if (!silent) {
+        Log.warn(
+          `\`experimental.serverMinification\` has been set to \`false\` because \`next build\` was run with \`--debug-prerender\`.`
+        )
+      }
+
+      userConfig.experimental.enablePrerenderSourceMaps = true
+      if (!silent) {
+        Log.warn(
+          `\`experimental.enablePrerenderSourceMaps\` has been set to \`true\` because \`next build\` was run with \`--debug-prerender\`.`
+        )
+      }
+
+      userConfig.experimental.prerenderEarlyExit = false
+      if (!silent) {
+        Log.warn(
+          `\`experimental.prerenderEarlyExit\` has been set to \`false\` because \`next build\` was run with \`--debug-prerender\`.`
+        )
+      }
+    }
+
+    onLoadUserConfig?.(userConfig)
     const completeConfig = assignDefaults(
       dir,
       {
