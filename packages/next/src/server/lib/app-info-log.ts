@@ -47,16 +47,20 @@ export function logStartInfo({
     // only show a maximum number of flags
     for (const exp of experimentalFeatures.slice(0, maxExperimentalFeatures)) {
       const symbol =
-        exp.type === 'boolean'
+        typeof exp.value === 'boolean'
           ? exp.value === true
             ? bold('✓')
             : bold('⨯')
           : '·'
 
-      const suffix = exp.type === 'number' ? `: ${exp.value}` : ''
+      const suffix =
+        typeof exp.value === 'number' || typeof exp.value === 'string'
+          ? `: ${JSON.stringify(exp.value)}`
+          : ''
+
       const reason = exp.reason ? ` (${exp.reason})` : ''
 
-      Log.bootstrap(`  ${symbol} ${exp.name}${suffix}${reason}`)
+      Log.bootstrap(`  ${symbol} ${exp.key}${suffix}${reason}`)
     }
     /* indicate if there are more than the maximum shown no. flags */
     if (experimentalFeatures.length > maxExperimentalFeatures) {
@@ -87,7 +91,7 @@ export async function getStartServerInfo({
     {
       reportExperimentalFeatures(features) {
         experimentalFeatures = features.sort(
-          ({ name: a }, { name: b }) => a.length - b.length
+          ({ key: a }, { key: b }) => a.length - b.length
         )
       },
       debugPrerender,

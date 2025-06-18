@@ -1493,24 +1493,11 @@ export default async function loadConfig(
   return await applyModifyConfig(completeConfig, phase, silent)
 }
 
-export type ConfiguredExperimentalFeature =
-  | {
-      name: keyof ExperimentalConfig
-      type: 'boolean'
-      value: boolean
-      reason?: string
-    }
-  | {
-      name: keyof ExperimentalConfig
-      type: 'number'
-      value: number
-      reason?: string
-    }
-  | {
-      name: keyof ExperimentalConfig
-      type: 'other'
-      reason?: string
-    }
+export type ConfiguredExperimentalFeature = {
+  key: keyof ExperimentalConfig
+  value: ExperimentalConfig[keyof ExperimentalConfig]
+  reason?: string
+}
 
 export function addConfiguredExperimentalFeature<
   KeyType extends keyof ExperimentalConfig,
@@ -1524,13 +1511,7 @@ export function addConfiguredExperimentalFeature<
     key in defaultConfig.experimental &&
     value !== (defaultConfig.experimental as Record<string, unknown>)[key]
   ) {
-    configuredExperimentalFeatures.push(
-      typeof value === 'boolean'
-        ? { name: key, type: 'boolean', value, reason }
-        : typeof value === 'number'
-          ? { name: key, type: 'number', value, reason }
-          : { name: key, type: 'other', reason }
-    )
+    configuredExperimentalFeatures.push({ key, value, reason })
   }
 }
 
