@@ -337,7 +337,7 @@ function DevToolsPopover({
       />
 
       {/* Page Route Info */}
-      {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER ? (
+      {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER && routerType === 'app' ? (
         <SegmentsExplorer
           isOpen={isSegmentExplorerOpen}
           close={closeToRootMenu}
@@ -411,7 +411,8 @@ function DevToolsPopover({
                 onClick={() => setOpen(OVERLAYS.Preferences)}
                 index={isTurbopack ? 2 : 3}
               />
-              {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER ? (
+              {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER &&
+              routerType === 'app' ? (
                 <MenuItem
                   data-segment-explorer
                   label="Route Info"

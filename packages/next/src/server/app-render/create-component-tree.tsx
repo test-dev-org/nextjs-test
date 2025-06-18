@@ -421,7 +421,10 @@ async function createComponentTreeInternal({
     </>
   ) : undefined
 
-  const dir = ctx.renderOpts.dir || ''
+  const dir =
+    process.env.NEXT_RUNTIME === 'edge'
+      ? process.env.__NEXT_EDGE_PROJECT_DIR!
+      : ctx.renderOpts.dir || ''
 
   const isSegmentViewEnabled =
     process.env.NODE_ENV === 'development' &&
@@ -1048,11 +1051,11 @@ function getConventionPathByType(
   conventionType: 'layout' | 'template' | 'page'
 ) {
   const modules = tree[2]
-  const conventionPath_ = modules[conventionType]
+  const conventionPath = modules[conventionType]
     ? modules[conventionType][1]
     : undefined
-  if (conventionPath_) {
-    return normalizeConventionFilePath(dir, conventionPath_)
+  if (conventionPath) {
+    return normalizeConventionFilePath(dir, conventionPath)
   }
   return undefined
 }

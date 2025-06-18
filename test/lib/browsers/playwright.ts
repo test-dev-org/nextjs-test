@@ -451,6 +451,10 @@ export class Playwright<TCurrent = undefined> {
     )
   }
 
+  hasElementsByCss(selector: string) {
+    return this.startChain(() => page.$$eval(selector, (els) => els.length > 0))
+  }
+
   waitForElementByCss(selector: string, timeout = 10_000) {
     return this.startChain(async () => {
       const el = await page.waitForSelector(selector, {

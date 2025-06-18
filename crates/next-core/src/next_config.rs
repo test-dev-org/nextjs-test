@@ -799,6 +799,8 @@ pub struct ExperimentalConfig {
     global_not_found: Option<bool>,
     /// Defaults to false in development mode, true in production mode.
     turbopack_remove_unused_exports: Option<bool>,
+    /// Devtool option for the segment explorer.
+    devtool_segment_explorer: Option<bool>,
 }
 
 #[derive(
