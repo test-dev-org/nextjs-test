@@ -1,8 +1,8 @@
 export default function Layout({ children }) {
   return (
     <div>
-      <h1>Nested Layout</h1>
-      <div className="nested-children">{children}</div>
+      <h2>Layout</h2>
+      <div>{children}</div>
     </div>
   )
 }
