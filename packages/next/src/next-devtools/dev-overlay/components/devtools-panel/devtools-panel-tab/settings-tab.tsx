@@ -1,15 +1,8 @@
-import type { OverlayDispatch, OverlayState, Corners } from '../../../shared'
+import type { Corners } from '../../../shared'
 
 import { useTheme } from '../hooks/use-theme'
 import { Select } from '../../select/select'
-import {
-  ACTION_DEVTOOLS_POSITION,
-  ACTION_DEVTOOLS_SCALE,
-  STORAGE_KEY_POSITION,
-  STORAGE_KEY_SCALE,
-  STORAGE_KEY_THEME,
-  NEXT_DEV_TOOLS_SCALE,
-} from '../../../shared'
+import { STORAGE_KEY_THEME, NEXT_DEV_TOOLS_SCALE } from '../../../shared'
 import { css } from '../../../utils/css'
 import LightIcon from '../../../icons/light-icon'
 import DarkIcon from '../../../icons/dark-icon'
@@ -30,11 +23,15 @@ function ThemeIcon({ theme }: { theme: 'dark' | 'light' | 'system' }) {
 }
 
 export function SettingsTab({
-  state,
-  dispatch,
+  devToolsPosition,
+  scale,
+  handlePositionChange,
+  handleScaleChange,
 }: {
-  state: OverlayState
-  dispatch: OverlayDispatch
+  devToolsPosition: Corners
+  scale: number
+  handlePositionChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  handleScaleChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
 }) {
   const [theme, setTheme] = useTheme()
 
@@ -60,23 +57,6 @@ export function SettingsTab({
       portal.classList.add('light')
       localStorage.setItem(STORAGE_KEY_THEME, 'light')
     }
-  }
-
-  function handlePositionChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    dispatch({
-      type: ACTION_DEVTOOLS_POSITION,
-      devToolsPosition: e.target.value as Corners,
-    })
-    localStorage.setItem(STORAGE_KEY_POSITION, e.target.value)
-  }
-
-  function handleSizeChange({ target }: React.ChangeEvent<HTMLSelectElement>) {
-    const value = Number(target.value)
-    dispatch({
-      type: ACTION_DEVTOOLS_SCALE,
-      scale: value,
-    })
-    localStorage.setItem(STORAGE_KEY_SCALE, value.toString())
   }
 
   function handleRestartDevServer() {
@@ -132,7 +112,7 @@ export function SettingsTab({
         <Select
           id="position"
           name="position"
-          value={state.devToolsPosition}
+          value={devToolsPosition}
           onChange={handlePositionChange}
         >
           <option value="bottom-left">Bottom Left</option>
@@ -152,8 +132,8 @@ export function SettingsTab({
         <Select
           id="size"
           name="size"
-          value={state.scale}
-          onChange={handleSizeChange}
+          value={scale}
+          onChange={handleScaleChange}
         >
           {Object.entries(NEXT_DEV_TOOLS_SCALE).map(([key, value]) => {
             return (

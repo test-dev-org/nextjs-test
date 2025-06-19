@@ -1,20 +1,31 @@
 import type { DevToolsPanelTabType } from '../devtools-panel'
-import type { OverlayDispatch, OverlayState } from '../../../shared'
+import type { Corners } from '../../../shared'
 
 import { SettingsTab } from './settings-tab'
 
 export function DevToolsPanelTab({
   activeTab,
-  state,
-  dispatch,
+  devToolsPosition,
+  scale,
+  handlePositionChange,
+  handleScaleChange,
 }: {
   activeTab: DevToolsPanelTabType
-  state: OverlayState
-  dispatch: OverlayDispatch
+  devToolsPosition: Corners
+  scale: number
+  handlePositionChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  handleScaleChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
 }) {
   switch (activeTab) {
     case 'settings':
-      return <SettingsTab state={state} dispatch={dispatch} />
+      return (
+        <SettingsTab
+          devToolsPosition={devToolsPosition}
+          scale={scale}
+          handlePositionChange={handlePositionChange}
+          handleScaleChange={handleScaleChange}
+        />
+      )
     case 'route':
       return <div>Route</div>
     case 'issues':
