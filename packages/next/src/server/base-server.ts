@@ -170,6 +170,7 @@ import { NoFallbackError } from '../shared/lib/no-fallback-error.external'
 import { getCacheHandlers } from './use-cache/handlers'
 import { fixMojibake } from './lib/fix-mojibake'
 import { computeCacheBustingSearchParam } from '../shared/lib/router/utils/cache-busting-search-param'
+import { RedirectStatusCode } from '../client/components/redirect-status-code'
 
 export type FindComponentsResult = {
   components: LoadComponentsReturnType
@@ -3503,6 +3504,16 @@ export default abstract class Server<
       // behind the experimental PPR flag.
       if (cachedData.status && (!isRSCRequest || !isRoutePPREnabled)) {
         res.statusCode = cachedData.status
+      }
+
+      // Redirect information is encoded in RSC payload, so we don't need to use redirect status codes
+      if (
+        !this.minimalMode &&
+        cachedData.status &&
+        RedirectStatusCode[cachedData.status] &&
+        isRSCRequest
+      ) {
+        res.statusCode = 200
       }
 
       // Mark that the request did postpone.
