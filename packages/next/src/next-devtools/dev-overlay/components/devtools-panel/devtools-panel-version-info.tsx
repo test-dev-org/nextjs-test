@@ -15,6 +15,7 @@ export function DevToolsPanelVersionInfo({
 
   if (shouldBeLink) {
     return (
+      // TODO: Make it button-like and display radix-ui Tooltip on hover.
       <a
         data-nextjs-devtools-panel-footer-tab
         target="_blank"
