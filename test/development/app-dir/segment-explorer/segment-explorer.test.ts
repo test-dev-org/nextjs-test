@@ -123,4 +123,12 @@ describe('segment-explorer', () => {
      not-found-error.js"
     `)
   })
+
+  it('should show global-error segment', async () => {
+    const browser = await next.browser('/runtime-error')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     global-error.js"
+    `)
+  })
 })

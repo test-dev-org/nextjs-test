@@ -1028,7 +1028,7 @@ function getRootParamsImpl(
   }
 }
 
-function normalizeConventionFilePath(
+export function normalizeConventionFilePath(
   projectDir: string,
   conventionPath: string | undefined
 ) {

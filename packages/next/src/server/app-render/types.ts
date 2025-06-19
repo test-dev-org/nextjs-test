@@ -22,6 +22,7 @@ import type { NextRequestHint } from '../web/adapter'
 import type { BaseNextRequest } from '../base-http'
 import type { IncomingMessage } from 'http'
 import type { RenderResumeDataCache } from '../resume-data-cache/resume-data-cache'
+import type { GlobalErrorState } from '../../client/components/app-router-instance'
 
 export type DynamicParamTypes =
   | 'catchall'
@@ -305,7 +306,7 @@ export type InitialRSCPayload = {
   /** missingSlots */
   m: Set<string> | undefined
   /** GlobalError */
-  G: [React.ComponentType<any>, React.ReactNode | undefined]
+  G: GlobalErrorState
   /** postponed */
   s: boolean
   /** prerendered */
