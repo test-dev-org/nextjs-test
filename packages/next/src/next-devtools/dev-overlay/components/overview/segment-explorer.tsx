@@ -172,14 +172,15 @@ function PageSegmentTreeLayerPresentation({
   )
 }
 
-export function SegmentsExplorer(
-  props: DevToolsInfoPropsCore &
-    HTMLProps<HTMLDivElement> & {
-      routerType: 'app' | 'pages'
-    }
-) {
+export function SegmentsExplorer({
+  routerType,
+  ...props
+}: DevToolsInfoPropsCore &
+  HTMLProps<HTMLDivElement> & {
+    routerType: 'app' | 'pages'
+  }) {
   const tree = useSegmentTree()
-  const isAppRouter = props.routerType === 'app'
+  const isAppRouter = routerType === 'app'
   return (
     <DevToolsInfo title="Route Info" {...props}>
       <PageSegmentTree tree={tree} isAppRouter={isAppRouter} />
