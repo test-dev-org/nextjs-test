@@ -91,6 +91,18 @@ fn init() {
         .build()
         .unwrap();
     create_custom_tokio_runtime(rt);
+
+    std::thread::spawn(move || {
+        use std::{thread::sleep, time::Duration};
+
+        loop {
+            println!(
+                "TurboMalloc memory usage: {:.2}MB",
+                (TurboMalloc::memory_usage() as f64) / (1024.0 * 1024.0)
+            );
+            sleep(Duration::from_secs(30));
+        }
+    });
 }
 
 #[inline]
