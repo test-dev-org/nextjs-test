@@ -159,24 +159,11 @@ export const DEVTOOLS_PANEL_STYLES = css`
     position: relative;
     overflow-y: auto;
 
-    width: 100%;
-
-    @media (min-width: 576px) {
-      max-width: 540px;
-    }
-
-    @media (min-width: 768px) {
-      max-width: 720px;
-    }
-
-    @media (min-width: 992px) {
-      max-width: 960px;
-    }
-  }
-
-  [data-nextjs-devtools-panel-dialog] [data-nextjs-dialog-body] {
-    overflow-y: auto;
-    max-height: 60vh;
+    /* TODO: Remove once the content is filled. */
+    min-width: 800px;
+    min-height: 500px;
+    /* This is handled from dialog/styles.ts */
+    max-width: var(--next-dialog-max-width);
   }
 
   [data-nextjs-devtools-panel-header] {
