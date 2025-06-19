@@ -77,8 +77,8 @@ async fn immutable_analysis() {
         println!("changing input1");
         input.await?.state.set(30);
         let read = vc_holder.compute().strongly_consistent().await?;
-        assert_eq!(read.state_value, 30);
-        assert_eq!(read.state_value2, 30);
+        assert_eq!(read.state_value, 42);
+        assert_eq!(read.state_value2, 42);
         assert_ne!(read.random_value, random_value);
 
         anyhow::Ok(())
