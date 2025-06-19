@@ -373,7 +373,7 @@ async fn run_test_operation(prepared_test: ResolvedVc<PreparedTest>) -> Result<V
                 import_externals: true,
                 ..Default::default()
             },
-            preset_env_versions: Some(env),
+            environment: Some(env),
             tree_shaking_mode: options.tree_shaking_mode,
             rules: vec![(
                 ContextCondition::InDirectory("node_modules".into()),

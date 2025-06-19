@@ -139,7 +139,7 @@ impl ModuleOptions {
                 },
             ref enable_postcss_transform,
             ref enable_webpack_loaders,
-            preset_env_versions,
+            environment,
             ref module_rules,
             execution_context,
             tree_shaking_mode,
@@ -180,8 +180,8 @@ impl ModuleOptions {
         };
         let ecmascript_options_vc = ecmascript_options.resolved_cell();
 
-        if let Some(env) = preset_env_versions {
-            transforms.push(EcmascriptInputTransform::PresetEnv(env));
+        if let Some(environment) = environment {
+            transforms.push(EcmascriptInputTransform::PresetEnv(environment));
         }
 
         if let Some(enable_typeof_window_inlining) = enable_typeof_window_inlining {
@@ -436,12 +436,6 @@ impl ModuleOptions {
                 vec![ModuleRuleEffect::ModuleType(ModuleType::StaticUrlCss)],
             ),
         ];
-
-        let environment = if let Some(env) = preset_env_versions {
-            env
-        } else {
-            todo!()
-        };
 
         if enable_raw_css {
             rules.extend([

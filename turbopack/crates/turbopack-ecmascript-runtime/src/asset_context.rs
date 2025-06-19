@@ -21,7 +21,8 @@ pub async fn get_runtime_asset_context(
             ..Default::default()
         },
         // TODO: Somehow this fails to compile when enabled.
-        // preset_env_versions: Some(environment),
+        // environment: Some(environment),
+        environment: None,
         tree_shaking_mode: Some(TreeShakingMode::ReexportsOnly),
         ..Default::default()
     }

@@ -303,14 +303,14 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
             css: CssOptionsContext {
                 ..Default::default()
             },
-            preset_env_versions: Some(env),
+            environment: Some(env),
             rules: vec![(
                 ContextCondition::InDirectory("node_modules".into()),
                 ModuleOptionsContext {
                     css: CssOptionsContext {
                         ..Default::default()
                     },
-                    preset_env_versions: Some(env),
+                    environment: Some(env),
                     tree_shaking_mode: options.tree_shaking_mode,
                     remove_unused_exports: options.remove_unused_exports,
                     ..Default::default()
