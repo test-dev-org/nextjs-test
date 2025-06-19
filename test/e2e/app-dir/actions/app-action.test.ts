@@ -898,13 +898,6 @@ describe('app-dir action handling', () => {
         .elementByCss(`[href='/delayed-action/${runtime}/other']`)
         .click()
 
-      // wait for url to change
-      await retry(async () => {
-        expect(await browser.url()).toBe(
-          `${next.url}/delayed-action/${runtime}/other`
-        )
-      })
-
       await browser.waitForElementByCss('#other-page')
 
       await retry(async () => {

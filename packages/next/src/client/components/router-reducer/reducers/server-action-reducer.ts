@@ -87,7 +87,7 @@ async function fetchServerAction(
 
   const body = await encodeReply(usedArgs, { temporaryReferences })
 
-  const res = await fetch('', {
+  const res = await fetch(state.canonicalUrl, {
     method: 'POST',
     headers: {
       Accept: RSC_CONTENT_TYPE_HEADER,
