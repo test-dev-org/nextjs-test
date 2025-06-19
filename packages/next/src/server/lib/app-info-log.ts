@@ -53,11 +53,7 @@ export function logStartInfo({
             : bold('⨯')
           : '·'
 
-      const suffix =
-        typeof exp.value === 'number' || typeof exp.value === 'string'
-          ? `: ${JSON.stringify(exp.value)}`
-          : ''
-
+      const suffix = typeof exp.value === 'number' ? `: ${exp.value}` : ''
       const reason = exp.reason ? ` (${exp.reason})` : ''
 
       Log.bootstrap(`  ${symbol} ${exp.key}${suffix}${reason}`)
