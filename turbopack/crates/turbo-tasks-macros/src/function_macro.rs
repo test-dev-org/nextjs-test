@@ -67,7 +67,7 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
         filter_trait_call_args: None, // not a trait method
         local,
         invalidator,
-        immutable: sig.asyncness.is_none() && !invalidator,
+        immutable: is_immutable(&sig) && !invalidator,
     };
     let native_function_ident = get_native_function_ident(ident);
     let native_function_ty = native_fn.ty();
@@ -101,4 +101,16 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
         #(#errors)*
     }
     .into()
+}
+
+/// Computes whether the task is statically immutable based on the signature.
+/// - if the task is `async` we assume it is reading some other task.
+/// - if a task accepts `&self` then we know it read `Vc<Self>` in the generated calling code. See
+///   also: turbopack/crates/turbo-tasks/src/task/function.rs for the binding code.
+pub(crate) fn is_immutable(sig: &syn::Signature) -> bool {
+    sig.asyncness.is_none()
+        && match sig.receiver() {
+            Some(recv) => recv.reference.is_none(),
+            _ => true,
+        }
 }

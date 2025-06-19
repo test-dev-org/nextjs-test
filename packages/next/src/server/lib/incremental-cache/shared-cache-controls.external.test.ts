@@ -3,7 +3,7 @@ import type {
   PrerenderManifestRoute,
 } from '../../../build'
 import { RenderingMode } from '../../../build/rendering-mode'
-import { SharedCacheControls } from './shared-cache-controls'
+import { SharedCacheControls } from './shared-cache-controls.external'
 
 describe('SharedCacheControls', () => {
   let sharedCacheControls: SharedCacheControls

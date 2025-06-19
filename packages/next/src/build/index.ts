@@ -807,6 +807,7 @@ export default async function build(
   dir: string,
   reactProductionProfiling = false,
   debugOutput = false,
+  debugPrerender = false,
   runLint = true,
   noMangling = false,
   appDirOnly = false,
@@ -832,6 +833,7 @@ export default async function build(
     NextBuildContext.appDirOnly = appDirOnly
     NextBuildContext.reactProductionProfiling = reactProductionProfiling
     NextBuildContext.noMangling = noMangling
+    NextBuildContext.debugPrerender = debugPrerender
 
     await nextBuildSpan.traceAsyncFn(async () => {
       // attempt to load global env values so they are available in next.config.js
@@ -850,6 +852,7 @@ export default async function build(
                 // Log for next.config loading process
                 silent: false,
                 reactProductionProfiling,
+                debugPrerender,
               }),
             turborepoAccessTraceResult
           )
@@ -970,10 +973,12 @@ export default async function build(
       )
 
       // Always log next version first then start rest jobs
-      const { envInfo, experimentalFeatures } = await getStartServerInfo(
+      const { envInfo, experimentalFeatures } = await getStartServerInfo({
         dir,
-        false
-      )
+        dev: false,
+        debugPrerender,
+      })
+
       logStartInfo({
         networkUrl: null,
         appUrl: null,
@@ -2738,6 +2743,7 @@ export default async function build(
               silent: true,
               buildExport: true,
               debugOutput,
+              debugPrerender,
               pages: combinedPages,
               outdir,
               statusMessage: 'Generating static pages',
