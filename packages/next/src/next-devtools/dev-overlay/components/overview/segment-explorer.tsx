@@ -9,13 +9,23 @@ const isFileNode = (node: SegmentTrieNode) => {
   return !!node.value?.type && !!node.value?.pagePath
 }
 
-function PageSegmentTree({ tree }: { tree: SegmentTrieNode }) {
+function PageSegmentTree({
+  tree,
+  isAppRouter,
+}: {
+  tree: SegmentTrieNode
+  isAppRouter: boolean
+}) {
   return (
     <div
       className="segment-explorer-content"
       data-nextjs-devtool-segment-explorer
     >
-      <PageSegmentTreeLayerPresentation node={tree} level={0} segment="" />
+      {isAppRouter ? (
+        <PageSegmentTreeLayerPresentation node={tree} level={0} segment="" />
+      ) : (
+        <p>Route Info currently is only available for the App Router.</p>
+      )}
     </div>
   )
 }
@@ -163,13 +173,16 @@ function PageSegmentTreeLayerPresentation({
 }
 
 export function SegmentsExplorer(
-  props: DevToolsInfoPropsCore & HTMLProps<HTMLDivElement>
+  props: DevToolsInfoPropsCore &
+    HTMLProps<HTMLDivElement> & {
+      routerType: 'app' | 'pages'
+    }
 ) {
   const tree = useSegmentTree()
-
+  const isAppRouter = props.routerType === 'app'
   return (
     <DevToolsInfo title="Route Info" {...props}>
-      <PageSegmentTree tree={tree} />
+      <PageSegmentTree tree={tree} isAppRouter={isAppRouter} />
     </DevToolsInfo>
   )
 }

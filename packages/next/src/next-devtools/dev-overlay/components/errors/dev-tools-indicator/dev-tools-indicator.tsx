@@ -337,12 +337,13 @@ function DevToolsPopover({
       />
 
       {/* Page Route Info */}
-      {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER && routerType === 'app' ? (
+      {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER ? (
         <SegmentsExplorer
           isOpen={isSegmentExplorerOpen}
           close={closeToRootMenu}
           triggerRef={triggerRef}
           style={popover}
+          routerType={routerType}
         />
       ) : null}
 
@@ -411,8 +412,7 @@ function DevToolsPopover({
                 onClick={() => setOpen(OVERLAYS.Preferences)}
                 index={isTurbopack ? 2 : 3}
               />
-              {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER &&
-              routerType === 'app' ? (
+              {process.env.__NEXT_DEVTOOL_SEGMENT_EXPLORER && (
                 <MenuItem
                   data-segment-explorer
                   label="Route Info"
@@ -420,7 +420,7 @@ function DevToolsPopover({
                   onClick={() => setOpen(OVERLAYS.SegmentExplorer)}
                   index={isTurbopack ? 3 : 4}
                 />
-              ) : null}
+              )}
             </div>
           </Context.Provider>
         </div>

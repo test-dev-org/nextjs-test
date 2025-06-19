@@ -108,15 +108,10 @@ describe('segment-explorer', () => {
     `)
   })
 
-  it('should not show segment explorer for pages router', async () => {
+  it('should indicate segment explorer is not available pages router', async () => {
     const browser = await next.browser('/pages-router')
-
-    // open the devtool button
-    await openDevToolsIndicatorPopover(browser)
-
-    // open the segment explorer
-    expect(
-      await browser.hasElementsByCss('[data-segment-explorer]')
-    ).toBeFalse()
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(
+      `"Route Info currently is only available for the App Router."`
+    )
   })
 })
