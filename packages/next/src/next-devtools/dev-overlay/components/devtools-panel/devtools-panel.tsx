@@ -112,42 +112,6 @@ export function DevToolsPanel({
                   </button>
                 </div>
               </div>
-              <div data-nextjs-devtools-panel-action-button-group>
-                {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                <button data-nextjs-devtools-panel-action-button>
-                  <FullScreenIcon width={16} height={16} />
-                </button>
-                <button
-                  data-nextjs-devtools-panel-action-button
-                  onClick={onClose}
-                >
-                  <Cross width={16} height={16} />
-                </button>
-              </div>
-              <div data-nextjs-devtools-panel-action-buttons>
-                {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                <button data-nextjs-devtools-panel-fullscreen-button>
-                  <FullScreenIcon width={16} height={16} />
-                </button>
-                <button
-                  data-nextjs-devtools-panel-close-button
-                  onClick={onClose}
-                >
-                  <Cross width={16} height={16} />
-                </button>
-              </div>
-              <div data-nextjs-devtools-panel-action-buttons>
-                {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                <button data-nextjs-devtools-panel-fullscreen-button>
-                  <FullScreenIcon width={16} height={16} />
-                </button>
-                <button
-                  data-nextjs-devtools-panel-close-button
-                  onClick={onClose}
-                >
-                  <Cross width={16} height={16} />
-                </button>
-              </div>
             </DialogHeader>
             <DialogBody></DialogBody>
           </DialogContent>
