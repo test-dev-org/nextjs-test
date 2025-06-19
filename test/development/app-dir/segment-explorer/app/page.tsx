@@ -4,7 +4,7 @@ const hrefs = [
   '/parallel-routes',
   '/blog/~/grid',
   '/soft-navigation/a',
-  '/file-system-routes',
+  '/file-segments',
 ]
 
 export default function Page() {
