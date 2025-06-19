@@ -150,11 +150,6 @@ function getPreambleOutput(cliOutput: string): string {
       continue
     }
 
-    // Ignore the test-only config log. Can be removed when #80666 is merged.
-    if (line.includes('Loading config from')) {
-      continue
-    }
-
     lines.push(line.replace(nextVersion, 'x.y.x'))
   }
 
