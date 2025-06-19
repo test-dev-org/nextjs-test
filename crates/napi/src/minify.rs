@@ -26,6 +26,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
+use anyhow::Context;
 use napi::bindgen_prelude::*;
 use swc_core::{
     base::{TransformOutput, config::JsMinifyOptions, try_with_handler},
@@ -78,7 +79,9 @@ pub fn minify(
     opts: Buffer,
     signal: Option<AbortSignal>,
 ) -> napi::Result<AsyncTask<MinifyTask>> {
-    let code = serde_json::from_slice(&input)?;
+    let code = String::from_utf8(input.into())
+        .context("failed to convert input to string")
+        .convert_err()?;
     let opts = serde_json::from_slice(&opts)?;
 
     let c = get_compiler();
@@ -90,7 +93,9 @@ pub fn minify(
 
 #[napi]
 pub fn minify_sync(input: Buffer, opts: Buffer) -> napi::Result<TransformOutput> {
-    let code = String::from_utf8_lossy(&input).into_owned();
+    let code = String::from_utf8(input.into())
+        .context("failed to convert input to string")
+        .convert_err()?;
     let opts = serde_json::from_slice(&opts)?;
 
     let c = get_compiler();
