@@ -8,6 +8,8 @@ import type { DevIndicatorServerState } from '../../server/dev/dev-indicator-ser
 import { parseStack } from '../../server/lib/parse-stack'
 import { isConsoleError } from '../shared/console-error'
 
+export type Corners = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
 type FastRefreshState =
   /** No refresh in progress. */
   | { type: 'idle' }
