@@ -61,6 +61,7 @@ const state: OverlayState = {
   isErrorOverlayOpen: false,
   // TODO: This will be handled on the next stack——with proper story.
   isDevToolsPanelOpen: false,
+  indicatorPosition: 'bottom-left',
 }
 
 export const StaticRoute: Story = {
