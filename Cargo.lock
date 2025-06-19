@@ -2751,7 +2751,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.4.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -4219,7 +4219,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "serde_json",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "tempfile",
  "tokio",
  "tracing",
@@ -4300,7 +4300,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "thiserror 1.0.69",
  "tracing",
  "turbo-esregex",
@@ -4351,7 +4351,7 @@ dependencies = [
  "sha1",
  "styled_components",
  "styled_jsx",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "swc_emotion",
  "swc_relay",
  "testing",
@@ -4386,7 +4386,7 @@ dependencies = [
  "serde",
  "serde_json",
  "supports-hyperlinks",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "terminal_hyperlink",
  "tokio",
  "tracing",
@@ -6948,7 +6948,7 @@ dependencies = [
  "clap",
  "owo-colors 3.5.0",
  "regex",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
 ]
 
 [[package]]
@@ -7111,9 +7111,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "29.0.0"
+version = "29.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1bce279c02d7474082f433bcc0ba85dbb57b7dbb659bfdaf47bb91daa4d20a5"
+checksum = "4eac24711dba6846f2831f7e0948bcf94436ba114a72c03d5b0e4938bd5af167"
 dependencies = [
  "binding_macros",
  "par-core 2.0.0",
@@ -7645,9 +7645,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "23.0.0"
+version = "23.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b42b8d879003fa91f6c9ee6739a37724658f52b4a670fba2b233cd26d90c8c90"
+checksum = "7e74c4fe13a977649d4ed9bdd1f3ba1892f44b64c39f38b1cc24dbb144e79826"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
@@ -9691,7 +9691,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "smallvec",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "swc_sourcemap",
  "tokio",
  "tracing",
@@ -9729,7 +9729,7 @@ dependencies = [
  "rustc-hash 2.1.1",
  "serde",
  "smallvec",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "tokio",
  "tracing",
  "turbo-rcstr",
@@ -9803,7 +9803,7 @@ dependencies = [
  "serde_json",
  "smallvec",
  "strsim 0.11.1",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "swc_sourcemap",
  "tokio",
  "tracing",
@@ -9845,7 +9845,7 @@ dependencies = [
  "serde_json",
  "styled_components",
  "styled_jsx",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "swc_emotion",
  "swc_relay",
  "tracing",
@@ -10027,7 +10027,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "parking_lot",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "turbo-rcstr",
  "turbo-tasks",
  "turbo-tasks-build",
@@ -10652,7 +10652,7 @@ dependencies = [
  "next-custom-transforms",
  "serde-wasm-bindgen 0.4.5",
  "serde_json",
- "swc_core 29.0.0",
+ "swc_core 29.0.1",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
