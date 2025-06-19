@@ -108,6 +108,10 @@ impl StyleSheetLike<'_, '_> {
         let browserslist_query = if let Some(environment) = environment {
             (*environment.browserslist_query().await?).clone()
         } else {
+            // This case should never happen because the only time `environment` is `None`
+            // is for Turbopack runtime code currently.
+            //
+            // TODO: Remove this once we have a proper environment for runtime code.
             todo!()
         };
 
@@ -498,6 +502,10 @@ async fn process_content(
                 let browserslist_query = if let Some(environment) = environment {
                     (*environment.browserslist_query().await?).clone()
                 } else {
+                    // This case should never happen because the only time `environment` is `None`
+                    // is for Turbopack runtime code currently.
+                    //
+                    // TODO: Remove this once we have a proper environment for runtime code.
                     todo!()
                 };
 
