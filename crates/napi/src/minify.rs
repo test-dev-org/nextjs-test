@@ -86,7 +86,11 @@ pub fn minify(
 
     let c = get_compiler();
 
-    let task = MinifyTask { c, code, opts };
+    let task = MinifyTask {
+        c,
+        code: Some(code),
+        opts,
+    };
 
     Ok(AsyncTask::with_optional_signal(task, signal))
 }
