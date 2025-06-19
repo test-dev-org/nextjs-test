@@ -1,4 +1,4 @@
-use std::{future::Future, io, io::ErrorKind, path::Path, thread::sleep, time::Duration};
+use std::{future::Future, io, io::ErrorKind, path::Path, time::Duration};
 
 use futures_retry::{ErrorHandler, FutureRetry, RetryPolicy};
 
@@ -37,7 +37,8 @@ where
                 Ok(r) => Ok(r),
                 Err(err) => {
                     if attempt < MAX_RETRY_ATTEMPTS && can_retry(&err) {
-                        sleep(get_retry_wait_time(attempt));
+                        // Our concurrency is very high, so yielding is fine.
+                        std::thread::yield_now();
                         attempt += 1;
                         continue;
                     }
