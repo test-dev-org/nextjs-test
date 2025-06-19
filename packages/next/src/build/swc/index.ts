@@ -1297,11 +1297,11 @@ function loadNative(importPath?: string) {
       },
 
       minify(src: string, options: any) {
-        return bindings.minify(toBuffer(src), toBuffer(options ?? {}))
+        return bindings.minify(Buffer.from(src), toBuffer(options ?? {}))
       },
 
       minifySync(src: string, options: any) {
-        return bindings.minifySync(toBuffer(src), toBuffer(options ?? {}))
+        return bindings.minifySync(Buffer.from(src), toBuffer(options ?? {}))
       },
 
       parse(src: string, options: any) {

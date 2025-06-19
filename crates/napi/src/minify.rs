@@ -27,47 +27,17 @@ DEALINGS IN THE SOFTWARE.
 */
 
 use napi::bindgen_prelude::*;
-use rustc_hash::FxHashMap;
-use serde::Deserialize;
 use swc_core::{
     base::{TransformOutput, config::JsMinifyOptions, try_with_handler},
-    common::{FileName, GLOBALS, SourceFile, SourceMap, errors::ColorConfig, sync::Lrc},
+    common::{FileName, GLOBALS, errors::ColorConfig},
 };
 
 use crate::{get_compiler, util::MapErr};
 
 pub struct MinifyTask {
     c: swc_core::base::Compiler,
-    code: MinifyTarget,
+    code: Option<String>,
     opts: JsMinifyOptions,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum MinifyTarget {
-    /// Code to minify.
-    Single(String),
-    /// `{ filename: code }`
-    Map(FxHashMap<String, String>),
-}
-
-impl MinifyTarget {
-    fn to_file(&self, cm: Lrc<SourceMap>) -> Lrc<SourceFile> {
-        match self {
-            MinifyTarget::Single(code) => cm.new_source_file(FileName::Anon.into(), code.clone()),
-            MinifyTarget::Map(codes) => {
-                assert_eq!(
-                    codes.len(),
-                    1,
-                    "swc.minify does not support concatenating multiple files yet"
-                );
-
-                let (filename, code) = codes.iter().next().unwrap();
-
-                cm.new_source_file(FileName::Real(filename.clone().into()).into(), code.clone())
-            }
-        }
-    }
 }
 
 #[napi]
@@ -77,6 +47,8 @@ impl Task for MinifyTask {
     type JsValue = TransformOutput;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
+        let code = self.code.take().unwrap_or_default();
+
         try_with_handler(
             self.c.cm.clone(),
             swc_core::base::HandlerOpts {
@@ -85,7 +57,7 @@ impl Task for MinifyTask {
             },
             |handler| {
                 GLOBALS.set(&Default::default(), || {
-                    let fm = self.code.to_file(self.c.cm.clone());
+                    let fm = self.c.cm.new_source_file(FileName::Anon.into(), code);
 
                     self.c.minify(fm, handler, &self.opts, Default::default())
                 })
@@ -118,12 +90,12 @@ pub fn minify(
 
 #[napi]
 pub fn minify_sync(input: Buffer, opts: Buffer) -> napi::Result<TransformOutput> {
-    let code: MinifyTarget = serde_json::from_slice(&input)?;
+    let code = String::from_utf8_lossy(&input).into_owned();
     let opts = serde_json::from_slice(&opts)?;
 
     let c = get_compiler();
 
-    let fm = code.to_file(c.cm.clone());
+    let fm = c.cm.new_source_file(FileName::Anon.into(), code);
 
     try_with_handler(
         c.cm.clone(),
