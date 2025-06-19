@@ -3,7 +3,7 @@ import type { OverlayDispatch, OverlayState, Corners } from '../../../shared'
 import { useTheme } from '../hooks/use-theme'
 import { Select } from '../../select/select'
 import {
-  ACTION_DEVTOOLS_INDICATOR_POSITION,
+  ACTION_DEVTOOLS_POSITION,
   ACTION_DEVTOOLS_SCALE,
   STORAGE_KEY_POSITION,
   STORAGE_KEY_SCALE,
@@ -11,7 +11,6 @@ import {
   NEXT_DEV_TOOLS_SCALE,
 } from '../../../shared'
 import { css } from '../../../utils/css'
-
 import LightIcon from '../../../icons/light-icon'
 import DarkIcon from '../../../icons/dark-icon'
 import SystemIcon from '../../../icons/system-icon'
@@ -65,8 +64,8 @@ export function SettingsTab({
 
   function handlePositionChange(e: React.ChangeEvent<HTMLSelectElement>) {
     dispatch({
-      type: ACTION_DEVTOOLS_INDICATOR_POSITION,
-      indicatorPosition: e.target.value as Corners,
+      type: ACTION_DEVTOOLS_POSITION,
+      devToolsPosition: e.target.value as Corners,
     })
     localStorage.setItem(STORAGE_KEY_POSITION, e.target.value)
   }
@@ -133,7 +132,7 @@ export function SettingsTab({
         <Select
           id="position"
           name="position"
-          value={state.indicatorPosition}
+          value={state.devToolsPosition}
           onChange={handlePositionChange}
         >
           <option value="bottom-left">Bottom Left</option>
