@@ -108,7 +108,7 @@ describe('segment-explorer', () => {
     `)
   })
 
-  it('should indicate segment explorer is not available pages router', async () => {
+  it('should indicate segment explorer is not available for pages router', async () => {
     const browser = await next.browser('/pages-router')
     expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(
       `"Route Info currently is only available for the App Router."`
