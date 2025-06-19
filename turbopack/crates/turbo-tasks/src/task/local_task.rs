@@ -1,14 +1,14 @@
-use std::{borrow::Cow, fmt, fmt::Write, sync::Arc};
+use std::{borrow::Cow, fmt, sync::Arc};
 
 use anyhow::{Result, anyhow};
 
 use crate::{
-    FunctionId, MagicAny, OutputContent, RawVc, TaskPersistence, TraitTypeId, TurboTasksBackendApi,
+    MagicAny, OutputContent, RawVc, TaskPersistence, TraitMethod, TurboTasksBackendApi,
     ValueTypeId,
     backend::{Backend, TaskExecutionSpec, TypedCellContent},
     event::Event,
+    macro_helpers::NativeFunction,
     registry,
-    trait_helpers::{get_trait_method, has_trait, traits},
 };
 
 /// A potentially in-flight local task stored in `CurrentGlobalTaskState::local_tasks`.
@@ -26,27 +26,25 @@ pub fn get_local_task_execution_spec<'a>(
 ) -> TaskExecutionSpec<'a> {
     match ty {
         LocalTaskType::Native {
-            fn_type: native_fn_id,
+            native_fn,
             this,
             arg,
         } => {
-            let func = registry::get_function(*native_fn_id);
-            let span = func.span(TaskPersistence::Local);
+            let span = native_fn.span(TaskPersistence::Local);
             let entered = span.enter();
-            let future = func.execute(*this, &**arg);
+            let future = native_fn.execute(*this, &**arg);
             drop(entered);
             TaskExecutionSpec { future, span }
         }
         LocalTaskType::ResolveNative {
-            fn_type: native_fn_id,
+            native_fn,
             this,
             arg,
         } => {
-            let func = registry::get_function(*native_fn_id);
-            let span = func.resolve_span(TaskPersistence::Local);
+            let span = native_fn.resolve_span(TaskPersistence::Local);
             let entered = span.enter();
             let future = Box::pin(LocalTaskType::run_resolve_native(
-                *native_fn_id,
+                native_fn,
                 *this,
                 &**arg,
                 persistence,
@@ -56,17 +54,14 @@ pub fn get_local_task_execution_spec<'a>(
             TaskExecutionSpec { future, span }
         }
         LocalTaskType::ResolveTrait {
-            trait_type: trait_type_id,
-            method_name: name,
+            trait_method,
             this,
             arg,
         } => {
-            let trait_type = registry::get_trait(*trait_type_id);
-            let span = trait_type.resolve_span(name);
+            let span = trait_method.resolve_span();
             let entered = span.enter();
             let future = Box::pin(LocalTaskType::run_resolve_trait(
-                *trait_type_id,
-                name.clone(),
+                trait_method,
                 *this,
                 &**arg,
                 persistence,
@@ -81,7 +76,7 @@ pub fn get_local_task_execution_spec<'a>(
 pub enum LocalTaskType {
     /// A normal task execution a native (rust) function
     Native {
-        fn_type: FunctionId,
+        native_fn: &'static NativeFunction,
         this: Option<RawVc>,
         arg: Box<dyn MagicAny>,
     },
@@ -89,7 +84,7 @@ pub enum LocalTaskType {
     /// A resolve task, which resolves arguments and calls the function with resolve arguments. The
     /// inner function call will be a `PersistentTaskType` or `LocalTaskType::Native`.
     ResolveNative {
-        fn_type: FunctionId,
+        native_fn: &'static NativeFunction,
         this: Option<RawVc>,
         arg: Box<dyn MagicAny>,
     },
@@ -98,8 +93,7 @@ pub enum LocalTaskType {
     /// method on that value. Then it calls that method. The method call will do a cache lookup and
     /// might resolve arguments before.
     ResolveTrait {
-        trait_type: TraitTypeId,
-        method_name: Cow<'static, str>,
+        trait_method: &'static TraitMethod,
         this: RawVc,
         arg: Box<dyn MagicAny>,
     },
@@ -120,33 +114,27 @@ impl LocalTaskType {
     pub fn get_name(&self) -> Cow<'static, str> {
         match self {
             Self::Native {
-                fn_type: native_fn,
+                native_fn,
                 this: _,
                 arg: _,
-            } => Cow::Borrowed(&registry::get_function(*native_fn).name),
+            } => Cow::Borrowed(&native_fn.name),
             Self::ResolveNative {
-                fn_type: native_fn,
+                native_fn,
                 this: _,
                 arg: _,
-            } => format!("*{}", registry::get_function(*native_fn).name).into(),
+            } => format!("*{}", native_fn.name).into(),
             Self::ResolveTrait {
-                trait_type: trait_id,
-                method_name: fn_name,
+                trait_method,
                 this: _,
                 arg: _,
-            } => format!("*{}::{}", registry::get_trait(*trait_id).name, fn_name).into(),
+            } => format!("*{}::{}", trait_method.trait_name, trait_method.method_name).into(),
         }
     }
 
-    pub fn try_get_function_id(&self) -> Option<FunctionId> {
-        match self {
-            Self::Native { fn_type, .. } | Self::ResolveNative { fn_type, .. } => Some(*fn_type),
-            Self::ResolveTrait { .. } => None,
-        }
-    }
-
-    pub async fn run_resolve_native<B: Backend + 'static>(
-        fn_id: FunctionId,
+    /// Implementation of the LocalTaskType::ResolveNative task.
+    /// Resolves all the task inputs and then calls the given function.
+    async fn run_resolve_native<B: Backend + 'static>(
+        native_fn: &'static NativeFunction,
         mut this: Option<RawVc>,
         arg: &dyn MagicAny,
         persistence: TaskPersistence,
@@ -155,13 +143,12 @@ impl LocalTaskType {
         if let Some(this) = this.as_mut() {
             *this = this.resolve().await?;
         }
-        let arg = registry::get_function(fn_id).arg_meta.resolve(arg).await?;
-        Ok(turbo_tasks.native_call(fn_id, this, arg, persistence))
+        let arg = native_fn.arg_meta.resolve(arg).await?;
+        Ok(turbo_tasks.native_call(native_fn, this, arg, persistence))
     }
-
-    pub async fn run_resolve_trait<B: Backend + 'static>(
-        trait_type: TraitTypeId,
-        name: Cow<'static, str>,
+    /// Implementation of the LocalTaskType::ResolveTrait task.
+    async fn run_resolve_trait<B: Backend + 'static>(
+        trait_method: &'static TraitMethod,
         this: RawVc,
         arg: &dyn MagicAny,
         persistence: TaskPersistence,
@@ -170,40 +157,22 @@ impl LocalTaskType {
         let this = this.resolve().await?;
         let TypedCellContent(this_ty, _) = this.into_read().await?;
 
-        let native_fn_id = Self::resolve_trait_method_from_value(trait_type, this_ty, name)?;
-        let native_fn = registry::get_function(native_fn_id);
+        let native_fn = Self::resolve_trait_method_from_value(trait_method, this_ty)?;
         let arg = native_fn.arg_meta.filter_and_resolve(arg).await?;
-        Ok(turbo_tasks.dynamic_call(native_fn_id, Some(this), arg, persistence))
+        Ok(turbo_tasks.native_call(native_fn, Some(this), arg, persistence))
     }
 
     fn resolve_trait_method_from_value(
-        trait_type: TraitTypeId,
+        trait_method: &'static TraitMethod,
         value_type: ValueTypeId,
-        name: Cow<'static, str>,
-    ) -> Result<FunctionId> {
-        match get_trait_method(trait_type, value_type, name) {
-            Ok(native_fn) => Ok(native_fn),
-            Err(name) => {
-                if !has_trait(value_type, trait_type) {
-                    let traits = traits(value_type).iter().fold(String::new(), |mut out, t| {
-                        let _ = write!(out, " {t}");
-                        out
-                    });
-                    Err(anyhow!(
-                        "{} doesn't implement {} (only{})",
-                        registry::get_value_type(value_type),
-                        registry::get_trait(trait_type),
-                        traits,
-                    ))
-                } else {
-                    Err(anyhow!(
-                        "{} implements trait {}, but method {} is missing",
-                        registry::get_value_type(value_type),
-                        registry::get_trait(trait_type),
-                        name
-                    ))
-                }
-            }
+    ) -> Result<&'static NativeFunction> {
+        match registry::get_value_type(value_type).get_trait_method(trait_method) {
+            Some(native_fn) => Ok(native_fn),
+            None => Err(anyhow!(
+                "{} doesn't implement the trait for {:?}, the compiler should have flagged this",
+                registry::get_value_type(value_type),
+                trait_method
+            )),
         }
     }
 }
@@ -229,7 +198,7 @@ pub(crate) mod tests {
         crate::register();
         assert_eq!(
             LocalTaskType::Native {
-                fn_type: *MOCK_FUNC_TASK_FUNCTION_ID,
+                native_fn: &MOCK_FUNC_TASK_FUNCTION,
                 this: None,
                 arg: Box::new(()),
             }
@@ -238,8 +207,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             LocalTaskType::ResolveTrait {
-                trait_type: *MOCKTRAIT_TRAIT_TYPE_ID,
-                method_name: "mock_method_task".into(),
+                trait_method: MOCKTRAIT_TRAIT_TYPE.get("mock_method_task"),
                 this: RawVc::TaskOutput(unsafe { TaskId::new_unchecked(1) }),
                 arg: Box::new(()),
             }

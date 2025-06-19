@@ -24,8 +24,8 @@ use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use smallvec::{SmallVec, smallvec};
 use tokio::time::{Duration, Instant};
 use turbo_tasks::{
-    CellId, FunctionId, FxDashMap, KeyValuePair, RawVc, ReadCellOptions, ReadConsistency,
-    SessionId, TRANSIENT_TASK_BIT, TaskId, TraitTypeId, TurboTasksBackendApi, ValueTypeId,
+    CellId, FxDashMap, KeyValuePair, RawVc, ReadCellOptions, ReadConsistency, SessionId,
+    TRANSIENT_TASK_BIT, TaskId, TraitTypeId, TurboTasksBackendApi, ValueTypeId,
     backend::{
         Backend, BackendJobId, CachedTaskType, CellContent, TaskExecutionSpec, TransientTaskRoot,
         TransientTaskType, TurboTasksExecutionError, TypedCellContent,
@@ -371,12 +371,12 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
 
     fn track_cache_hit(&self, task_type: &CachedTaskType) {
         self.task_statistics
-            .map(|stats| stats.increment_cache_hit(task_type.fn_type));
+            .map(|stats| stats.increment_cache_hit(task_type.native_fn));
     }
 
     fn track_cache_miss(&self, task_type: &CachedTaskType) {
         self.task_statistics
-            .map(|stats| stats.increment_cache_miss(task_type.fn_type));
+            .map(|stats| stats.increment_cache_miss(task_type.native_fn));
     }
 }
 
@@ -1391,11 +1391,6 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         )
     }
 
-    fn try_get_function_id(&self, task_id: TaskId) -> Option<FunctionId> {
-        self.lookup_task_type(task_id)
-            .map(|task_type| task_type.fn_type)
-    }
-
     fn task_execution_canceled(
         &self,
         task_id: TaskId,
@@ -1532,10 +1527,14 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
 
         let (span, future) = match task_type {
             TaskType::Cached(task_type) => {
-                let CachedTaskType { fn_type, this, arg } = &*task_type;
+                let CachedTaskType {
+                    native_fn,
+                    this,
+                    arg,
+                } = &*task_type;
                 (
-                    registry::get_function(*fn_type).span(task_id.persistence()),
-                    registry::get_function(*fn_type).execute(*this, &**arg),
+                    native_fn.span(task_id.persistence()),
+                    native_fn.execute(*this, &**arg),
                 )
             }
             TaskType::Transient(task_type) => {
@@ -2650,10 +2649,6 @@ impl<B: BackingStorage> Backend for TurboTasksBackend<B> {
 
     fn get_task_description(&self, task: TaskId) -> String {
         self.0.get_task_description(task)
-    }
-
-    fn try_get_function_id(&self, task_id: TaskId) -> Option<FunctionId> {
-        self.0.try_get_function_id(task_id)
     }
 
     type TaskState = ();
