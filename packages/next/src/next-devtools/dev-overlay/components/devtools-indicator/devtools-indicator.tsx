@@ -15,7 +15,7 @@ import {
   ACTION_ERROR_OVERLAY_CLOSE,
   STORAGE_KEY_POSITION,
   ACTION_DEVTOOLS_PANEL_CLOSE,
-  ACTION_DEVTOOLS_INDICATOR_POSITION,
+  ACTION_DEVTOOLS_POSITION,
 } from '../../shared'
 import { Draggable } from '../errors/dev-tools-indicator/draggable'
 
@@ -36,7 +36,7 @@ export function DevToolsIndicator({
 }) {
   const [open, setOpen] = useState(false)
 
-  const [vertical, horizontal] = state.indicatorPosition.split('-', 2)
+  const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const toggleErrorOverlay = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })
@@ -65,11 +65,11 @@ export function DevToolsIndicator({
       <Draggable
         padding={INDICATOR_PADDING}
         onDragStart={() => setOpen(false)}
-        position={state.indicatorPosition}
+        position={state.devToolsPosition}
         setPosition={(p) => {
           dispatch({
-            type: ACTION_DEVTOOLS_INDICATOR_POSITION,
-            indicatorPosition: p,
+            type: ACTION_DEVTOOLS_POSITION,
+            devToolsPosition: p,
           })
           localStorage.setItem(STORAGE_KEY_POSITION, p)
         }}

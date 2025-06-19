@@ -30,7 +30,7 @@ export interface OverlayState {
   routerType: 'pages' | 'app'
   isErrorOverlayOpen: boolean
   isDevToolsPanelOpen: boolean
-  indicatorPosition: Corners
+  devToolsPosition: Corners
 }
 export type OverlayDispatch = React.Dispatch<DispatcherEvent>
 
@@ -58,7 +58,7 @@ export const ACTION_DEVTOOLS_PANEL_OPEN = 'devtools-panel-open'
 export const ACTION_DEVTOOLS_PANEL_CLOSE = 'devtools-panel-close'
 export const ACTION_DEVTOOLS_PANEL_TOGGLE = 'devtools-panel-toggle'
 
-export const ACTION_DEVTOOLS_INDICATOR_POSITION = 'devtools-indicator-position'
+export const ACTION_DEVTOOLS_POSITION = 'devtools-position'
 
 export const STORAGE_KEY_THEME = '__nextjs-dev-tools-theme'
 export const STORAGE_KEY_POSITION = '__nextjs-dev-tools-position'
@@ -142,8 +142,8 @@ export interface DevToolsPanelToggleAction {
 }
 
 export interface DevToolsIndicatorPositionAction {
-  type: typeof ACTION_DEVTOOLS_INDICATOR_POSITION
-  indicatorPosition: Corners
+  type: typeof ACTION_DEVTOOLS_POSITION
+  devToolsPosition: Corners
 }
 
 export type DispatcherEvent =
@@ -207,7 +207,7 @@ export const INITIAL_OVERLAY_STATE: Omit<
   versionInfo: { installed: '0.0.0', staleness: 'unknown' },
   debugInfo: { devtoolsFrontendUrl: undefined },
   isDevToolsPanelOpen: false,
-  indicatorPosition: 'bottom-left',
+  devToolsPosition: 'bottom-left',
 }
 
 function getInitialState(
@@ -379,8 +379,8 @@ export function useErrorOverlayReducer(
         case ACTION_DEVTOOLS_PANEL_TOGGLE: {
           return { ...state, isDevToolsPanelOpen: !state.isDevToolsPanelOpen }
         }
-        case ACTION_DEVTOOLS_INDICATOR_POSITION: {
-          return { ...state, indicatorPosition: action.indicatorPosition }
+        case ACTION_DEVTOOLS_POSITION: {
+          return { ...state, devToolsPosition: action.devToolsPosition }
         }
         default: {
           return state

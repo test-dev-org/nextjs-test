@@ -7,7 +7,7 @@ import imgApp from './app.png'
 import { useReducer } from 'react'
 import { DevOverlay } from './dev-overlay'
 import {
-  ACTION_DEVTOOLS_INDICATOR_POSITION,
+  ACTION_DEVTOOLS_POSITION,
   ACTION_DEVTOOLS_PANEL_CLOSE,
   ACTION_DEVTOOLS_PANEL_TOGGLE,
   ACTION_ERROR_OVERLAY_CLOSE,
@@ -98,7 +98,7 @@ const initialState: OverlayState = {
   },
   isErrorOverlayOpen: false,
   isDevToolsPanelOpen: false,
-  indicatorPosition: 'bottom-left',
+  devToolsPosition: 'bottom-left',
 }
 
 function useOverlayReducer() {
@@ -120,8 +120,8 @@ function useOverlayReducer() {
         case ACTION_DEVTOOLS_PANEL_CLOSE: {
           return { ...state, isDevToolsPanelOpen: false }
         }
-        case ACTION_DEVTOOLS_INDICATOR_POSITION: {
-          return { ...state, indicatorPosition: action.indicatorPosition }
+        case ACTION_DEVTOOLS_POSITION: {
+          return { ...state, devToolsPosition: action.devToolsPosition }
         }
         default: {
           return state
