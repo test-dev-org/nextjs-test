@@ -392,6 +392,13 @@ async function createComponentTreeInternal({
 
   // Resolve the segment param
   const actualSegment = segmentParam ? segmentParam.treeSegment : segment
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const dir =
+    process.env.NEXT_RUNTIME === 'edge'
+      ? process.env.__NEXT_EDGE_PROJECT_DIR!
+      : ctx.renderOpts.dir || ''
 
   // Use the same condition to render metadataOutlet as metadata
   const metadataOutlet = StreamingMetadataOutlet ? (
@@ -400,35 +407,30 @@ async function createComponentTreeInternal({
     <MetadataOutlet ready={getMetadataReady} />
   )
 
-  const notFoundElement = NotFound ? (
-    <>
-      <NotFound />
-      {notFoundStyles}
-    </>
-  ) : undefined
+  const notFoundElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'not-found',
+    Component: NotFound,
+    styles: notFoundStyles,
+    tree,
+  })
 
-  const forbiddenElement = Forbidden ? (
-    <>
-      <Forbidden />
-      {forbiddenStyles}
-    </>
-  ) : undefined
+  const forbiddenElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'forbidden',
+    Component: Forbidden,
+    styles: forbiddenStyles,
+    tree,
+  })
 
-  const unauthorizedElement = Unauthorized ? (
-    <>
-      <Unauthorized />
-      {unauthorizedStyles}
-    </>
-  ) : undefined
+  const unauthorizedElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'unauthorized',
+    Component: Unauthorized,
+    styles: unauthorizedStyles,
+    tree,
+  })
 
-  const dir =
-    process.env.NEXT_RUNTIME === 'edge'
-      ? process.env.__NEXT_EDGE_PROJECT_DIR!
-      : ctx.renderOpts.dir || ''
-
-  const isSegmentViewEnabled =
-    process.env.NODE_ENV === 'development' &&
-    ctx.renderOpts.devtoolSegmentExplorer
   const nodeName = modType ?? 'page'
 
   // TODO: Combine this `map` traversal with the loop below that turns the array
@@ -881,12 +883,12 @@ async function createComponentTreeInternal({
           <HTTPAccessFallbackBoundary
             key={cacheNodeKey}
             notFound={
-              NotFound ? (
+              notFoundElement ? (
                 <>
                   {layerAssets}
                   <SegmentComponent params={params}>
                     {notFoundStyles}
-                    <NotFound />
+                    {notFoundElement}
                   </SegmentComponent>
                 </>
               ) : undefined
@@ -1028,7 +1030,55 @@ function getRootParamsImpl(
   }
 }
 
-export function normalizeConventionFilePath(
+async function createBoundaryConventionElement({
+  ctx,
+  conventionName,
+  Component,
+  styles,
+  tree,
+}: {
+  ctx: AppRenderContext
+  conventionName:
+    | 'not-found'
+    | 'error'
+    | 'loading'
+    | 'forbidden'
+    | 'unauthorized'
+  Component: React.ComponentType<any> | undefined
+  styles: React.ReactNode | undefined
+  tree: LoaderTree
+}) {
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const dir =
+    process.env.NEXT_RUNTIME === 'edge'
+      ? process.env.__NEXT_EDGE_PROJECT_DIR!
+      : ctx.renderOpts.dir || ''
+  const { SegmentViewNode } = ctx.componentMod
+  const element = Component ? (
+    <>
+      <Component />
+      {styles}
+    </>
+  ) : undefined
+
+  const wrappedElement =
+    isSegmentViewEnabled && element ? (
+      <SegmentViewNode
+        type={conventionName}
+        pagePath={getConventionPathByType(tree, dir, conventionName)!}
+      >
+        {element}
+      </SegmentViewNode>
+    ) : (
+      element
+    )
+
+  return wrappedElement
+}
+
+function normalizeConventionFilePath(
   projectDir: string,
   conventionPath: string | undefined
 ) {
@@ -1057,7 +1107,15 @@ export function normalizeConventionFilePath(
 function getConventionPathByType(
   tree: LoaderTree,
   dir: string,
-  conventionType: 'layout' | 'template' | 'page'
+  conventionType:
+    | 'layout'
+    | 'template'
+    | 'page'
+    | 'not-found'
+    | 'error'
+    | 'loading'
+    | 'forbidden'
+    | 'unauthorized'
 ) {
   const modules = tree[2]
   const conventionPath = modules[conventionType]

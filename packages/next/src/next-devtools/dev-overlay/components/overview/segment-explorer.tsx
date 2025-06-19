@@ -250,4 +250,10 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     background-color: var(--color-blue-300);
     color: var(--color-blue-800);
   }
+  .segment-explorer-file-label--not-found,
+  .segment-explorer-file-label--forbidden,
+  .segment-explorer-file-label--unauthorized {
+    background-color: var(--color-amber-300);
+    color: var(--color-amber-900);
+  }
 `

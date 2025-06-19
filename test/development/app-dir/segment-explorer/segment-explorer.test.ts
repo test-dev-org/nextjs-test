@@ -131,4 +131,33 @@ describe('segment-explorer', () => {
      global-error.tsx"
     `)
   })
+
+  it('should show navigation boundaries of the segment', async () => {
+    const browser = await next.browser('/boundary?name=not-found')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     boundary/
+     layout.tsx
+     not-found.tsx"
+    `)
+
+    await browser.loadPage(`${next.url}/boundary?name=forbidden`)
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     boundary/
+     layout.tsx
+     forbidden.tsx"
+    `)
+
+    await browser.loadPage(`${next.url}/boundary?name=unauthorized`)
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     boundary/
+     layout.tsx
+     unauthorized.tsx"
+    `)
+  })
 })
