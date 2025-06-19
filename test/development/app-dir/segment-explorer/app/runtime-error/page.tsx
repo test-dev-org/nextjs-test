@@ -2,7 +2,7 @@
 
 export default function Page() {
   if (typeof window !== 'undefined') {
-    throw new Error('This page should only be rendered on the client side.')
+    throw new Error('Error on client')
   }
   return <p>page</p>
 }
