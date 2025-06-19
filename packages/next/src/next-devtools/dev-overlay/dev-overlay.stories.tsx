@@ -13,6 +13,7 @@ import {
   ACTION_ERROR_OVERLAY_CLOSE,
   ACTION_ERROR_OVERLAY_OPEN,
   ACTION_ERROR_OVERLAY_TOGGLE,
+  NEXT_DEV_TOOLS_SCALE,
 } from './shared'
 
 const meta: Meta<typeof DevOverlay> = {
@@ -99,6 +100,7 @@ const initialState: OverlayState = {
   isErrorOverlayOpen: false,
   isDevToolsPanelOpen: false,
   devToolsPosition: 'bottom-left',
+  scale: NEXT_DEV_TOOLS_SCALE.Medium,
 }
 
 function useOverlayReducer() {
