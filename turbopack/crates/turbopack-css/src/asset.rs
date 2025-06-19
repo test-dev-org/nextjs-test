@@ -82,7 +82,7 @@ impl ParseCss for CssModuleAsset {
             Vc::upcast(self),
             this.import_context.map(|v| *v),
             this.ty,
-            this.environment,
+            this.environment.as_deref().copied(),
         ))
     }
 }
@@ -94,7 +94,10 @@ impl ProcessCss for CssModuleAsset {
         let this = self.await?;
         let parse_result = self.parse_css();
 
-        Ok(process_css_with_placeholder(parse_result, this.environment))
+        Ok(process_css_with_placeholder(
+            parse_result,
+            this.environment.as_deref().copied(),
+        ))
     }
 
     #[turbo_tasks::function]
@@ -116,7 +119,7 @@ impl ProcessCss for CssModuleAsset {
             chunking_context,
             minify_type,
             origin_source_map,
-            this.environment,
+            this.environment.as_deref().copied(),
         ))
     }
 }
