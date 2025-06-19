@@ -19,7 +19,7 @@ import {
 } from '../../shared'
 import { Draggable } from '../errors/dev-tools-indicator/draggable'
 
-const INDICATOR_PADDING = 20
+export const INDICATOR_PADDING = 20
 
 export function DevToolsIndicator({
   state,
@@ -59,6 +59,7 @@ export function DevToolsIndicator({
           zIndex: 2147483647,
           [vertical]: `${INDICATOR_PADDING}px`,
           [horizontal]: `${INDICATOR_PADDING}px`,
+          visibility: state.isDevToolsPanelOpen ? 'hidden' : 'visible',
         } as CSSProperties
       }
     >
