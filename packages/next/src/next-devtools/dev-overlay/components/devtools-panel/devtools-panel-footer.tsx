@@ -10,13 +10,23 @@ export function DevToolsPanelFooter({
 }: {
   versionInfo: OverlayState['versionInfo']
 }) {
+  const bundlerName = (
+    process.env.__NEXT_BUNDLER || 'WEBPACK'
+  ).toUpperCase() as 'WEBPACK' | 'TURBOPACK' | 'RSPACK'
   return (
     <div data-nextjs-devtools-panel-footer>
       <div data-nextjs-devtools-panel-footer-tab-group>
         <DevToolsPanelVersionInfo versionInfo={versionInfo} />
         <div data-nextjs-devtools-panel-footer-tab>
-          <span>TURBOPACK</span>
-          <span>{process.env.TURBOPACK ? 'Enabled' : 'Disabled'}</span>
+          {/* TODO: The details may change, follow up. */}
+          <span
+            data-nextjs-devtools-panel-footer-tab-bundler-name={bundlerName}
+          >
+            {bundlerName}
+          </span>
+          <span data-nextjs-devtools-panel-footer-tab-bundler-status>
+            enabled
+          </span>
         </div>
       </div>
       <div data-nextjs-devtools-panel-footer-action-button-group>
@@ -60,6 +70,17 @@ export const DEVTOOLS_PANEL_FOOTER_STYLES = css`
     color: var(--color-gray-900);
     font-size: 12px;
     font-family: var(--font-stack-monospace);
+  }
+
+  [data-nextjs-devtools-panel-footer-tab-bundler-name='TURBOPACK'] {
+    background: linear-gradient(
+      to right,
+      var(--color-turbopack-text-red) 0%,
+      var(--color-turbopack-text-blue) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   [data-nextjs-devtools-panel-footer-action-button-group] {

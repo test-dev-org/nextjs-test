@@ -47,11 +47,11 @@ export const WithIssues: Story = {
 
 export const Turbopack: Story = {
   beforeEach: () => {
-    process.env.TURBOPACK = 'true'
+    process.env.__NEXT_BUNDLER = 'Turbopack'
 
     // clean up callback function
     return () => {
-      delete process.env.TURBOPACK
+      delete process.env.__NEXT_BUNDLER
     }
   },
   args: {
