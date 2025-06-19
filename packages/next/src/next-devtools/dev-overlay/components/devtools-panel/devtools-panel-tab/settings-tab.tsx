@@ -59,10 +59,10 @@ export function SettingsTab({
     }
   }
 
-  function handleRestartDevServer() {
+  function handleRestartDevServer(invalidatePersistentCache: boolean) {
     let endpoint = '/__nextjs_restart_dev'
 
-    if (process.env.__NEXT_TURBOPACK_PERSISTENT_CACHE) {
+    if (invalidatePersistentCache) {
       endpoint = '/__nextjs_restart_dev?invalidatePersistentCache'
     }
 
@@ -192,7 +192,9 @@ export function SettingsTab({
             name="restart-dev-server"
             data-restart-dev-server
             data-nextjs-devtools-panel-settings-section-action-button
-            onClick={handleRestartDevServer}
+            onClick={() =>
+              handleRestartDevServer(/*invalidatePersistentCache*/ false)
+            }
           >
             <span>Restart</span>
           </button>
@@ -215,7 +217,9 @@ export function SettingsTab({
               name="reset-bundler-cache"
               data-reset-bundler-cache
               data-nextjs-devtools-panel-settings-section-action-button
-              onClick={handleRestartDevServer}
+              onClick={() =>
+                handleRestartDevServer(/*invalidatePersistentCache*/ true)
+              }
             >
               <span>Reset Cache</span>
             </button>
