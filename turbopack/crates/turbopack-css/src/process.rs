@@ -309,7 +309,7 @@ pub async fn finalize_css(
                     true,
                     true,
                     origin_source_map,
-                    environment,
+                    environment.to_resolved().await?,
                 )
                 .await?;
 

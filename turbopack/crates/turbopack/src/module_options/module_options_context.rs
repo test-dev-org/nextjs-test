@@ -206,7 +206,6 @@ pub struct EcmascriptOptionsContext {
 #[derive(Clone, Default)]
 #[serde(default)]
 pub struct CssOptionsContext {
-    pub browserslist_query: RcStr,
     /// This skips `GlobalCss` and `ModuleCss` module assets from being
     /// generated in the module graph, generating only `Css` module assets.
     ///

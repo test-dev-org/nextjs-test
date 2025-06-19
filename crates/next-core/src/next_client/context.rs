@@ -289,7 +289,6 @@ pub async fn get_client_module_options_context(
         .tree_shaking_mode_for_foreign_code(next_mode.is_development())
         .await?;
     let target_browsers = env.runtime_versions();
-    let browserslist_query = env.browserslist_query().owned().await?;
 
     let mut next_client_rules =
         get_next_client_transforms_rules(next_config, ty, mode, false, encryption_key).await?;
@@ -340,7 +339,6 @@ pub async fn get_client_module_options_context(
             ..Default::default()
         },
         css: CssOptionsContext {
-            browserslist_query,
             source_maps,
             ..Default::default()
         },

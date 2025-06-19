@@ -133,7 +133,6 @@ impl ModuleOptions {
             enable_mdx_rs,
             css:
                 CssOptionsContext {
-                    ref browserslist_query,
                     enable_raw_css,
                     source_maps: css_source_maps,
                     ..
@@ -438,6 +437,12 @@ impl ModuleOptions {
             ),
         ];
 
+        let environment = if let Some(env) = preset_env_versions {
+            env
+        } else {
+            todo!()
+        };
+
         if enable_raw_css {
             rules.extend([
                 ModuleRule::new(
@@ -447,7 +452,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Default,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
                 ModuleRule::new(
@@ -457,7 +462,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Module,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
             ]);
@@ -510,7 +515,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Default,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
                 ModuleRule::new(
@@ -541,7 +546,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Module,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
                 // Ecmascript CSS Modules referencing the actual CSS module to include it
@@ -552,7 +557,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Module,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
                 // Ecmascript CSS Modules referencing the actual CSS module to list the classes
@@ -568,7 +573,7 @@ impl ModuleOptions {
                     ]),
                     vec![ModuleRuleEffect::ModuleType(ModuleType::Css {
                         ty: CssModuleAssetType::Module,
-                        browserslist_query: browserslist_query.clone(),
+                        environment,
                     })],
                 ),
             ]);

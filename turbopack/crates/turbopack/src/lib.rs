@@ -247,7 +247,7 @@ async fn apply_module_type(
                     .css
                     .minify_type,
                 css_import_context,
-                environment,
+                **environment,
             )
             .to_resolved()
             .await?,
