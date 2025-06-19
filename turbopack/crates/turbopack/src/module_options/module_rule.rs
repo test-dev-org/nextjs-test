@@ -104,7 +104,7 @@ pub enum ModuleType {
     CssModule,
     Css {
         ty: CssModuleAssetType,
-        browserslist_query: RcStr,
+        environment: ResolvedVc<Environment>,
     },
     StaticUrlJs,
     StaticUrlCss,

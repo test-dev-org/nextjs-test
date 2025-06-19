@@ -21,6 +21,7 @@ use turbopack_core::{
     SOURCE_URL_PROTOCOL,
     asset::{Asset, AssetContent},
     chunk::{ChunkingContext, MinifyType},
+    environment::Environment,
     issue::{
         Issue, IssueExt, IssueSource, IssueStage, OptionIssueSource, OptionStyledString,
         StyledString,
@@ -88,14 +89,14 @@ impl StyleSheetLike<'_, '_> {
         StyleSheetLike(stylesheet_into_static(&self.0, options))
     }
 
-    pub fn to_css(
+    pub async fn to_css(
         &self,
         code: &str,
         minify_type: MinifyType,
         enable_srcmap: bool,
         handle_nesting: bool,
         mut origin_source_map: Option<parcel_sourcemap::SourceMap>,
-        browserslist_query: RcStr,
+        environment: ResolvedVc<Environment>,
     ) -> Result<CssOutput> {
         let ss = &self.0;
         let mut srcmap = if enable_srcmap {
@@ -104,7 +105,10 @@ impl StyleSheetLike<'_, '_> {
             None
         };
 
-        let targets = get_lightningcss_browser_targets(browserslist_query, handle_nesting)?;
+        let targets = get_lightningcss_browser_targets(
+            (*environment.browserslist_query().await?).clone(),
+            handle_nesting,
+        )?;
 
         let result = ss.to_css(PrinterOptions {
             minify: matches!(minify_type, MinifyType::Minify { .. }),
@@ -201,7 +205,7 @@ impl PartialEq for FinalCssResult {
 #[turbo_tasks::function]
 pub async fn process_css_with_placeholder(
     parse_result: ResolvedVc<ParseCssResult>,
-    browserslist_query: RcStr,
+    environment: ResolvedVc<Environment>,
 ) -> Result<Vc<CssWithPlaceholderResult>> {
     let result = parse_result.await?;
 
@@ -221,14 +225,9 @@ pub async fn process_css_with_placeholder(
 
             // We use NoMinify because this is not a final css. We need to replace url references,
             // and we do final codegen with proper minification.
-            let (result, _) = stylesheet.to_css(
-                &code,
-                MinifyType::NoMinify,
-                false,
-                false,
-                None,
-                browserslist_query,
-            )?;
+            let (result, _) = stylesheet
+                .to_css(&code, MinifyType::NoMinify, false, false, None, environment)
+                .await?;
 
             let exports = result.exports.map(|exports| {
                 let mut exports = exports.into_iter().collect::<FxIndexMap<_, _>>();
@@ -258,7 +257,7 @@ pub async fn finalize_css(
     chunking_context: Vc<Box<dyn ChunkingContext>>,
     minify_type: MinifyType,
     origin_source_map: Vc<OptionStringifiedSourceMap>,
-    browserslist_query: RcStr,
+    environment: Vc<Environment>,
 ) -> Result<Vc<FinalCssResult>> {
     let result = result.await?;
     match &*result {
@@ -303,14 +302,16 @@ pub async fn finalize_css(
                 None
             };
 
-            let (result, srcmap) = stylesheet.to_css(
-                &code,
-                minify_type,
-                true,
-                true,
-                origin_source_map,
-                browserslist_query,
-            )?;
+            let (result, srcmap) = stylesheet
+                .to_css(
+                    &code,
+                    minify_type,
+                    true,
+                    true,
+                    origin_source_map,
+                    environment,
+                )
+                .await?;
 
             Ok(FinalCssResult::Ok {
                 output_code: result.code,
@@ -349,7 +350,7 @@ pub async fn parse_css(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
-    browserslist_query: RcStr,
+    environment: ResolvedVc<Environment>,
 ) -> Result<Vc<ParseCssResult>> {
     let span = {
         let name = source.ident().to_string().await?.to_string();
@@ -375,7 +376,7 @@ pub async fn parse_css(
                             origin,
                             import_context,
                             ty,
-                            browserslist_query,
+                            environment,
                         )
                         .await?
                     }
@@ -396,7 +397,7 @@ async fn process_content(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
-    browserslist_query: RcStr,
+    environment: ResolvedVc<Environment>,
 ) -> Result<Vc<ParseCssResult>> {
     #[allow(clippy::needless_lifetimes)]
     fn without_warnings<'o, 'i>(config: ParserOptions<'o, 'i>) -> ParserOptions<'o, 'static> {
@@ -491,7 +492,10 @@ async fn process_content(
                     }
                 }
 
-                let targets = get_lightningcss_browser_targets(browserslist_query, true)?;
+                let targets = get_lightningcss_browser_targets(
+                    (*environment.browserslist_query().await?).clone(),
+                    true,
+                )?;
 
                 // minify() is actually transform, and it performs operations like CSS modules
                 // handling.

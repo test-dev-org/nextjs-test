@@ -236,10 +236,7 @@ async fn apply_module_type(
                 .await?,
         ),
 
-        ModuleType::Css {
-            ty,
-            browserslist_query,
-        } => ResolvedVc::upcast(
+        ModuleType::Css { ty, environment } => ResolvedVc::upcast(
             CssModuleAsset::new(
                 *source,
                 Vc::upcast(module_asset_context),
@@ -250,7 +247,7 @@ async fn apply_module_type(
                     .css
                     .minify_type,
                 css_import_context,
-                browserslist_query.clone(),
+                environment,
             )
             .to_resolved()
             .await?,
