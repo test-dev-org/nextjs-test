@@ -1,8 +1,4 @@
-import type {
-  OverlayDispatch,
-  OverlayState,
-  DevToolsIndicatorPosition,
-} from '../../../shared'
+import type { OverlayDispatch, OverlayState, Corners } from '../../../shared'
 
 import { useTheme } from '../hooks/use-theme'
 import { Select } from '../../select/select'
@@ -70,7 +66,7 @@ export function SettingsTab({
   function handlePositionChange(e: React.ChangeEvent<HTMLSelectElement>) {
     dispatch({
       type: ACTION_DEVTOOLS_INDICATOR_POSITION,
-      indicatorPosition: e.target.value as DevToolsIndicatorPosition,
+      indicatorPosition: e.target.value as Corners,
     })
     localStorage.setItem(STORAGE_KEY_POSITION, e.target.value)
   }
