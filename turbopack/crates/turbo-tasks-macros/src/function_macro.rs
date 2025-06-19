@@ -103,7 +103,10 @@ pub fn function(args: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
-// `&self` is `self: Vc<Self>` with self.await? so it's mutable
+/// Computes whether the task is statically immutable based on the signature.
+/// - if the task is `async` we assume it is reading some other task.
+/// - if a task accepts `&self` then we know it read `Vc<Self>` in the generated calling code.
+///  See also: turbopack/crates/turbo-tasks/src/task/function.rs for the binding code.
 pub(crate) fn is_immutable(sig: &syn::Signature) -> bool {
     sig.asyncness.is_none()
         && match sig.receiver() {
