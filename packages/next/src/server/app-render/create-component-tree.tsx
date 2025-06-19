@@ -593,8 +593,20 @@ async function createComponentTreeInternal({
     parallelRouteCacheNodeSeedData[parallelRouteKey] = flightData
   }
 
-  const loadingData: LoadingModuleData = Loading
-    ? [<Loading key="l" />, loadingStyles, loadingScripts]
+  let loadingElement = Loading ? <Loading key="l" /> : null
+  if (isSegmentViewEnabled && loadingElement) {
+    const loadingFilePath = getConventionPathByType(tree, dir, 'loading')
+    if (loadingFilePath) {
+      loadingElement = (
+        <SegmentViewNode type="loading" pagePath={loadingFilePath}>
+          {loadingElement}
+        </SegmentViewNode>
+      )
+    }
+  }
+
+  const loadingData: LoadingModuleData = loadingElement
+    ? [loadingElement, loadingStyles, loadingScripts]
     : null
 
   // When the segment does not have a layout or page we still have to add the layout router to ensure the path holds the loading component

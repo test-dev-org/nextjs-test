@@ -160,4 +160,23 @@ describe('segment-explorer', () => {
      unauthorized.tsx"
     `)
   })
+
+  it('should show the loading boundary when it is present', async () => {
+    const browser = await next.browser('/search')
+    const input = await browser.elementByCss('input[name="q"]')
+    await input.fill('abc')
+    await browser.elementByCss('button').click() // submit the form
+
+    await retry(async () => {
+      expect(await browser.elementByCss('#loading').text()).toBe('Loading...')
+    })
+
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     search/
+     layout.tsx
+     loading.tsx"
+    `)
+  })
 })

@@ -256,4 +256,8 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     background-color: var(--color-amber-300);
     color: var(--color-amber-900);
   }
+  .segment-explorer-file-label--loading {
+    background-color: var(--color-green-300);
+    color: var(--color-green-900);
+  }
 `
