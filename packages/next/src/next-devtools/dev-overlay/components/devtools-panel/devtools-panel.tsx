@@ -117,8 +117,8 @@ export function DevToolsPanel({
               </DialogHeader>
               <DialogBody></DialogBody>
             </DialogContent>
+            <DevToolsPanelFooter versionInfo={state.versionInfo} />
           </Dialog>
-          <DevToolsPanelFooter versionInfo={state.versionInfo} />
         </>
       </Draggable>
     </Overlay>
