@@ -13,13 +13,13 @@ describe('build-output-prerender', () => {
     it('prints only the user-selected experimental flags', async () => {
       if (isTurbopack) {
         expect(getPreambleOutput(next.cliOutput)).toMatchInlineSnapshot(`
-         "▲ Next.js x.y.x (Turbopack)
+         "▲ Next.js x.y.z (Turbopack)
             - Experiments (use with caution):
               ✓ dynamicIO"
         `)
       } else {
         expect(getPreambleOutput(next.cliOutput)).toMatchInlineSnapshot(`
-         "▲ Next.js x.y.x
+         "▲ Next.js x.y.z
             - Experiments (use with caution):
               ✓ dynamicIO"
         `)
@@ -58,7 +58,7 @@ describe('build-output-prerender', () => {
       if (isTurbopack) {
         expect(getPreambleOutput(next.cliOutput)).toMatchInlineSnapshot(`
          "⚠ Prerendering is running in debug mode. Note: This may affect performance and should not be used for production.
-            ▲ Next.js x.y.x (Turbopack)
+            ▲ Next.js x.y.z (Turbopack)
             - Experiments (use with caution):
               ✓ dynamicIO
               ⨯ turbopackMinify (disabled by \`--debug-prerender\`)
@@ -69,7 +69,7 @@ describe('build-output-prerender', () => {
       } else {
         expect(getPreambleOutput(next.cliOutput)).toMatchInlineSnapshot(`
          "⚠ Prerendering is running in debug mode. Note: This may affect performance and should not be used for production.
-            ▲ Next.js x.y.x
+            ▲ Next.js x.y.z
             - Experiments (use with caution):
               ✓ dynamicIO
               ✓ serverSourceMaps (enabled by \`--debug-prerender\`)
@@ -150,7 +150,7 @@ function getPreambleOutput(cliOutput: string): string {
       continue
     }
 
-    lines.push(line.replace(nextVersion, 'x.y.x'))
+    lines.push(line.replace(nextVersion, 'x.y.z'))
   }
 
   return lines.join('\n').trim()
