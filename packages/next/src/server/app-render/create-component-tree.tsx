@@ -1033,7 +1033,8 @@ function normalizeConventionFilePath(
   conventionPath: string | undefined
 ) {
   const cwd = process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd()
-  const nextInternalPrefixRegex = /^next[\\/]dist[\\/]client[\\/]components[\\/]/
+  const nextInternalPrefixRegex =
+    /^(.*[\\/])?next[\\/]dist[\\/]client[\\/]components[\\/]/
 
   let relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
@@ -1045,13 +1046,9 @@ function normalizeConventionFilePath(
     // remove /(src/)?app/ dir prefix
     .replace(/^([\\/])*(src[\\/])?app[\\/]/, '')
 
+  // If it's internal file only keep the filename, strip nextjs internal prefix
   if (nextInternalPrefixRegex.test(relativePath)) {
     relativePath = relativePath.replace(nextInternalPrefixRegex, '')
-    if (relativePath === 'not-found-error') {
-      // Special case for the built-in not-found-error convention file
-      // which is used to render the 404 page.
-      relativePath = '*not-found'
-    }
   }
 
   return relativePath

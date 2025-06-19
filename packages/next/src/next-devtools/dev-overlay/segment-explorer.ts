@@ -141,7 +141,7 @@ const trie: SegmentTrie = createTrie({
     if (!a || !b) return false
     return a.pagePath === b.pagePath && a.type === b.type
   },
-  getCharacters: (item) => item.pagePath.split('/').filter(Boolean),
+  getCharacters: (item) => item.pagePath.split('/'),
 })
 export const insertSegmentNode = trie.insert
 export const removeSegmentNode = trie.remove
