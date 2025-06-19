@@ -1,6 +1,6 @@
 import type { OverlayState } from '../../shared'
 
-import { Eclipse } from '../../icons/eclipse'
+import { EclipseIcon } from '../../icons/eclipse'
 import { getStaleness } from '../../../shared/version-staleness'
 import { css } from '../../utils/css'
 
@@ -23,7 +23,7 @@ export function DevToolsPanelVersionInfo({
         href="https://nextjs.org/docs/messages/version-staleness"
         title={title}
       >
-        <Eclipse data-nextjs-version-staleness-indicator={indicatorClass} />
+        <EclipseIcon data-nextjs-version-staleness-indicator={indicatorClass} />
         <span>{text}</span>
       </a>
     )
@@ -31,7 +31,7 @@ export function DevToolsPanelVersionInfo({
 
   return (
     <div data-nextjs-devtools-panel-footer-tab title={title}>
-      <Eclipse data-nextjs-version-staleness-indicator={indicatorClass} />
+      <EclipseIcon data-nextjs-version-staleness-indicator={indicatorClass} />
       <span>{text}</span>
     </div>
   )

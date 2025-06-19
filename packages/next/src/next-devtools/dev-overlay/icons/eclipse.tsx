@@ -1,4 +1,4 @@
-export function Eclipse(props: React.SVGProps<SVGSVGElement>) {
+export function EclipseIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       width="14"

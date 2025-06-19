@@ -1,7 +1,7 @@
 import type { VersionInfo } from '../../../../server/dev/parse-version-info'
 import { getStaleness } from '../../../shared/version-staleness'
 import { cx } from '../../utils/cx'
-import { Eclipse } from '../../icons/eclipse'
+import { EclipseIcon } from '../../icons/eclipse'
 
 export function VersionStalenessInfo({
   versionInfo,
@@ -24,7 +24,7 @@ export function VersionStalenessInfo({
         rel="noopener noreferrer"
         href="https://nextjs.org/docs/messages/version-staleness"
       >
-        <Eclipse
+        <EclipseIcon
           className={cx('version-staleness-indicator', indicatorClass)}
         />
         <span data-nextjs-version-checker title={title}>
@@ -39,7 +39,9 @@ export function VersionStalenessInfo({
 
   return (
     <span className="nextjs-container-build-error-version-status dialog-exclude-closing-from-outside-click">
-      <Eclipse className={cx('version-staleness-indicator', indicatorClass)} />
+      <EclipseIcon
+        className={cx('version-staleness-indicator', indicatorClass)}
+      />
       <span data-nextjs-version-checker title={title}>
         {text}
       </span>
