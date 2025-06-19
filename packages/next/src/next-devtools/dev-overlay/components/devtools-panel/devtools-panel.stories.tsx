@@ -60,3 +60,19 @@ export const Turbopack: Story = {
     issueCount: 0,
   },
 }
+
+export const Rspack: Story = {
+  beforeEach: () => {
+    process.env.__NEXT_BUNDLER = 'Rspack'
+
+    // clean up callback function
+    return () => {
+      delete process.env.__NEXT_BUNDLER
+    }
+  },
+  args: {
+    state,
+    dispatch: () => {},
+    issueCount: 0,
+  },
+}
