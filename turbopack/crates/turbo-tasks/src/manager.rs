@@ -100,8 +100,6 @@ pub trait TurboTasksCallApi: Sync + Send {
 /// This trait is needed because thread locals cannot contain an unresolved [`Backend`] type
 /// parameter.
 pub trait TurboTasksApi: TurboTasksCallApi + Sync + Send {
-    fn pin(&self) -> Arc<dyn TurboTasksApi>;
-
     fn invalidate(&self, task: TaskId);
     fn invalidate_with_reason(&self, task: TaskId, reason: StaticOrArc<dyn InvalidationReason>);
 
@@ -1222,10 +1220,6 @@ impl<B: Backend + 'static> TurboTasksCallApi for TurboTasks<B> {
 }
 
 impl<B: Backend + 'static> TurboTasksApi for TurboTasks<B> {
-    fn pin(&self) -> Arc<dyn TurboTasksApi> {
-        self.pin()
-    }
-
     #[instrument(level = Level::INFO, skip_all, name = "invalidate")]
     fn invalidate(&self, task: TaskId) {
         self.backend.invalidate_task(task, self);

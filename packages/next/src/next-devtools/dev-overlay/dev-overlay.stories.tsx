@@ -7,6 +7,9 @@ import imgApp from './app.png'
 import { useReducer } from 'react'
 import { DevOverlay } from './dev-overlay'
 import {
+  ACTION_DEVTOOLS_POSITION,
+  ACTION_DEVTOOLS_PANEL_CLOSE,
+  ACTION_DEVTOOLS_PANEL_TOGGLE,
   ACTION_ERROR_OVERLAY_CLOSE,
   ACTION_ERROR_OVERLAY_OPEN,
   ACTION_ERROR_OVERLAY_TOGGLE,
@@ -93,7 +96,9 @@ const initialState: OverlayState = {
     installed: '15.2.0',
     staleness: 'fresh',
   },
-  isErrorOverlayOpen: true,
+  isErrorOverlayOpen: false,
+  isDevToolsPanelOpen: false,
+  devToolsPosition: 'bottom-left',
 }
 
 function useOverlayReducer() {
@@ -109,11 +114,19 @@ function useOverlayReducer() {
         case ACTION_ERROR_OVERLAY_TOGGLE: {
           return { ...state, isErrorOverlayOpen: !state.isErrorOverlayOpen }
         }
+        case ACTION_DEVTOOLS_PANEL_TOGGLE: {
+          return { ...state, isDevToolsPanelOpen: !state.isDevToolsPanelOpen }
+        }
+        case ACTION_DEVTOOLS_PANEL_CLOSE: {
+          return { ...state, isDevToolsPanelOpen: false }
+        }
+        case ACTION_DEVTOOLS_POSITION: {
+          return { ...state, devToolsPosition: action.devToolsPosition }
+        }
         default: {
           return state
         }
       }
-      return state
     },
     initialState
   )
@@ -124,6 +137,40 @@ function getNoSquashedHydrationErrorDetails() {
 }
 
 export const Default: Story = {
+  render: function DevOverlayStory() {
+    const [state, dispatch] = useOverlayReducer()
+    return (
+      <>
+        <img
+          src={imgApp}
+          style={{
+            width: '100%',
+            height: '100vh',
+            objectFit: 'contain',
+          }}
+        />
+        <DevOverlay
+          state={state}
+          dispatch={dispatch}
+          getSquashedHydrationErrorDetails={
+            // Testing like App Router where we no longer quash hydration errors
+            getNoSquashedHydrationErrorDetails
+          }
+        />
+      </>
+    )
+  },
+}
+
+export const WithPanel: Story = {
+  beforeEach: () => {
+    process.env.__NEXT_DEVTOOL_NEW_PANEL_UI = 'true'
+
+    // clean up callback function
+    return () => {
+      delete process.env.__NEXT_DEVTOOL_NEW_PANEL_UI
+    }
+  },
   render: function DevOverlayStory() {
     const [state, dispatch] = useOverlayReducer()
     return (
