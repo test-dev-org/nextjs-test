@@ -14,9 +14,12 @@ use turbo_tasks_macros_shared::{
     get_trait_impl_function_id_ident, get_trait_impl_function_ident, get_type_ident, is_self_used,
 };
 
-use crate::func::{
-    DefinitionContext, FunctionArguments, NativeFn, TurboFn, filter_inline_attributes,
-    split_function_attributes,
+use crate::{
+    func::{
+        DefinitionContext, FunctionArguments, NativeFn, TurboFn, filter_inline_attributes,
+        split_function_attributes,
+    },
+    function_macro::is_immutable,
 };
 
 struct ValueImplArguments {
@@ -119,7 +122,7 @@ pub fn value_impl(args: TokenStream, input: TokenStream) -> TokenStream {
                     filter_trait_call_args: None, // not a trait method
                     local,
                     invalidator,
-                    immutable: sig.asyncness.is_none() && !invalidator,
+                    immutable: is_immutable(sig) && !invalidator,
                 };
 
                 let native_function_ident = get_inherent_impl_function_ident(ty_ident, ident);
@@ -249,7 +252,7 @@ pub fn value_impl(args: TokenStream, input: TokenStream) -> TokenStream {
                     filter_trait_call_args: turbo_fn.filter_trait_call_args(),
                     local,
                     invalidator,
-                    immutable: sig.asyncness.is_none() && !invalidator,
+                    immutable: is_immutable(sig) && !invalidator,
                 };
 
                 let native_function_ident =
