@@ -1424,25 +1424,12 @@ export default async function loadConfig(
         reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
       )
 
-      if (process.env.TURBOPACK) {
-        setExperimentalFeatureForDebugPrerender(
-          userConfig.experimental,
-          'turbopackMinify',
-          false,
-          reportExperimentalFeatures
-            ? configuredExperimentalFeatures
-            : undefined
-        )
-      } else {
-        setExperimentalFeatureForDebugPrerender(
-          userConfig.experimental,
-          'serverMinification',
-          false,
-          reportExperimentalFeatures
-            ? configuredExperimentalFeatures
-            : undefined
-        )
-      }
+      setExperimentalFeatureForDebugPrerender(
+        userConfig.experimental,
+        process.env.TURBOPACK ? 'turbopackMinify' : 'serverMinification',
+        false,
+        reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
+      )
 
       setExperimentalFeatureForDebugPrerender(
         userConfig.experimental,
