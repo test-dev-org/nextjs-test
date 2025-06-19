@@ -208,8 +208,7 @@ export const INITIAL_OVERLAY_STATE: Omit<
   debugInfo: { devtoolsFrontendUrl: undefined },
   isDevToolsPanelOpen: false,
   indicatorPosition:
-    (localStorage.getItem(STORAGE_KEY_POSITION) as DevToolsIndicatorPosition) ??
-    'bottom-left',
+    (localStorage.getItem(STORAGE_KEY_POSITION) as Corners) ?? 'bottom-left',
 }
 
 function getInitialState(
