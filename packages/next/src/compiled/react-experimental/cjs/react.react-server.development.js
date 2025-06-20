@@ -994,5 +994,5 @@
     exports.useMemo = function (create, deps) {
       return resolveDispatcher().useMemo(create, deps);
     };
-    exports.version = "19.2.0-experimental-79d9aed7-20250620";
+    exports.version = "19.2.0-experimental-06e89951-20250620";
   })();
