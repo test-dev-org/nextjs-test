@@ -6,9 +6,9 @@ use rustc_hash::FxHashMap;
 use swc_core::{
     atoms::{Atom, atom},
     base::SwcComments,
-    common::{Mark, SourceMap, comments::Comments, util::take::Take},
+    common::{Mark, SourceMap, comments::Comments},
     ecma::{
-        ast::{Module, ModuleItem, Program, Script},
+        ast::{ModuleItem, Program},
         preset_env::{self, Targets},
         transforms::{base::assumptions::Assumptions, optimization::inline_globals, react::react},
     },
