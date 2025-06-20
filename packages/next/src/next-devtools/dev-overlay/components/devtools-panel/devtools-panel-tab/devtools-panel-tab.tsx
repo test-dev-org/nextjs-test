@@ -5,20 +5,14 @@ export function DevToolsPanelTab({
 }: {
   activeTab: DevToolsPanelTabType
 }) {
-  if (activeTab === 'settings') {
-    return <div>Settings</div>
+  switch (activeTab) {
+    case 'settings':
+      return <div>Settings</div>
+    case 'route':
+      return <div>Route</div>
+    case 'issues':
+      return <div>Issues</div>
+    default:
+      return null
   }
-
-  if (activeTab === 'route') {
-    return <div>Route</div>
-  }
-
-  if (activeTab === 'issues') {
-    return <div>Issues</div>
-  }
-
-  console.log(
-    `[Next.js DevTools] Received unknown Panel Tab: "${activeTab}". This is a bug in Next.js DevTools.`
-  )
-  return null
 }
