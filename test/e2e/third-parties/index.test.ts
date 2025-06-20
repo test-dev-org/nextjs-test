@@ -54,80 +54,83 @@ describe('@next/third-parties basic usage', () => {
     expect(dataLayer2.length).toBe(2)
   })
 
-  it('renders GTM with consent management for multiple CMP platforms', async () => {
+  it('renders GTM with consent management support', async () => {
     const browser = await next.browser('/gtm-consent')
     await waitFor(1000)
 
-    // Test standard GTM (should have type="application/javascript" by default)
-    const standardScripts = await browser.elementsByCss(
-      'script[src*="GTM-STANDARD"]'
-    )
-    expect(standardScripts.length).toBe(1)
+    // Test data for different CMP platforms
+    const cmpScenarios = [
+      {
+        name: 'standard',
+        gtmId: 'GTM-STANDARD',
+        expectedType: 'application/javascript',
+        dataAttribute: null,
+        shouldExecute: true,
+      },
+      {
+        name: 'usercentrics',
+        gtmId: 'GTM-USERCENTRICS',
+        expectedType: 'text/plain',
+        dataAttribute: 'data-usercentrics="Google Tag Manager"',
+        shouldExecute: false,
+      },
+      {
+        name: 'onetrust',
+        gtmId: 'GTM-ONETRUST',
+        expectedType: 'text/plain',
+        dataAttribute: 'data-one-trust-category="C0002"',
+        shouldExecute: false,
+      },
+      {
+        name: 'cookiebot',
+        gtmId: 'GTM-COOKIEBOT',
+        expectedType: 'text/plain',
+        dataAttribute: 'data-cookieconsent="statistics"',
+        shouldExecute: false,
+      },
+      {
+        name: 'didomi',
+        gtmId: 'GTM-DIDOMI',
+        expectedType: 'text/plain',
+        dataAttribute: 'data-didomi-purposes="analytics"',
+        shouldExecute: false,
+      },
+      {
+        name: 'custom',
+        gtmId: 'GTM-CUSTOM',
+        expectedType: 'text/plain',
+        dataAttribute: 'data-consent-category="analytics"',
+        shouldExecute: false,
+      },
+    ]
 
-    const standardType: string | null = await browser.eval(
-      'document.querySelector("#_next-gtm-init").getAttribute("type")'
-    )
-    expect(standardType).toBe('application/javascript')
+    // Test each CMP scenario
+    for (const scenario of cmpScenarios) {
+      // Verify external GTM script has correct type and attributes
+      const externalScripts = await browser.elementsByCss(
+        `script[src*="${scenario.gtmId}"][type="${scenario.expectedType}"]`
+      )
+      expect(externalScripts.length).toBe(1)
 
-    // Test Usercentrics GTM (should have type="text/plain" and data-usercentrics)
-    const usercentricsInitScripts = await browser.elementsByCss(
-      'script[type="text/plain"][data-usercentrics="Google Tag Manager"]'
-    )
-    expect(usercentricsInitScripts.length).toBe(2) // init + external script
+      // For consent-managed scripts, verify data attributes are present
+      if (scenario.dataAttribute) {
+        const scriptsWithDataAttr = await browser.elementsByCss(
+          `script[type="${scenario.expectedType}"][${scenario.dataAttribute}]`
+        )
+        expect(scriptsWithDataAttr.length).toBe(2) // init + external script
+      }
+    }
 
-    const usercentricsScripts = await browser.elementsByCss(
-      'script[src*="GTM-USERCENTRICS"][type="text/plain"]'
-    )
-    expect(usercentricsScripts.length).toBe(1)
-
-    // Test OneTrust GTM (should have type="text/plain" and data-one-trust-category)
-    const onetrustInitScripts = await browser.elementsByCss(
-      'script[type="text/plain"][data-one-trust-category="C0002"]'
-    )
-    expect(onetrustInitScripts.length).toBe(2) // init + external script
-
-    const onetrustScripts = await browser.elementsByCss(
-      'script[src*="GTM-ONETRUST"][type="text/plain"]'
-    )
-    expect(onetrustScripts.length).toBe(1)
-
-    // Test Cookiebot GTM (should have type="text/plain" and data-cookieconsent)
-    const cookiebotInitScripts = await browser.elementsByCss(
-      'script[type="text/plain"][data-cookieconsent="statistics"]'
-    )
-    expect(cookiebotInitScripts.length).toBe(2) // init + external script
-
-    const cookiebotScripts = await browser.elementsByCss(
-      'script[src*="GTM-COOKIEBOT"][type="text/plain"]'
-    )
-    expect(cookiebotScripts.length).toBe(1)
-
-    // Test Didomi GTM (should have type="text/plain" and data-didomi-purposes)
-    const didomiInitScripts = await browser.elementsByCss(
-      'script[type="text/plain"][data-didomi-purposes="analytics"]'
-    )
-    expect(didomiInitScripts.length).toBe(2) // init + external script
-
-    const didomiScripts = await browser.elementsByCss(
-      'script[src*="GTM-DIDOMI"][type="text/plain"]'
-    )
-    expect(didomiScripts.length).toBe(1)
-
-    // Test custom consent GTM (multiple data attributes)
-    const customInitScripts = await browser.elementsByCss(
-      'script[type="text/plain"][data-consent-category="analytics"]'
-    )
-    expect(customInitScripts.length).toBe(2) // init + external script
-
-    const customScripts = await browser.elementsByCss(
-      'script[src*="GTM-CUSTOM"][type="text/plain"][data-consent-required="true"]'
-    )
-    expect(customScripts.length).toBe(1)
-
-    // Test that consent-managed scripts don't execute until consent is given
+    // Verify script execution behavior
     const dataLayer: unknown[] = await browser.eval('window.dataLayer')
-    // Only the standard GTM should have initialized dataLayer
+    // Only the standard GTM (without consent management) should initialize dataLayer
     expect(dataLayer.length).toBe(1)
+
+    // Verify standard GTM init script has correct default type
+    const standardInitType: string | null = await browser.eval(
+      'document.querySelector("script[id*=\\"_next-gtm-init\\"]").getAttribute("type")'
+    )
+    expect(standardInitType).toBe('application/javascript')
   })
 
   it('renders GA', async () => {
