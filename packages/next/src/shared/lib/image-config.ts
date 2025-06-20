@@ -106,7 +106,7 @@ export type ImageConfigComplete = {
   /** @see [Dangerously Allow SVG](https://nextjs.org/docs/api-reference/next/image#dangerously-allow-svg) */
   dangerouslyAllowSVG: boolean
 
-  /** @see [Content Security Policy](https://nextjs.org/docs/api-reference/next/image#contentSecurityPolicy) */
+  /** @see [Content Security Policy](https://nextjs.org/docs/api-reference/next/image#contentsecuritypolicy) */
   contentSecurityPolicy: string
 
   /** @see [Content Disposition Type](https://nextjs.org/docs/api-reference/next/image#contentdispositiontype) */
