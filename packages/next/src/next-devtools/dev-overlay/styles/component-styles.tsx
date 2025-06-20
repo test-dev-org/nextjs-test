@@ -32,6 +32,7 @@ import { CALL_STACK_STYLES } from '../components/call-stack/call-stack'
 import { DEVTOOLS_PANEL_TAB_ISSUES_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab'
 import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar'
 import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar-frame-skeleton'
+import { DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-content'
 
 export function ComponentStyles() {
   return (
@@ -70,6 +71,8 @@ export function ComponentStyles() {
         ${DEVTOOLS_PANEL_TAB_ISSUES_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES}
       `}
     </style>
   )

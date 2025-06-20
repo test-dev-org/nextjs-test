@@ -1,8 +1,10 @@
+import type { OverlayState } from '../../../../shared'
 import type { DebugInfo } from '../../../../../shared/types'
 import type { ReadyRuntimeError } from '../../../../utils/get-error-by-type'
 import type { HydrationErrorState } from '../../../../../shared/hydration-error'
 
 import { IssuesTabSidebar } from './issues-tab-sidebar'
+import { IssuesTabContent } from './issues-tab-content'
 import {
   GenericErrorDescription,
   HydrationErrorDescription,
@@ -18,10 +20,12 @@ export function IssuesTab({
   debugInfo,
   runtimeErrors,
   getSquashedHydrationErrorDetails,
+  buildError,
 }: {
   debugInfo: DebugInfo
   runtimeErrors: ReadyRuntimeError[]
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
+  buildError: OverlayState['buildError']
 }) {
   const {
     isLoading,
@@ -31,6 +35,8 @@ export function IssuesTab({
     activeError,
     activeIdx,
     setActiveIndex,
+    notes,
+    errorDetails,
   } = useActiveRuntimeError({ runtimeErrors, getSquashedHydrationErrorDetails })
 
   if (isLoading) {
@@ -78,9 +84,13 @@ export function IssuesTab({
           </div>
           <ErrorMessage errorMessage={errorMessage} />
         </div>
-
-        {/* TODO: Content */}
-        <div>Content</div>
+        <IssuesTabContent
+          buildError={buildError}
+          notes={notes}
+          hydrationWarning={hydrationWarning}
+          errorDetails={errorDetails}
+          activeError={activeError}
+        />
       </div>
     </div>
   )

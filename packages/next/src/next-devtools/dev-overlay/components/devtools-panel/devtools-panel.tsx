@@ -155,6 +155,7 @@ export function DevToolsPanel({
                   getSquashedHydrationErrorDetails={
                     getSquashedHydrationErrorDetails
                   }
+                  buildError={state.buildError}
                 />
               </DialogBody>
             </DialogContent>
