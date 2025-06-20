@@ -575,6 +575,7 @@ export default function OuterLayoutRouter({
     const tree = bfcacheEntry.tree
     const stateKey = bfcacheEntry.stateKey
     const segment = tree[0]
+
     const cacheKey = createRouterCacheKey(segment)
 
     // Read segment path from the parallel router cache node.

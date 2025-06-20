@@ -260,4 +260,9 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     background-color: var(--color-green-300);
     color: var(--color-green-900);
   }
+  .segment-explorer-file-label--error,
+  .segment-explorer-file-label--global-error {
+    background-color: var(--color-red-300);
+    color: var(--color-red-900);
+  }
 `

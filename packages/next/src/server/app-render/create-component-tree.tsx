@@ -544,18 +544,31 @@ async function createComponentTreeInternal({
           </Template>
         )
 
+        // template boundary is the same level with layout and page
         const templateFilePath = getConventionPathByType(
           parallelRoute,
           dir,
           'template'
         )
+        // error boundary is from the parent segment level
+        const errorFilePath = getConventionPathByType(tree, dir, 'error')
+
+        const wrappedErrorStyles =
+          isSegmentViewEnabled && errorFilePath ? (
+            <SegmentViewNode type="error" pagePath={errorFilePath}>
+              {errorStyles}
+            </SegmentViewNode>
+          ) : (
+            errorStyles
+          )
+
         return [
           parallelRouteKey,
           <LayoutRouter
             parallelRouterKey={parallelRouteKey}
             // TODO-APP: Add test for loading returning `undefined`. This currently can't be tested as the `webdriver()` tab will wait for the full page to load before returning.
             error={ErrorComponent}
-            errorStyles={errorStyles}
+            errorStyles={wrappedErrorStyles}
             errorScripts={errorScripts}
             template={
               // Only render SegmentViewNode when there's an actual template

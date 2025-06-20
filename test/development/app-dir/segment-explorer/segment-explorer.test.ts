@@ -179,4 +179,14 @@ describe('segment-explorer', () => {
      loading.tsx"
     `)
   })
+
+  it('should show the custom error boundary when present', async () => {
+    const browser = await next.browser('/runtime-error/boundary')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     runtime-error / boundary/
+     error.tsx"
+    `)
+  })
 })
