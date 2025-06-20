@@ -39,7 +39,7 @@ use crate::{
     raw_vc::{CellId, RawVc},
     registry,
     serialization_invalidation::SerializationInvalidator,
-    task::local_task::{LocalTask, LocalTaskType},
+    task::local_task::{LocalTask, LocalTaskSpec, LocalTaskType},
     task_statistics::TaskStatisticsApi,
     trace::TraceRawVcs,
     util::{IdFactory, StaticOrArc},
@@ -595,8 +595,8 @@ impl<B: Backend + 'static> TurboTasks<B> {
     ) -> RawVc {
         match persistence {
             TaskPersistence::Local => {
-                let task_type = LocalTaskType::Native {
-                    native_fn,
+                let task_type = LocalTaskSpec {
+                    task_type: LocalTaskType::Native { native_fn },
                     this,
                     arg,
                 };
@@ -645,8 +645,8 @@ impl<B: Backend + 'static> TurboTasks<B> {
         if this.is_none_or(|this| this.is_resolved()) && native_fn.arg_meta.is_resolved(&*arg) {
             return self.native_call(native_fn, this, arg, persistence);
         }
-        let task_type = LocalTaskType::ResolveNative {
-            native_fn,
+        let task_type = LocalTaskSpec {
+            task_type: LocalTaskType::ResolveNative { native_fn },
             this,
             arg,
         };
@@ -678,9 +678,9 @@ impl<B: Backend + 'static> TurboTasks<B> {
         }
 
         // create a wrapper task to resolve all inputs
-        let task_type = LocalTaskType::ResolveTrait {
-            trait_method,
-            this,
+        let task_type = LocalTaskSpec {
+            task_type: LocalTaskType::ResolveTrait { trait_method },
+            this: Some(this),
             arg,
         };
 
@@ -774,7 +774,7 @@ impl<B: Backend + 'static> TurboTasks<B> {
 
     fn schedule_local_task(
         &self,
-        ty: LocalTaskType,
+        ty: LocalTaskSpec,
         // if this is a `LocalTaskType::Resolve*`, we may spawn another task with this persistence,
         // if this is a `LocalTaskType::Native`, persistence is unused.
         //
@@ -784,14 +784,13 @@ impl<B: Backend + 'static> TurboTasks<B> {
         // don't end up owning any cells.
         persistence: TaskPersistence,
     ) -> RawVc {
-        let ty = Arc::new(ty);
+        let task_type = ty.task_type;
         let (global_task_state, parent_task_id, execution_id, local_task_id) = CURRENT_TASK_STATE
             .with(|gts| {
                 let mut gts_write = gts.write().unwrap();
                 let local_task_id = gts_write.create_local_task(LocalTask::Scheduled {
                     done_event: Event::new({
-                        let ty = Arc::clone(&ty);
-                        move || format!("LocalTask({ty})::done_event")
+                        move || format!("LocalTask({task_type})::done_event")
                     }),
                 });
                 (
@@ -815,7 +814,6 @@ impl<B: Backend + 'static> TurboTasks<B> {
         let future = async move {
             let TaskExecutionSpec { future, span } =
                 crate::task::local_task::get_local_task_execution_spec(&*this, &ty, persistence);
-            let ty = ty.clone();
             async move {
                 let (result, _duration, _memory_usage) = CaptureFuture::new(future).await;
 
@@ -828,7 +826,7 @@ impl<B: Backend + 'static> TurboTasks<B> {
                 let local_task = LocalTask::Done {
                     output: match result {
                         Ok(raw_vc) => OutputContent::Link(raw_vc),
-                        Err(err) => OutputContent::Error(err.task_context(ty)),
+                        Err(err) => OutputContent::Error(err.task_context(task_type)),
                     },
                 };
 
