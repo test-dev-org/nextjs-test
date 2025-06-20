@@ -466,7 +466,7 @@ impl PagesProject {
             self.project().next_config(),
             NextRuntime::Edge,
             self.project().encryption_key(),
-            self.project().server_compile_time_info().environment(),
+            self.project().edge_compile_time_info().environment(),
         ))
     }
 

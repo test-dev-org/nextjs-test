@@ -322,13 +322,24 @@ pub struct BrowserEnvironment {
 }
 
 #[turbo_tasks::value(shared)]
-pub struct EdgeWorkerEnvironment {}
+pub struct EdgeWorkerEnvironment {
+    pub node_version: ResolvedVc<NodeJsVersion>,
+}
 
 #[turbo_tasks::value_impl]
 impl EdgeWorkerEnvironment {
     #[turbo_tasks::function]
     pub async fn runtime_versions(&self) -> Result<Vc<RuntimeVersions>> {
+        let str = match *self.node_version.await? {
+            NodeJsVersion::Current(process_env) => get_current_nodejs_version(*process_env),
+            NodeJsVersion::Static(version) => *version,
+        }
+        .await?;
+
         Ok(Vc::cell(Versions {
+            node: Some(
+                Version::from_str(&str).map_err(|_| anyhow!("Node.js version parse error"))?,
+            ),
             ..Default::default()
         }))
     }
