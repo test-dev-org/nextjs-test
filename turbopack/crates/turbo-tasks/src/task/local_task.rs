@@ -101,7 +101,27 @@ pub enum LocalTaskType {
 
 impl fmt::Display for LocalTaskType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.get_name())
+        match self {
+            LocalTaskType::Native {
+                native_fn,
+                this: _,
+                arg: _,
+            } => f.write_str(native_fn.name),
+            LocalTaskType::ResolveNative {
+                native_fn,
+                this: _,
+                arg: _,
+            } => write!(f, "*{}", native_fn.name),
+            LocalTaskType::ResolveTrait {
+                trait_method,
+                this: _,
+                arg: _,
+            } => write!(
+                f,
+                "*{}::{}",
+                trait_method.trait_name, trait_method.method_name
+            ),
+        }
     }
 }
 
@@ -117,7 +137,7 @@ impl LocalTaskType {
                 native_fn,
                 this: _,
                 arg: _,
-            } => Cow::Borrowed(&native_fn.name),
+            } => Cow::Borrowed(native_fn.name),
             Self::ResolveNative {
                 native_fn,
                 this: _,

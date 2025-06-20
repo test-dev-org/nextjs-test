@@ -1141,7 +1141,7 @@ impl NativeFn {
                     {
                         #[allow(deprecated)]
                         turbo_tasks::macro_helpers::NativeFunction::new_method(
-                            #function_path_string.to_owned(),
+                            #function_path_string,
                             turbo_tasks::macro_helpers::FunctionMeta {
                                 local: #local,
                                 invalidator: #invalidator,
@@ -1157,7 +1157,7 @@ impl NativeFn {
                     {
                         #[allow(deprecated)]
                         turbo_tasks::macro_helpers::NativeFunction::new_method_without_this(
-                            #function_path_string.to_owned(),
+                            #function_path_string,
                             turbo_tasks::macro_helpers::FunctionMeta {
                                 local: #local,
                                 invalidator: #invalidator,
@@ -1174,7 +1174,7 @@ impl NativeFn {
                 {
                     #[allow(deprecated)]
                     turbo_tasks::macro_helpers::NativeFunction::new_function(
-                        #function_path_string.to_owned(),
+                        #function_path_string,
                         turbo_tasks::macro_helpers::FunctionMeta {
                             local: #local,
                             invalidator: #invalidator,
