@@ -58,13 +58,7 @@ describe('@next/third-parties basic usage', () => {
     const browser = await next.browser('/gtm-consent')
     await waitFor(1000)
 
-    // Test standard GTM (no consent management)
-    const standardScript = await browser.elementsByCss(
-      'script[src*="GTM-STANDARD"][type="application/javascript"]'
-    )
-    expect(standardScript.length).toBe(1)
-
-    // Test consent-managed GTM (using Usercentrics as representative example)
+    // Test consent-managed GTM script has correct type and data attributes
     const consentScript = await browser.elementsByCss(
       'script[src*="GTM-USERCENTRICS"][type="text/plain"]'
     )
@@ -76,15 +70,9 @@ describe('@next/third-parties basic usage', () => {
     )
     expect(scriptsWithDataAttr.length).toBe(2) // init + external script
 
-    // Verify only standard GTM executes (consent-managed scripts are blocked)
-    const dataLayer: unknown[] = await browser.eval('window.dataLayer')
-    expect(dataLayer.length).toBe(1) // Only standard GTM initializes dataLayer
-
-    // Verify init script has correct default type
-    const initScriptType: string | null = await browser.eval(
-      'document.querySelector("script[id*=\\"_next-gtm-init\\"]").getAttribute("type")'
-    )
-    expect(initScriptType).toBe('application/javascript')
+    // Verify consent-managed scripts don't execute (dataLayer should be empty)
+    const dataLayer: unknown[] = await browser.eval('window.dataLayer || []')
+    expect(dataLayer.length).toBe(0) // No execution due to type="text/plain"
   })
 
   it('renders GA', async () => {

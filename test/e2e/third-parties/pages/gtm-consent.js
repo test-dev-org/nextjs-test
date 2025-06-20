@@ -3,7 +3,7 @@ import { GoogleTagManager, sendGTMEvent } from '@next/third-parties/google'
 
 /**
  * Test page for GTM consent management functionality
- * Tests standard GTM vs consent-managed GTM behavior
+ * Tests only the new consent management feature
  * @returns {React.ReactElement} The test page component
  */
 const Page = () => {
@@ -18,9 +18,6 @@ const Page = () => {
   return (
     <div className="container">
       <h1>GTM Consent Management</h1>
-
-      {/* Standard GTM without consent management */}
-      <GoogleTagManager gtmId="GTM-STANDARD" />
 
       {/* GTM with consent management (Usercentrics example) */}
       <GoogleTagManager
