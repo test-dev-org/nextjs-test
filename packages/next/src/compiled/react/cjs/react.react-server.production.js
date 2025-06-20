@@ -340,6 +340,10 @@ exports.cache = function (fn) {
     }
   };
 };
+exports.cacheSignal = function () {
+  var dispatcher = ReactSharedInternals.A;
+  return dispatcher ? dispatcher.cacheSignal() : null;
+};
 exports.captureOwnerStack = function () {
   return null;
 };
@@ -426,4 +430,4 @@ exports.useId = function () {
 exports.useMemo = function (create, deps) {
   return ReactSharedInternals.H.useMemo(create, deps);
 };
-exports.version = "19.2.0-canary-b7e2de63-20250611";
+exports.version = "19.2.0-canary-79d9aed7-20250620";

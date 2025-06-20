@@ -3446,6 +3446,9 @@ var HooksDispatcher = {
   DefaultAsyncDispatcher = {
     getCacheForType: function () {
       throw Error("Not implemented.");
+    },
+    cacheSignal: function () {
+      throw Error("Not implemented.");
     }
   },
   prefix,
@@ -4842,7 +4845,9 @@ function retryNode(request, task) {
                           "function" === typeof x.then)
                       )
                         throw (
-                          (task.node === keyOrIndex && (task.replay = replay),
+                          (task.node === keyOrIndex
+                            ? (task.replay = replay)
+                            : childIndex.splice(node, 1),
                           x)
                         );
                       task.replay.pendingTasks--;
@@ -5185,7 +5190,8 @@ function renderNode(request, task, node, childIndex) {
     previousTreeContext = task.treeContext,
     previousComponentStack = task.componentStack,
     segment = task.blockedSegment;
-  if (null === segment)
+  if (null === segment) {
+    segment = task.replay;
     try {
       return renderNodeDestructive(request, task, node, childIndex);
     } catch (thrownValue) {
@@ -5206,6 +5212,7 @@ function renderNode(request, task, node, childIndex) {
           task.keyPath = previousKeyPath;
           task.treeContext = previousTreeContext;
           task.componentStack = previousComponentStack;
+          task.replay = segment;
           switchContext(previousContext);
           return;
         }
@@ -5218,12 +5225,13 @@ function renderNode(request, task, node, childIndex) {
           task.keyPath = previousKeyPath;
           task.treeContext = previousTreeContext;
           task.componentStack = previousComponentStack;
+          task.replay = segment;
           switchContext(previousContext);
           return;
         }
       }
     }
-  else {
+  } else {
     var childrenLength = segment.children.length,
       chunkLength = segment.chunks.length;
     try {
@@ -5240,9 +5248,10 @@ function renderNode(request, task, node, childIndex) {
         "object" === typeof node && null !== node)
       ) {
         if ("function" === typeof node.then) {
-          childIndex = getThenableStateAfterSuspending();
-          request = spawnNewSuspendedRenderTask(request, task, childIndex).ping;
-          node.then(request, request);
+          segment = node;
+          node = getThenableStateAfterSuspending();
+          request = spawnNewSuspendedRenderTask(request, task, node).ping;
+          segment.then(request, request);
           task.formatContext = previousFormatContext;
           task.context = previousContext;
           task.keyPath = previousKeyPath;
@@ -5252,9 +5261,9 @@ function renderNode(request, task, node, childIndex) {
           return;
         }
         if ("Maximum call stack size exceeded" === node.message) {
-          node = getThenableStateAfterSuspending();
-          node = spawnNewSuspendedRenderTask(request, task, node);
-          request.pingedTasks.push(node);
+          segment = getThenableStateAfterSuspending();
+          segment = spawnNewSuspendedRenderTask(request, task, segment);
+          request.pingedTasks.push(segment);
           task.formatContext = previousFormatContext;
           task.context = previousContext;
           task.keyPath = previousKeyPath;
@@ -6041,7 +6050,7 @@ function flushCompletedBoundary(request, destination, boundary) {
       0 === (completedSegments.instructions & 2) &&
         ((completedSegments.instructions |= 2),
         destination.push(
-          '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],h=b[a+1],e=c.parentNode;if(e){var f=c.previousSibling,g=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===g)break;else g--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||g++}d=c.nextSibling;e.removeChild(c);c=d}while(c);for(;h.firstChild;)e.insertBefore(h.firstChild,c);f.data="$";f._reactRetry&&f._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))if(a.parentNode.removeChild(a),b=document.getElementById(b))b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))};'
+          '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],e=b[a+1];e.parentNode.removeChild(e);var f=c.parentNode;if(f){var g=c.previousSibling,h=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===h)break;else h--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||h++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;e.firstChild;)f.insertBefore(e.firstChild,c);g.data="$";g._reactRetry&&g._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))(b=document.getElementById(b))?(b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))):a.parentNode.removeChild(a)};'
         )),
       0 === (completedSegments.instructions & 8)
         ? ((completedSegments.instructions |= 8),
@@ -6052,7 +6061,7 @@ function flushCompletedBoundary(request, destination, boundary) {
     : (0 === (completedSegments.instructions & 2) &&
         ((completedSegments.instructions |= 2),
         destination.push(
-          '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],h=b[a+1],e=c.parentNode;if(e){var f=c.previousSibling,g=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===g)break;else g--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||g++}d=c.nextSibling;e.removeChild(c);c=d}while(c);for(;h.firstChild;)e.insertBefore(h.firstChild,c);f.data="$";f._reactRetry&&f._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))if(a.parentNode.removeChild(a),b=document.getElementById(b))b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))};'
+          '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],e=b[a+1];e.parentNode.removeChild(e);var f=c.parentNode;if(f){var g=c.previousSibling,h=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===h)break;else h--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||h++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;e.firstChild;)f.insertBefore(e.firstChild,c);g.data="$";g._reactRetry&&g._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))(b=document.getElementById(b))?(b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))):a.parentNode.removeChild(a)};'
         )),
       destination.push('$RC("'));
   completedSegments = i.toString(16);
@@ -6506,4 +6515,4 @@ exports.renderToString = function (children, options) {
     'The server used "renderToString" which does not support Suspense. If you intended for this Suspense boundary to render the fallback content on the server consider throwing an Error somewhere within the Suspense boundary. If you intended to have the server wait for the suspended component please switch to "renderToPipeableStream" which supports Suspense on the server'
   );
 };
-exports.version = "19.2.0-canary-b7e2de63-20250611";
+exports.version = "19.2.0-canary-79d9aed7-20250620";

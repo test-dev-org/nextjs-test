@@ -657,6 +657,10 @@
         }
       };
     };
+    exports.cacheSignal = function () {
+      var dispatcher = ReactSharedInternals.A;
+      return dispatcher ? dispatcher.cacheSignal() : null;
+    };
     exports.captureOwnerStack = function () {
       var getCurrentStack = ReactSharedInternals.getCurrentStack;
       return null === getCurrentStack ? null : getCurrentStack();
@@ -990,5 +994,5 @@
     exports.useMemo = function (create, deps) {
       return resolveDispatcher().useMemo(create, deps);
     };
-    exports.version = "19.2.0-experimental-b7e2de63-20250611";
+    exports.version = "19.2.0-experimental-79d9aed7-20250620";
   })();

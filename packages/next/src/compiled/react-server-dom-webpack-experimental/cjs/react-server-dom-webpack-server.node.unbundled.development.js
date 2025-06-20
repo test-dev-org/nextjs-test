@@ -808,6 +808,7 @@
       this.destination = this.fatalError = null;
       this.bundlerConfig = bundlerConfig;
       this.cache = new Map();
+      this.cacheController = new AbortController();
       this.pendingChunks = this.nextChunkId = 0;
       this.hints = hints;
       this.abortListeners = new Set();
@@ -2420,6 +2421,9 @@
       null !== request.destination
         ? ((request.status = CLOSED), request.destination.destroy(error))
         : ((request.status = CLOSING), (request.fatalError = error));
+      request.cacheController.abort(
+        Error("The render was aborted due to a fatal error.", { cause: error })
+      );
     }
     function emitPostponeChunk(request, id, postponeInstance) {
       var reason = "",
@@ -3259,6 +3263,12 @@
       "function" === typeof destination.flush && destination.flush();
       0 === request.pendingChunks &&
         (cleanupTaintQueue(request),
+        request.status < ABORTING &&
+          request.cacheController.abort(
+            Error(
+              "This render completed successfully. All cacheSignals are now aborted to allow clean up of any unused resources."
+            )
+          ),
         (request.status = CLOSED),
         destination.end(),
         (request.destination = null));
@@ -3304,7 +3314,8 @@
     }
     function abort(request, reason) {
       try {
-        11 >= request.status && (request.status = ABORTING);
+        11 >= request.status &&
+          ((request.status = ABORTING), request.cacheController.abort(reason));
         var abortableTasks = request.abortableTasks;
         if (0 < abortableTasks.size) {
           if (request.type === PRERENDER)
@@ -4495,6 +4506,10 @@
         void 0 === entry &&
           ((entry = resourceType()), cache.set(resourceType, entry));
         return entry;
+      },
+      cacheSignal: function () {
+        var request = resolveRequest();
+        return request ? request.cacheController.signal : null;
       }
     };
     DefaultAsyncDispatcher.getOwner = resolveOwner;

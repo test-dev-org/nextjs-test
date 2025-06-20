@@ -8460,8 +8460,7 @@
           )));
     }
     function mountEffect(create, deps) {
-      (currentlyRenderingFiber.mode & StrictEffectsMode) !== NoMode &&
-      (currentlyRenderingFiber.mode & NoStrictPassiveEffectsMode) === NoMode
+      (currentlyRenderingFiber.mode & StrictEffectsMode) !== NoMode
         ? mountEffectImpl(276826112, Passive, create, deps)
         : mountEffectImpl(8390656, Passive, create, deps);
     }
@@ -20332,8 +20331,7 @@
                   fiber,
                   doubleInvokeEffectsOnFiber,
                   root,
-                  fiber,
-                  (fiber.mode & NoStrictPassiveEffectsMode) === NoMode
+                  fiber
                 )
               : recursivelyTraverseAndDoubleInvokeEffectsInDEV(
                   root,
@@ -20360,15 +20358,12 @@
         }
     }
     function doubleInvokeEffectsOnFiber(root, fiber) {
-      var shouldDoubleInvokePassiveEffects =
-        2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : !0;
       setIsStrictModeForDevtools(!0);
       try {
         disappearLayoutEffects(fiber),
-          shouldDoubleInvokePassiveEffects && disconnectPassiveEffect(fiber),
+          disconnectPassiveEffect(fiber),
           reappearLayoutEffects(root, fiber.alternate, fiber, !1),
-          shouldDoubleInvokePassiveEffects &&
-            reconnectPassiveEffects(root, fiber, 0, null, !1, 0);
+          reconnectPassiveEffects(root, fiber, 0, null, !1, 0);
       } finally {
         setIsStrictModeForDevtools(!1);
       }
@@ -28271,7 +28266,6 @@
       ProfileMode = 2,
       StrictLegacyMode = 8,
       StrictEffectsMode = 16,
-      NoStrictPassiveEffectsMode = 64,
       SuspenseyImagesMode = 32;
     var hasBadMapPolyfill = !1;
     try {
@@ -30050,6 +30044,9 @@
             cache.data.set(resourceType, cacheForType));
           return cacheForType;
         },
+        cacheSignal: function () {
+          return readContext(CacheContext).controller.signal;
+        },
         getOwner: function () {
           return current;
         }
@@ -30964,11 +30961,11 @@
     };
     (function () {
       var isomorphicReactPackageVersion = React.version;
-      if ("19.2.0-experimental-b7e2de63-20250611" !== isomorphicReactPackageVersion)
+      if ("19.2.0-experimental-79d9aed7-20250620" !== isomorphicReactPackageVersion)
         throw Error(
           'Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:\n  - react:      ' +
             (isomorphicReactPackageVersion +
-              "\n  - react-dom:  19.2.0-experimental-b7e2de63-20250611\nLearn more: https://react.dev/warnings/version-mismatch")
+              "\n  - react-dom:  19.2.0-experimental-79d9aed7-20250620\nLearn more: https://react.dev/warnings/version-mismatch")
         );
     })();
     ("function" === typeof Map &&
@@ -31005,10 +31002,10 @@
       !(function () {
         var internals = {
           bundleType: 1,
-          version: "19.2.0-experimental-b7e2de63-20250611",
+          version: "19.2.0-experimental-79d9aed7-20250620",
           rendererPackageName: "react-dom",
           currentDispatcherRef: ReactSharedInternals,
-          reconcilerVersion: "19.2.0-experimental-b7e2de63-20250611"
+          reconcilerVersion: "19.2.0-experimental-79d9aed7-20250620"
         };
         internals.overrideHookState = overrideHookState;
         internals.overrideHookStateDeletePath = overrideHookStateDeletePath;
@@ -31320,5 +31317,5 @@
         }
       };
     };
-    exports.version = "19.2.0-experimental-b7e2de63-20250611";
+    exports.version = "19.2.0-experimental-79d9aed7-20250620";
   })();

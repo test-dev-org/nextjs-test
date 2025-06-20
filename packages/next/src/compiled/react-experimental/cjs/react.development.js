@@ -958,6 +958,9 @@
         return fn.apply(null, arguments);
       };
     };
+    exports.cacheSignal = function () {
+      return null;
+    };
     exports.captureOwnerStack = function () {
       var getCurrentStack = ReactSharedInternals.getCurrentStack;
       return null === getCurrentStack ? null : getCurrentStack();
@@ -1324,7 +1327,7 @@
     exports.useTransition = function () {
       return resolveDispatcher().useTransition();
     };
-    exports.version = "19.2.0-experimental-b7e2de63-20250611";
+    exports.version = "19.2.0-experimental-79d9aed7-20250620";
     "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ &&
       "function" ===
         typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop &&
