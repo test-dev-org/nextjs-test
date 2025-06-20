@@ -65,11 +65,10 @@ impl PartialEq for LightningCssTargets {
 
 /// Returns the LightningCSS targets for the given browserslist query.
 #[turbo_tasks::function]
-async fn get_lightningcss_browser_targets(
-    environment: ResolvedVc<Environment>,
+fn get_lightningcss_browser_targets(
+    browserslist_query: RcStr,
     handle_nesting: bool,
 ) -> Result<Vc<LightningCssTargets>> {
-    let browserslist_query = environment.browserslist_query().await?;
     let browserslist_browsers = lightningcss::targets::Browsers::from_browserslist_with_config(
         browserslist_query.split(','),
         BrowserslistConfig {
@@ -78,15 +77,18 @@ async fn get_lightningcss_browser_targets(
         },
     )?;
 
-    Ok(Vc::cell(Targets {
-        browsers: browserslist_browsers,
-        include: if handle_nesting {
-            Features::Nesting
-        } else {
-            Default::default()
-        },
-        ..Default::default()
-    }))
+    Ok(if handle_nesting {
+        Vc::cell(Targets {
+            browsers: browserslist_browsers,
+            include: Features::Nesting,
+            ..Default::default()
+        })
+    } else {
+        Vc::cell(Targets {
+            browsers: browserslist_browsers,
+            ..Default::default()
+        })
+    })
 }
 
 impl StyleSheetLike<'_, '_> {
@@ -104,7 +106,7 @@ impl StyleSheetLike<'_, '_> {
         enable_srcmap: bool,
         handle_nesting: bool,
         mut origin_source_map: Option<parcel_sourcemap::SourceMap>,
-        environment: ResolvedVc<Environment>,
+        environment: Option<ResolvedVc<Environment>>,
     ) -> Result<CssOutput> {
         let ss = &self.0;
         let mut srcmap = if enable_srcmap {
@@ -113,7 +115,17 @@ impl StyleSheetLike<'_, '_> {
             None
         };
 
-        let targets = *get_lightningcss_browser_targets(*environment, handle_nesting).await?;
+        let browserslist_query = if let Some(environment) = environment {
+            (*environment.browserslist_query().await?).clone()
+        } else {
+            // This case should never happen because the only time `environment` is `None`
+            // is for Turbopack runtime code currently.
+            //
+            // TODO: Remove this once we have a proper environment for runtime code.
+            todo!()
+        };
+
+        let targets = *get_lightningcss_browser_targets(browserslist_query, handle_nesting).await?;
 
         let result = ss.to_css(PrinterOptions {
             minify: matches!(minify_type, MinifyType::Minify { .. }),
@@ -210,7 +222,7 @@ impl PartialEq for FinalCssResult {
 #[turbo_tasks::function]
 pub async fn process_css_with_placeholder(
     parse_result: ResolvedVc<ParseCssResult>,
-    environment: ResolvedVc<Environment>,
+    environment: Option<ResolvedVc<Environment>>,
 ) -> Result<Vc<CssWithPlaceholderResult>> {
     let result = parse_result.await?;
 
@@ -262,7 +274,7 @@ pub async fn finalize_css(
     chunking_context: Vc<Box<dyn ChunkingContext>>,
     minify_type: MinifyType,
     origin_source_map: Vc<OptionStringifiedSourceMap>,
-    environment: ResolvedVc<Environment>,
+    environment: Option<ResolvedVc<Environment>>,
 ) -> Result<Vc<FinalCssResult>> {
     let result = result.await?;
     match &*result {
@@ -355,7 +367,7 @@ pub async fn parse_css(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
-    environment: ResolvedVc<Environment>,
+    environment: Option<ResolvedVc<Environment>>,
 ) -> Result<Vc<ParseCssResult>> {
     let span = {
         let name = source.ident().to_string().await?.to_string();
@@ -402,7 +414,7 @@ async fn process_content(
     origin: ResolvedVc<Box<dyn ResolveOrigin>>,
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
-    environment: ResolvedVc<Environment>,
+    environment: Option<ResolvedVc<Environment>>,
 ) -> Result<Vc<ParseCssResult>> {
     #[allow(clippy::needless_lifetimes)]
     fn without_warnings<'o, 'i>(config: ParserOptions<'o, 'i>) -> ParserOptions<'o, 'static> {
@@ -497,7 +509,17 @@ async fn process_content(
                     }
                 }
 
-                let targets = *get_lightningcss_browser_targets(*environment, true).await?;
+                let browserslist_query = if let Some(environment) = environment {
+                    (*environment.browserslist_query().await?).clone()
+                } else {
+                    // This case should never happen because the only time `environment` is `None`
+                    // is for Turbopack runtime code currently.
+                    //
+                    // TODO: Remove this once we have a proper environment for runtime code.
+                    todo!()
+                };
+
+                let targets = *get_lightningcss_browser_targets(browserslist_query, true).await?;
 
                 // minify() is actually transform, and it performs operations like CSS modules
                 // handling.
