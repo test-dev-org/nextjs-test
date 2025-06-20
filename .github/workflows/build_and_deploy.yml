@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  NAPI_CLI_VERSION: 2.16.2
+  NAPI_CLI_VERSION: 2.18.4
   TURBO_VERSION: 2.3.3
   NODE_LTS_VERSION: 20
   CARGO_PROFILE_RELEASE_LTO: 'true'
