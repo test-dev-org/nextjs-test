@@ -24,7 +24,7 @@ export default function Page() {
 
 The `GoogleTagManager` component supports consent management platforms by allowing you to control script execution and add data attributes for consent management platforms (CMPs). This implementation works with all major CMP platforms including Usercentrics, OneTrust, Cookiebot, Didomi, and custom solutions.
 
-**Usercentrics Integration:**
+**Example with Usercentrics:**
 
 ```js
 import { GoogleTagManager } from '@next/third-parties/google'
@@ -40,70 +40,14 @@ export default function Page() {
 }
 ```
 
-**OneTrust Integration:**
+**Other CMP Platforms:**
 
-```js
-import { GoogleTagManager } from '@next/third-parties/google'
+The same pattern works for other consent management platforms by using their specific data attributes:
 
-export default function Page() {
-  return (
-    <GoogleTagManager
-      gtmId="GTM-XYZ"
-      type="text/plain"
-      data-one-trust-category="C0002"
-    />
-  )
-}
-```
-
-**Cookiebot Integration:**
-
-```js
-import { GoogleTagManager } from '@next/third-parties/google'
-
-export default function Page() {
-  return (
-    <GoogleTagManager
-      gtmId="GTM-XYZ"
-      type="text/plain"
-      data-cookieconsent="statistics"
-    />
-  )
-}
-```
-
-**Didomi Integration:**
-
-```js
-import { GoogleTagManager } from '@next/third-parties/google'
-
-export default function Page() {
-  return (
-    <GoogleTagManager
-      gtmId="GTM-XYZ"
-      type="text/plain"
-      data-didomi-purposes="analytics"
-    />
-  )
-}
-```
-
-**Custom Consent Management:**
-
-```js
-import { GoogleTagManager } from '@next/third-parties/google'
-
-export default function Page() {
-  return (
-    <GoogleTagManager
-      gtmId="GTM-XYZ"
-      type="text/plain"
-      data-consent-category="analytics"
-      data-consent-required="true"
-    />
-  )
-}
-```
+- **OneTrust**: `data-one-trust-category="C0002"`
+- **Cookiebot**: `data-cookieconsent="statistics"`
+- **Didomi**: `data-didomi-purposes="analytics"`
+- **Custom**: `data-consent-category="analytics"`
 
 The `type="text/plain"` attribute prevents the script from executing until your consent management platform changes it to `type="application/javascript"`. The `data-*` attributes allow your CMP to identify and manage the script according to your consent configuration.
 
