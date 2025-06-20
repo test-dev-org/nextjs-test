@@ -25,6 +25,7 @@ import type {
   UseCacheLayoutComponentProps,
   UseCachePageComponentProps,
 } from '../use-cache/use-cache-wrapper'
+import { DEFAULT_SEGMENT_KEY } from '../../shared/lib/segment'
 
 /**
  * Use the provided loader tree to create the React Component tree.
@@ -431,8 +432,6 @@ async function createComponentTreeInternal({
     tree,
   })
 
-  const nodeName = modType ?? 'page'
-
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
   const parallelRouteMap = await Promise.all(
@@ -743,10 +742,16 @@ async function createComponentTreeInternal({
       }
     }
 
-    const pageFilePath = getConventionPathByType(tree, dir, 'page')
+    const isDefaultSegment = segment === DEFAULT_SEGMENT_KEY
+    const pageFilePath =
+      getConventionPathByType(tree, dir, 'page') ??
+      getConventionPathByType(tree, dir, 'defaultPage')
     const wrappedPageElement =
       isSegmentViewEnabled && pageFilePath ? (
-        <SegmentViewNode type={nodeName} pagePath={pageFilePath}>
+        <SegmentViewNode
+          type={isDefaultSegment ? 'default' : 'page'}
+          pagePath={pageFilePath}
+        >
           {pageElement}
         </SegmentViewNode>
       ) : (
@@ -931,7 +936,7 @@ async function createComponentTreeInternal({
     const layoutFilePath = getConventionPathByType(tree, dir, 'layout')
     const wrappedSegmentNode =
       isSegmentViewEnabled && layoutFilePath ? (
-        <SegmentViewNode type={nodeName} pagePath={layoutFilePath}>
+        <SegmentViewNode type="layout" pagePath={layoutFilePath}>
           {segmentNode}
         </SegmentViewNode>
       ) : (
@@ -1136,6 +1141,7 @@ function getConventionPathByType(
     | 'loading'
     | 'forbidden'
     | 'unauthorized'
+    | 'defaultPage'
 ) {
   const modules = tree[2]
   const conventionPath = modules[conventionType]

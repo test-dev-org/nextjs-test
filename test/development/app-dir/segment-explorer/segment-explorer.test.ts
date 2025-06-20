@@ -189,4 +189,21 @@ describe('segment-explorer', () => {
      error.tsx"
     `)
   })
+
+  it('should display parallel routes default page when present', async () => {
+    const browser = await next.browser('/parallel-default/subroute')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     parallel-default/
+     layout.tsx
+     default.tsx
+     @bar/
+     layout.tsx
+     subroute/
+     page.tsx
+     @foo/
+     default.tsx"
+    `)
+  })
 })

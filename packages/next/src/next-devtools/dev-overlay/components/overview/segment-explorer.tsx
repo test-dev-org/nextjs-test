@@ -242,7 +242,8 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     user-select: none;
   }
   .segment-explorer-file-label--layout,
-  .segment-explorer-file-label--template {
+  .segment-explorer-file-label--template,
+  .segment-explorer-file-label--default {
     background-color: var(--color-gray-300);
     color: var(--color-gray-1000);
   }
