@@ -72,6 +72,7 @@ export function DevToolsPanel({
         onClick={onCloseDevToolsPanel}
       />
       <Draggable
+        data-nextjs-devtools-panel-draggable
         padding={INDICATOR_PADDING}
         onDragStart={() => {}}
         position={state.devToolsPosition}
@@ -160,11 +161,38 @@ export const DEVTOOLS_PANEL_STYLES = css`
     margin: auto;
     /* TODO: This is for fullscreen mode. */
     /* top: 10vh; */
+
+    width: 100%;
+
+    @media (min-width: 576px) {
+      max-width: 540px;
+    }
+
+    @media (min-width: 768px) {
+      max-width: 720px;
+    }
+
+    @media (min-width: 992px) {
+      max-width: 960px;
+    }
+
+    @media (min-width: 1200px) {
+      max-width: 1140px;
+    }
+
+    @media (min-width: 1440px) {
+      max-width: 1200px;
+    }
   }
 
   [data-nextjs-devtools-panel-overlay-backdrop] {
     /* TODO: Blur on fullscreen mode. */
     opacity: 0;
+  }
+
+  [data-nextjs-devtools-panel-draggable] {
+    /* For responsiveness */
+    width: 100%;
   }
 
   [data-nextjs-devtools-panel-dialog] {
@@ -178,12 +206,8 @@ export const DEVTOOLS_PANEL_STYLES = css`
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow-y: auto;
-
-    /* TODO: Remove once the content is filled. */
-    min-width: 800px;
-    min-height: 500px;
-    /* This is handled from dialog/styles.ts */
-    max-width: var(--next-dialog-max-width);
+    width: 100%;
+    max-height: 50vh;
   }
 
   [data-nextjs-devtools-panel-header] {

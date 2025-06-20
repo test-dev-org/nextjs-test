@@ -17,6 +17,7 @@ export function Draggable({
   position: currentCorner,
   setPosition: setCurrentCorner,
   onDragStart,
+  ...props
 }: {
   children: React.ReactElement
   position: Corners
@@ -121,7 +122,7 @@ export function Draggable({
   }
 
   return (
-    <div ref={ref} {...drag} style={{ touchAction: 'none' }}>
+    <div {...props} ref={ref} {...drag} style={{ touchAction: 'none' }}>
       {children}
     </div>
   )
