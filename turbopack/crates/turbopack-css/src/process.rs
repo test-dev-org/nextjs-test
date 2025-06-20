@@ -54,11 +54,21 @@ impl PartialEq for StyleSheetLike<'_, '_> {
 
 pub type CssOutput = (ToCssResult, Option<Rope>);
 
+#[turbo_tasks::value(transparent, serialization = "none", eq = "manual")]
+struct LightningCssTargets(#[turbo_tasks(trace_ignore)] pub Targets);
+
+impl PartialEq for LightningCssTargets {
+    fn eq(&self, _: &Self) -> bool {
+        false
+    }
+}
+
 /// Returns the LightningCSS targets for the given browserslist query.
+#[turbo_tasks::function]
 fn get_lightningcss_browser_targets(
     browserslist_query: RcStr,
     handle_nesting: bool,
-) -> Result<Targets> {
+) -> Result<Vc<LightningCssTargets>> {
     let browserslist_browsers = lightningcss::targets::Browsers::from_browserslist_with_config(
         browserslist_query.split(','),
         BrowserslistConfig {
@@ -68,16 +78,16 @@ fn get_lightningcss_browser_targets(
     )?;
 
     Ok(if handle_nesting {
-        Targets {
+        Vc::cell(Targets {
             browsers: browserslist_browsers,
             include: Features::Nesting,
             ..Default::default()
-        }
+        })
     } else {
-        Targets {
+        Vc::cell(Targets {
             browsers: browserslist_browsers,
             ..Default::default()
-        }
+        })
     })
 }
 
@@ -115,7 +125,7 @@ impl StyleSheetLike<'_, '_> {
             todo!()
         };
 
-        let targets = get_lightningcss_browser_targets(browserslist_query, handle_nesting)?;
+        let targets = *get_lightningcss_browser_targets(browserslist_query, handle_nesting).await?;
 
         let result = ss.to_css(PrinterOptions {
             minify: matches!(minify_type, MinifyType::Minify { .. }),
@@ -509,7 +519,7 @@ async fn process_content(
                     todo!()
                 };
 
-                let targets = get_lightningcss_browser_targets(browserslist_query, true)?;
+                let targets = *get_lightningcss_browser_targets(browserslist_query, true).await?;
 
                 // minify() is actually transform, and it performs operations like CSS modules
                 // handling.
