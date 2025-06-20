@@ -677,7 +677,7 @@ impl Project {
     pub async fn node_root(self: Vc<Self>) -> Result<Vc<FileSystemPath>> {
         let this = self.await?;
         let relative_from_root_to_project_path =
-            get_relative_path_to(&*this.root_path, &*this.project_path);
+            get_relative_path_to(&this.root_path, &this.project_path);
         Ok(self
             .output_fs()
             .root()
