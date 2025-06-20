@@ -107,11 +107,13 @@ impl Asset for NftJsonAsset {
         let client_root = this.project.client_fs().root();
         let client_root_ref = client_root.await?;
 
+        // Example: [output]/apps/my-website/.next/server/app -- without the `.nft.json`
         let ident_folder = self.path().parent().await?;
+        // Example: [project]/apps/my-website/.next/server/app -- without the `.nft.json`
         let ident_folder_in_project_fs = this
             .project
-            .project_path()
-            .join(ident_folder.path.clone())
+            .project_root_path() // Example: [project]
+            .join(ident_folder.path.clone()) // apps/my-website/.next/server/app
             .await?;
 
         let chunk = this.chunk;
