@@ -2680,7 +2680,7 @@ var completeSegmentScript1Full = stringToPrecomputedChunk(
   ),
   completeSegmentData2 = stringToPrecomputedChunk('" data-pid="'),
   completeBoundaryScriptFunctionOnly = stringToPrecomputedChunk(
-    '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],h=b[a+1],e=c.parentNode;if(e){var f=c.previousSibling,g=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===g)break;else g--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||g++}d=c.nextSibling;e.removeChild(c);c=d}while(c);for(;h.firstChild;)e.insertBefore(h.firstChild,c);f.data="$";f._reactRetry&&f._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))if(a.parentNode.removeChild(a),b=document.getElementById(b))b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))};'
+    '$RB=[];$RV=function(b){$RT=performance.now();for(var a=0;a<b.length;a+=2){var c=b[a],e=b[a+1];e.parentNode.removeChild(e);var f=c.parentNode;if(f){var g=c.previousSibling,h=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d||"/&"===d)if(0===h)break;else h--;else"$"!==d&&"$?"!==d&&"$~"!==d&&"$!"!==d&&"&"!==d||h++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;e.firstChild;)f.insertBefore(e.firstChild,c);g.data="$";g._reactRetry&&g._reactRetry()}}b.length=0};$RC=function(b,a){if(a=document.getElementById(a))(b=document.getElementById(b))?(b.previousSibling.data="$~",$RB.push(b,a),2===$RB.length&&(b="number"!==typeof $RT?0:$RT,a=performance.now(),setTimeout($RV.bind(null,$RB),2300>a&&2E3<a?2300-a:b+300-a))):a.parentNode.removeChild(a)};'
   ),
   completeBoundaryUpgradeToViewTransitionsInstruction = stringToChunk(
     '$RV=function(A,g){function k(a,b){var e=a.getAttribute(b);e&&(b=a.style,l.push(a,b.viewTransitionName,b.viewTransitionClass),"auto"!==e&&(b.viewTransitionClass=e),(a=a.getAttribute("vt-name"))||(a="_T_"+K++ +"_"),b.viewTransitionName=a,B=!0)}var B=!1,K=0,l=[];try{var f=document.__reactViewTransition;if(f){f.finished.finally($RV.bind(null,g));return}var m=new Map;for(f=1;f<g.length;f+=2)for(var h=g[f].querySelectorAll("[vt-share]"),d=0;d<h.length;d++){var c=h[d];m.set(c.getAttribute("vt-name"),c)}var u=[];for(h=0;h<g.length;h+=2){var C=g[h],x=C.parentNode;if(x){var v=x.getBoundingClientRect();if(v.left||v.top||v.width||v.height){c=C;for(f=0;c;){if(8===c.nodeType){var r=c.data;if("/$"===r)if(0===f)break;else f--;else"$"!==r&&"$?"!==r&&"$~"!==r&&"$!"!==r||f++}else if(1===c.nodeType){d=c;var D=d.getAttribute("vt-name"),y=m.get(D);k(d,y?"vt-share":"vt-exit");y&&(k(y,"vt-share"),m.set(D,null));var E=d.querySelectorAll("[vt-share]");for(d=0;d<E.length;d++){var F=E[d],G=F.getAttribute("vt-name"),\nH=m.get(G);H&&(k(F,"vt-share"),k(H,"vt-share"),m.set(G,null))}}c=c.nextSibling}for(var I=g[h+1],t=I.firstElementChild;t;)null!==m.get(t.getAttribute("vt-name"))&&k(t,"vt-enter"),t=t.nextElementSibling;c=x;do for(var n=c.firstElementChild;n;){var J=n.getAttribute("vt-update");J&&"none"!==J&&!l.includes(n)&&k(n,"vt-update");n=n.nextElementSibling}while((c=c.parentNode)&&1===c.nodeType&&"none"!==c.getAttribute("vt-update"));u.push.apply(u,I.querySelectorAll(\'img[src]:not([loading="lazy"])\'))}}}if(B){var z=\ndocument.__reactViewTransition=document.startViewTransition({update:function(){A(g);for(var a=[document.documentElement.clientHeight,document.fonts.ready],b={},e=0;e<u.length;b={g:b.g},e++)if(b.g=u[e],!b.g.complete){var p=b.g.getBoundingClientRect();0<p.bottom&&0<p.right&&p.top<window.innerHeight&&p.left<window.innerWidth&&(p=new Promise(function(w){return function(q){w.g.addEventListener("load",q);w.g.addEventListener("error",q)}}(b)),a.push(p))}return Promise.race([Promise.all(a),new Promise(function(w){var q=\nperformance.now();setTimeout(w,2300>q&&2E3<q?2300-q:500)})])},types:[]});z.ready.finally(function(){for(var a=l.length-3;0<=a;a-=3){var b=l[a],e=b.style;e.viewTransitionName=l[a+1];e.viewTransitionClass=l[a+1];""===b.getAttribute("style")&&b.removeAttribute("style")}});z.finished.finally(function(){document.__reactViewTransition===z&&(document.__reactViewTransition=null)});$RB=[];return}}catch(a){}A(g)}.bind(null,$RV);'
@@ -4059,6 +4059,9 @@ var HooksDispatcher = {
   currentResumableState = null,
   DefaultAsyncDispatcher = {
     getCacheForType: function () {
+      throw Error(formatProdErrorMessage(248));
+    },
+    cacheSignal: function () {
       throw Error(formatProdErrorMessage(248));
     }
   },
@@ -5810,7 +5813,9 @@ function retryNode(request, task) {
                           "function" === typeof x.then)
                       )
                         throw (
-                          (task.node === keyOrIndex && (task.replay = replay),
+                          (task.node === keyOrIndex
+                            ? (task.replay = replay)
+                            : childIndex.splice(node, 1),
                           x)
                         );
                       task.replay.pendingTasks--;
@@ -6275,20 +6280,20 @@ function renderNode(request, task, node, childIndex) {
     previousTreeContext = task.treeContext,
     previousComponentStack = task.componentStack,
     segment = task.blockedSegment;
-  if (null === segment)
+  if (null === segment) {
+    segment = task.replay;
     try {
       return renderNodeDestructive(request, task, node, childIndex);
     } catch (thrownValue) {
       if (
         (resetHooksState(),
-        (childIndex =
+        (node =
           thrownValue === SuspenseException
             ? getSuspendedThenable()
             : thrownValue),
-        "object" === typeof childIndex && null !== childIndex)
+        "object" === typeof node && null !== node)
       ) {
-        if ("function" === typeof childIndex.then) {
-          node = childIndex;
+        if ("function" === typeof node.then) {
           childIndex = getThenableStateAfterSuspending();
           request = spawnNewSuspendedReplayTask(request, task, childIndex).ping;
           node.then(request, request);
@@ -6297,10 +6302,11 @@ function renderNode(request, task, node, childIndex) {
           task.keyPath = previousKeyPath;
           task.treeContext = previousTreeContext;
           task.componentStack = previousComponentStack;
+          task.replay = segment;
           switchContext(previousContext);
           return;
         }
-        if ("Maximum call stack size exceeded" === childIndex.message) {
+        if ("Maximum call stack size exceeded" === node.message) {
           node = getThenableStateAfterSuspending();
           node = spawnNewSuspendedReplayTask(request, task, node);
           request.pingedTasks.push(node);
@@ -6309,12 +6315,13 @@ function renderNode(request, task, node, childIndex) {
           task.keyPath = previousKeyPath;
           task.treeContext = previousTreeContext;
           task.componentStack = previousComponentStack;
+          task.replay = segment;
           switchContext(previousContext);
           return;
         }
       }
     }
-  else {
+  } else {
     var childrenLength = segment.children.length,
       chunkLength = segment.chunks.length;
     try {
@@ -6324,17 +6331,17 @@ function renderNode(request, task, node, childIndex) {
         (resetHooksState(),
         (segment.children.length = childrenLength),
         (segment.chunks.length = chunkLength),
-        (childIndex =
+        (node =
           thrownValue$70 === SuspenseException
             ? getSuspendedThenable()
             : thrownValue$70),
-        "object" === typeof childIndex && null !== childIndex)
+        "object" === typeof node && null !== node)
       ) {
-        if ("function" === typeof childIndex.then) {
-          node = childIndex;
-          childIndex = getThenableStateAfterSuspending();
-          request = spawnNewSuspendedRenderTask(request, task, childIndex).ping;
-          node.then(request, request);
+        if ("function" === typeof node.then) {
+          segment = node;
+          node = getThenableStateAfterSuspending();
+          request = spawnNewSuspendedRenderTask(request, task, node).ping;
+          segment.then(request, request);
           task.formatContext = previousFormatContext;
           task.context = previousContext;
           task.keyPath = previousKeyPath;
@@ -6344,25 +6351,25 @@ function renderNode(request, task, node, childIndex) {
           return;
         }
         if (
-          childIndex.$$typeof === REACT_POSTPONE_TYPE &&
+          node.$$typeof === REACT_POSTPONE_TYPE &&
           null !== request.trackedPostpones &&
           null !== task.blockedBoundary
         ) {
-          node = request.trackedPostpones;
-          segment = getThrownInfo(task.componentStack);
-          logPostpone(request, childIndex.message, segment);
-          childIndex = task.blockedSegment;
-          segment = createPendingSegment(
+          segment = request.trackedPostpones;
+          childIndex = getThrownInfo(task.componentStack);
+          logPostpone(request, node.message, childIndex);
+          node = task.blockedSegment;
+          childIndex = createPendingSegment(
             request,
-            childIndex.chunks.length,
+            node.chunks.length,
             null,
             task.formatContext,
-            childIndex.lastPushedText,
+            node.lastPushedText,
             !0
           );
-          childIndex.children.push(segment);
-          childIndex.lastPushedText = !1;
-          trackPostpone(request, node, task, segment);
+          node.children.push(childIndex);
+          node.lastPushedText = !1;
+          trackPostpone(request, segment, task, childIndex);
           task.formatContext = previousFormatContext;
           task.context = previousContext;
           task.keyPath = previousKeyPath;
@@ -6371,10 +6378,10 @@ function renderNode(request, task, node, childIndex) {
           switchContext(previousContext);
           return;
         }
-        if ("Maximum call stack size exceeded" === childIndex.message) {
-          node = getThenableStateAfterSuspending();
-          node = spawnNewSuspendedRenderTask(request, task, node);
-          request.pingedTasks.push(node);
+        if ("Maximum call stack size exceeded" === node.message) {
+          segment = getThenableStateAfterSuspending();
+          segment = spawnNewSuspendedRenderTask(request, task, segment);
+          request.pingedTasks.push(segment);
           task.formatContext = previousFormatContext;
           task.context = previousContext;
           task.keyPath = previousKeyPath;
@@ -6391,7 +6398,7 @@ function renderNode(request, task, node, childIndex) {
   task.keyPath = previousKeyPath;
   task.treeContext = previousTreeContext;
   switchContext(previousContext);
-  throw childIndex;
+  throw node;
 }
 function erroredReplay(
   request,
@@ -7741,12 +7748,12 @@ function getPostponedState(request) {
 }
 function ensureCorrectIsomorphicReactVersion() {
   var isomorphicReactPackageVersion = React.version;
-  if ("19.2.0-experimental-b7e2de63-20250611" !== isomorphicReactPackageVersion)
+  if ("19.2.0-experimental-79d9aed7-20250620" !== isomorphicReactPackageVersion)
     throw Error(
       formatProdErrorMessage(
         527,
         isomorphicReactPackageVersion,
-        "19.2.0-experimental-b7e2de63-20250611"
+        "19.2.0-experimental-79d9aed7-20250620"
       )
     );
 }
@@ -8001,4 +8008,4 @@ exports.resumeAndPrerender = function (children, postponedState, options) {
     startWork(request);
   });
 };
-exports.version = "19.2.0-experimental-b7e2de63-20250611";
+exports.version = "19.2.0-experimental-79d9aed7-20250620";

@@ -640,7 +640,7 @@
         var originalMethod = descriptor.value;
         descriptor = Object.getOwnPropertyDescriptor(originalMethod, "name");
         var wrapperMethod = function () {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (("assert" !== methodName || !arguments[0]) && null !== request) {
             var stack = filterStackTrace(
               request,
@@ -765,6 +765,7 @@
       this.destination = this.fatalError = null;
       this.bundlerConfig = bundlerConfig;
       this.cache = new Map();
+      this.cacheController = new AbortController();
       this.pendingChunks = this.nextChunkId = 0;
       this.hints = hints;
       this.abortListeners = new Set();
@@ -868,6 +869,9 @@
         onAllReady,
         onFatalError
       );
+    }
+    function resolveRequest() {
+      return currentRequest ? currentRequest : null;
     }
     function serializeThenable(request, task, thenable) {
       var newTask = createTask(
@@ -2231,6 +2235,9 @@
         ? ((request.status = CLOSED),
           closeWithError(request.destination, error))
         : ((request.status = CLOSING), (request.fatalError = error));
+      request.cacheController.abort(
+        Error("The render was aborted due to a fatal error.", { cause: error })
+      );
     }
     function emitPostponeChunk(request, id, postponeInstance) {
       var reason = "",
@@ -2998,6 +3005,12 @@
       }
       0 === request.pendingChunks &&
         (cleanupTaintQueue(request),
+        request.status < ABORTING &&
+          request.cacheController.abort(
+            Error(
+              "This render completed successfully. All cacheSignals are now aborted to allow clean up of any unused resources."
+            )
+          ),
         (request.status = CLOSED),
         destination.close(),
         (request.destination = null));
@@ -3044,7 +3057,8 @@
     }
     function abort(request, reason) {
       try {
-        11 >= request.status && (request.status = ABORTING);
+        11 >= request.status &&
+          ((request.status = ABORTING), request.cacheController.abort(reason));
         var abortableTasks = request.abortableTasks;
         if (0 < abortableTasks.size) {
           if (request.type === PRERENDER)
@@ -3960,7 +3974,7 @@
       r: previousDispatcher.r,
       D: function (href) {
         if ("string" === typeof href && href) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "D|" + href;
@@ -3970,7 +3984,7 @@
       },
       C: function (href, crossOrigin) {
         if ("string" === typeof href) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key =
@@ -3988,7 +4002,7 @@
       },
       L: function (href, as, options) {
         if ("string" === typeof href) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "L";
@@ -4013,7 +4027,7 @@
       },
       m: function (href, options) {
         if ("string" === typeof href) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "m|" + href;
@@ -4028,7 +4042,7 @@
       },
       X: function (src, options) {
         if ("string" === typeof src) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "X|" + src;
@@ -4043,7 +4057,7 @@
       },
       S: function (href, precedence, options) {
         if ("string" === typeof href) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "S|" + href;
@@ -4064,7 +4078,7 @@
       },
       M: function (src, options) {
         if ("string" === typeof src) {
-          var request = currentRequest ? currentRequest : null;
+          var request = resolveRequest();
           if (request) {
             var hints = request.hints,
               key = "M|" + src;
@@ -4219,13 +4233,15 @@
     var currentOwner = null,
       DefaultAsyncDispatcher = {
         getCacheForType: function (resourceType) {
-          var cache = (cache = currentRequest ? currentRequest : null)
-            ? cache.cache
-            : new Map();
+          var cache = (cache = resolveRequest()) ? cache.cache : new Map();
           var entry = cache.get(resourceType);
           void 0 === entry &&
             ((entry = resourceType()), cache.set(resourceType, entry));
           return entry;
+        },
+        cacheSignal: function () {
+          var request = resolveRequest();
+          return request ? request.cacheController.signal : null;
         }
       };
     DefaultAsyncDispatcher.getOwner = resolveOwner;

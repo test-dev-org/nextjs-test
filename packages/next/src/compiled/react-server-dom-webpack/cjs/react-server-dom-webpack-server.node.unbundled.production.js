@@ -611,6 +611,10 @@ var DefaultAsyncDispatcher = {
         ((entry = resourceType()),
         JSCompiler_inline_result.set(resourceType, entry));
       return entry;
+    },
+    cacheSignal: function () {
+      var request = resolveRequest();
+      return request ? request.cacheController.signal : null;
     }
   },
   ReactSharedInternalsServer =
@@ -763,6 +767,7 @@ function RequestInstance(
   this.destination = this.fatalError = null;
   this.bundlerConfig = bundlerConfig;
   this.cache = new Map();
+  this.cacheController = new AbortController();
   this.pendingChunks = this.nextChunkId = 0;
   this.hints = hints;
   this.abortListeners = new Set();
@@ -1672,6 +1677,9 @@ function fatalError(request, error) {
   null !== request.destination
     ? ((request.status = 14), request.destination.destroy(error))
     : ((request.status = 13), (request.fatalError = error));
+  request.cacheController.abort(
+    Error("The render was aborted due to a fatal error.", { cause: error })
+  );
 }
 function emitErrorChunk(request, id, digest) {
   digest = { digest: digest };
@@ -1885,7 +1893,15 @@ function flushCompletedChunks(request, destination) {
   }
   "function" === typeof destination.flush && destination.flush();
   0 === request.pendingChunks &&
-    ((request.status = 14), destination.end(), (request.destination = null));
+    (12 > request.status &&
+      request.cacheController.abort(
+        Error(
+          "This render completed successfully. All cacheSignals are now aborted to allow clean up of any unused resources."
+        )
+      ),
+    (request.status = 14),
+    destination.end(),
+    (request.destination = null));
 }
 function startWork(request) {
   request.flushScheduled = null !== request.destination;
@@ -1925,7 +1941,8 @@ function startFlowing(request, destination) {
 }
 function abort(request, reason) {
   try {
-    11 >= request.status && (request.status = 12);
+    11 >= request.status &&
+      ((request.status = 12), request.cacheController.abort(reason));
     var abortableTasks = request.abortableTasks;
     if (0 < abortableTasks.size) {
       var error =
