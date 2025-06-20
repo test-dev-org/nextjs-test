@@ -180,9 +180,7 @@ impl ModuleOptions {
         };
         let ecmascript_options_vc = ecmascript_options.resolved_cell();
 
-        if let Some(environment) = environment {
-            transforms.push(EcmascriptInputTransform::PresetEnv(environment));
-        }
+        transforms.push(EcmascriptInputTransform::PresetEnv(environment));
 
         if let Some(enable_typeof_window_inlining) = enable_typeof_window_inlining {
             transforms.push(EcmascriptInputTransform::GlobalTypeofs {

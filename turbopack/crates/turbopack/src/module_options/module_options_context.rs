@@ -147,7 +147,7 @@ pub struct ModuleOptionsContext {
     pub enable_mdx: bool,
     pub enable_mdx_rs: Option<ResolvedVc<MdxTransformOptions>>,
 
-    pub environment: Option<ResolvedVc<Environment>>,
+    pub environment: ResolvedVc<Environment>,
     pub execution_context: Option<ResolvedVc<ExecutionContext>>,
     pub side_effect_free_packages: Vec<RcStr>,
     pub tree_shaking_mode: Option<TreeShakingMode>,

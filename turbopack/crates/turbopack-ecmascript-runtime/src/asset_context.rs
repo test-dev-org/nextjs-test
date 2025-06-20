@@ -22,7 +22,7 @@ pub async fn get_runtime_asset_context(
         },
         // TODO: Somehow this fails to compile when enabled.
         // environment: Some(environment),
-        environment: None,
+        environment: Environment::default(),
         tree_shaking_mode: Some(TreeShakingMode::ReexportsOnly),
         ..Default::default()
     }

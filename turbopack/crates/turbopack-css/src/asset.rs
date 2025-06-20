@@ -39,7 +39,7 @@ pub struct CssModuleAsset {
     import_context: Option<ResolvedVc<ImportContext>>,
     ty: CssModuleAssetType,
     minify_type: MinifyType,
-    environment: Option<ResolvedVc<Environment>>,
+    environment: ResolvedVc<Environment>,
 }
 
 #[turbo_tasks::value_impl]
@@ -52,7 +52,7 @@ impl CssModuleAsset {
         ty: CssModuleAssetType,
         minify_type: MinifyType,
         import_context: Option<ResolvedVc<ImportContext>>,
-        environment: Option<ResolvedVc<Environment>>,
+        environment: ResolvedVc<Environment>,
     ) -> Vc<Self> {
         Self::cell(CssModuleAsset {
             source,
@@ -82,7 +82,7 @@ impl ParseCss for CssModuleAsset {
             Vc::upcast(self),
             this.import_context.map(|v| *v),
             this.ty,
-            this.environment.as_deref().copied(),
+            *this.environment,
         ))
     }
 }
@@ -96,7 +96,7 @@ impl ProcessCss for CssModuleAsset {
 
         Ok(process_css_with_placeholder(
             parse_result,
-            this.environment.as_deref().copied(),
+            *this.environment,
         ))
     }
 
@@ -119,7 +119,7 @@ impl ProcessCss for CssModuleAsset {
             chunking_context,
             minify_type,
             origin_source_map,
-            this.environment.as_deref().copied(),
+            *this.environment,
         ))
     }
 }
