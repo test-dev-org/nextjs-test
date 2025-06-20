@@ -78,7 +78,7 @@ export const WithPanel: Story = {
     }
   },
   render: function DevOverlayStory() {
-    const [state, dispatch] = useStorybookOverlayReducer()
+    const [state, dispatch] = useStorybookOverlayReducer(initialState)
     return (
       <>
         <img
