@@ -47,13 +47,6 @@ impl NftJsonAsset {
         }
         .cell()
     }
-
-    #[turbo_tasks::function]
-    async fn dist_dir(&self) -> Result<Vc<RcStr>> {
-        Ok(Vc::cell(
-            format!("/{}/", self.project.dist_dir().await?).into(),
-        ))
-    }
 }
 
 #[turbo_tasks::value_impl]
