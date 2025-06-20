@@ -18,20 +18,7 @@ describe('app-dir - errors', () => {
       const browser = await next.browser('/client-component', {
         beforePageLoad: (page) => {
           page.on('pageerror', (error: unknown) => {
-            if (
-              error !== null &&
-              typeof error === 'object' &&
-              'message' in error &&
-              typeof error.message === 'string' &&
-              error.message.includes(
-                "Cannot read properties of null (reading 'removeChild')"
-              )
-            ) {
-              // unactionable and just noise until we fix https://github.com/facebook/react/pull/33531
-              // TODO: Don't ignore this error once the underlying issue is fixed.
-            } else {
-              pageErrors.push(error)
-            }
+            pageErrors.push(error)
           })
         },
       })
@@ -57,20 +44,7 @@ describe('app-dir - errors', () => {
       const browser = await next.browser('/server-component', {
         beforePageLoad: (page) => {
           page.on('pageerror', (error: unknown) => {
-            if (
-              error !== null &&
-              typeof error === 'object' &&
-              'message' in error &&
-              typeof error.message === 'string' &&
-              error.message.includes(
-                "Cannot read properties of null (reading 'removeChild')"
-              )
-            ) {
-              // unactionable and just noise until we fix https://github.com/facebook/react/pull/33531
-              // TODO: Don't ignore this error once the underlying issue is fixed.
-            } else {
-              pageErrors.push(error)
-            }
+            pageErrors.push(error)
           })
         },
       })
@@ -193,20 +167,7 @@ describe('app-dir - errors', () => {
       const browser = await next.browser('/global-error-boundary/client', {
         beforePageLoad: (page) => {
           page.on('pageerror', (error: unknown) => {
-            if (
-              error !== null &&
-              typeof error === 'object' &&
-              'message' in error &&
-              typeof error.message === 'string' &&
-              error.message.includes(
-                "Cannot read properties of null (reading 'removeChild')"
-              )
-            ) {
-              // unactionable and just noise until we fix https://github.com/facebook/react/pull/33531
-              // TODO: Don't ignore this error once the underlying issue is fixed.
-            } else {
-              pageErrors.push(error)
-            }
+            pageErrors.push(error)
           })
         },
       })
@@ -246,20 +207,7 @@ describe('app-dir - errors', () => {
       const browser = await next.browser('/global-error-boundary/server', {
         beforePageLoad: (page) => {
           page.on('pageerror', (error: unknown) => {
-            if (
-              error !== null &&
-              typeof error === 'object' &&
-              'message' in error &&
-              typeof error.message === 'string' &&
-              error.message.includes(
-                "Cannot read properties of null (reading 'removeChild')"
-              )
-            ) {
-              // unactionable and just noise until we fix https://github.com/facebook/react/pull/33531
-              // TODO: Don't ignore this error once the underlying issue is fixed.
-            } else {
-              pageErrors.push(error)
-            }
+            pageErrors.push(error)
           })
         },
       })
@@ -332,20 +280,7 @@ describe('app-dir - errors', () => {
         await next.browser('/ssr-error-client-component', {
           beforePageLoad: (page) => {
             page.on('pageerror', (error: unknown) => {
-              if (
-                error !== null &&
-                typeof error === 'object' &&
-                'message' in error &&
-                typeof error.message === 'string' &&
-                error.message.includes(
-                  "Cannot read properties of null (reading 'removeChild')"
-                )
-              ) {
-                // unactionable and just noise until we fix https://github.com/facebook/react/pull/33531
-                // TODO: Don't ignore this error once the underlying issue is fixed.
-              } else {
-                pageErrors.push(error)
-              }
+              pageErrors.push(error)
             })
           },
         })
