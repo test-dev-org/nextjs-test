@@ -414,6 +414,7 @@ pub async fn get_server_module_options_context(
     next_config: Vc<NextConfig>,
     next_runtime: NextRuntime,
     encryption_key: ResolvedVc<RcStr>,
+    environment: ResolvedVc<Environment>,
 ) -> Result<Vc<ModuleOptionsContext>> {
     let next_mode = mode.await?;
     let mut next_server_rules = get_next_server_transforms_rules(
@@ -553,6 +554,7 @@ pub async fn get_server_module_options_context(
             ..Default::default()
         },
         execution_context: Some(execution_context),
+        environment: Some(environment),
         css: CssOptionsContext {
             source_maps,
             ..Default::default()
