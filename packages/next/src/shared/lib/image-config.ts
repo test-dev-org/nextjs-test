@@ -109,7 +109,7 @@ export type ImageConfigComplete = {
   /** @see [Content Security Policy](https://nextjs.org/docs/api-reference/next/image#contentsecuritypolicy) */
   contentSecurityPolicy: string
 
-  /** @see [Content Disposition](https://nextjs.org/docs/api-reference/next/image#contentdispositiontype) */
+  /** @see [Content Disposition Type](https://nextjs.org/docs/api-reference/next/image#contentdispositiontype) */
   contentDispositionType: 'inline' | 'attachment'
 
   /** @see [Remote Patterns](https://nextjs.org/docs/api-reference/next/image#remotepatterns) */
