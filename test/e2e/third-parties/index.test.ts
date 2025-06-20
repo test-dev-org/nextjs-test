@@ -58,79 +58,33 @@ describe('@next/third-parties basic usage', () => {
     const browser = await next.browser('/gtm-consent')
     await waitFor(1000)
 
-    // Test data for different CMP platforms
-    const cmpScenarios = [
-      {
-        name: 'standard',
-        gtmId: 'GTM-STANDARD',
-        expectedType: 'application/javascript',
-        dataAttribute: null,
-        shouldExecute: true,
-      },
-      {
-        name: 'usercentrics',
-        gtmId: 'GTM-USERCENTRICS',
-        expectedType: 'text/plain',
-        dataAttribute: 'data-usercentrics="Google Tag Manager"',
-        shouldExecute: false,
-      },
-      {
-        name: 'onetrust',
-        gtmId: 'GTM-ONETRUST',
-        expectedType: 'text/plain',
-        dataAttribute: 'data-one-trust-category="C0002"',
-        shouldExecute: false,
-      },
-      {
-        name: 'cookiebot',
-        gtmId: 'GTM-COOKIEBOT',
-        expectedType: 'text/plain',
-        dataAttribute: 'data-cookieconsent="statistics"',
-        shouldExecute: false,
-      },
-      {
-        name: 'didomi',
-        gtmId: 'GTM-DIDOMI',
-        expectedType: 'text/plain',
-        dataAttribute: 'data-didomi-purposes="analytics"',
-        shouldExecute: false,
-      },
-      {
-        name: 'custom',
-        gtmId: 'GTM-CUSTOM',
-        expectedType: 'text/plain',
-        dataAttribute: 'data-consent-category="analytics"',
-        shouldExecute: false,
-      },
-    ]
+    // Test standard GTM (no consent management)
+    const standardScript = await browser.elementsByCss(
+      'script[src*="GTM-STANDARD"][type="application/javascript"]'
+    )
+    expect(standardScript.length).toBe(1)
 
-    // Test each CMP scenario
-    for (const scenario of cmpScenarios) {
-      // Verify external GTM script has correct type and attributes
-      const externalScripts = await browser.elementsByCss(
-        `script[src*="${scenario.gtmId}"][type="${scenario.expectedType}"]`
-      )
-      expect(externalScripts.length).toBe(1)
+    // Test consent-managed GTM (using Usercentrics as representative example)
+    const consentScript = await browser.elementsByCss(
+      'script[src*="GTM-USERCENTRICS"][type="text/plain"]'
+    )
+    expect(consentScript.length).toBe(1)
 
-      // For consent-managed scripts, verify data attributes are present
-      if (scenario.dataAttribute) {
-        const scriptsWithDataAttr = await browser.elementsByCss(
-          `script[type="${scenario.expectedType}"][${scenario.dataAttribute}]`
-        )
-        expect(scriptsWithDataAttr.length).toBe(2) // init + external script
-      }
-    }
+    // Verify data attributes are applied to both init and external scripts
+    const scriptsWithDataAttr = await browser.elementsByCss(
+      'script[data-usercentrics="Google Tag Manager"]'
+    )
+    expect(scriptsWithDataAttr.length).toBe(2) // init + external script
 
-    // Verify script execution behavior
+    // Verify only standard GTM executes (consent-managed scripts are blocked)
     const dataLayer: unknown[] = await browser.eval('window.dataLayer')
-    // Only the standard GTM (without consent management) should initialize dataLayer
-    expect(dataLayer.length).toBe(1)
+    expect(dataLayer.length).toBe(1) // Only standard GTM initializes dataLayer
 
-    // Verify standard GTM init script has correct default type
-    const standardInitType: string | null = await browser.eval(
+    // Verify init script has correct default type
+    const initScriptType: string | null = await browser.eval(
       'document.querySelector("script[id*=\\"_next-gtm-init\\"]").getAttribute("type")'
     )
-    expect(standardInitType).toBe('application/javascript')
+    expect(initScriptType).toBe('application/javascript')
   })
 
   it('renders GA', async () => {

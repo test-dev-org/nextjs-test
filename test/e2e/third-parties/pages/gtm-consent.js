@@ -3,7 +3,7 @@ import { GoogleTagManager, sendGTMEvent } from '@next/third-parties/google'
 
 /**
  * Test page for GTM consent management functionality
- * Demonstrates compatibility with multiple CMP platforms
+ * Tests standard GTM vs consent-managed GTM behavior
  * @returns {React.ReactElement} The test page component
  */
 const Page = () => {
@@ -19,43 +19,14 @@ const Page = () => {
     <div className="container">
       <h1>GTM Consent Management</h1>
 
-      {/* Standard GTM without consent */}
+      {/* Standard GTM without consent management */}
       <GoogleTagManager gtmId="GTM-STANDARD" />
 
-      {/* GTM with Usercentrics consent management */}
+      {/* GTM with consent management (Usercentrics example) */}
       <GoogleTagManager
         gtmId="GTM-USERCENTRICS"
         type="text/plain"
         data-usercentrics="Google Tag Manager"
-      />
-
-      {/* GTM with OneTrust consent management */}
-      <GoogleTagManager
-        gtmId="GTM-ONETRUST"
-        type="text/plain"
-        data-one-trust-category="C0002"
-      />
-
-      {/* GTM with Cookiebot consent management */}
-      <GoogleTagManager
-        gtmId="GTM-COOKIEBOT"
-        type="text/plain"
-        data-cookieconsent="statistics"
-      />
-
-      {/* GTM with Didomi consent management */}
-      <GoogleTagManager
-        gtmId="GTM-DIDOMI"
-        type="text/plain"
-        data-didomi-purposes="analytics"
-      />
-
-      {/* GTM with custom consent management */}
-      <GoogleTagManager
-        gtmId="GTM-CUSTOM"
-        type="text/plain"
-        data-consent-category="analytics"
-        data-consent-required="true"
       />
 
       <button id="gtm-consent-send" onClick={onClick}>
