@@ -15,7 +15,9 @@ export function ErrorOverlayToolbar({
 }: ErrorOverlayToolbarProps) {
   return (
     <span className="error-overlay-toolbar">
-      <RestartServerButton error={error} />
+      {process.env.__NEXT_BUNDLER_HAS_PERSISTENT_CACHE && (
+        <RestartServerButton error={error} />
+      )}
       <CopyStackTraceButton error={error} />
       <DocsLinkButton errorMessage={error.message} />
       <NodejsInspectorButton
