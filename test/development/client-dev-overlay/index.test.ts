@@ -133,7 +133,8 @@ describe('client-dev-overlay', () => {
        1
        Route
        Static
-       Try Turbopack
+       Turbopack
+       Enabled
        Preferences"
       `)
     } else {
