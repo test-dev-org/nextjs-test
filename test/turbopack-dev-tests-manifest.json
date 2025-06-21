@@ -1151,7 +1151,7 @@
     "flakey": [],
     "runtimeError": false
   },
-  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.test.ts": {
+  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.external.test.ts": {
     "passed": [
       "SharedCacheControls should clear the in-memory cache",
       "SharedCacheControls should get cache control from in-memory cache",
@@ -8583,6 +8583,16 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/rsc-redirect/rsc-redirect.test.ts": {
+    "passed": [
+      "rsc-redirect should get 200 status code for rsc request",
+      "rsc-redirect should get 307 status code for document request"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/rsc-webpack-loader/rsc-webpack-loader.test.ts": {
     "passed": [],
     "failed": [],
@@ -13431,6 +13441,7 @@
       "Config Experimental Warning should not show warning with default config from function",
       "Config Experimental Warning should not show warning with default value",
       "Config Experimental Warning should show the configured value for numerical features",
+      "Config Experimental Warning should show the configured value for string features",
       "Config Experimental Warning should show warning with a symbol indicating that a default `true` value is set to `false`",
       "Config Experimental Warning should show warning with config from function with experimental",
       "Config Experimental Warning should show warning with config from object with experimental",

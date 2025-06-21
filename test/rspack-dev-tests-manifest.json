@@ -1151,7 +1151,7 @@
     "flakey": [],
     "runtimeError": false
   },
-  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.test.ts": {
+  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.external.test.ts": {
     "passed": [
       "SharedCacheControls should clear the in-memory cache",
       "SharedCacheControls should get cache control from in-memory cache",
@@ -2332,8 +2332,8 @@
     "runtimeError": false
   },
   "test/development/app-dir/build-error-logs/build-error-logs.test.ts": {
-    "passed": [],
-    "failed": ["build-error-logs should only log error a single time"],
+    "passed": ["build-error-logs should only log error a single time"],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
@@ -2660,6 +2660,7 @@
   "test/development/app-dir/segment-explorer/segment-explorer.test.ts": {
     "passed": [
       "segment-explorer should cleanup on soft navigation",
+      "segment-explorer should handle show file segments in order",
       "segment-explorer should render the segment explorer for nested routes",
       "segment-explorer should render the segment explorer for parallel routes"
     ],
@@ -4091,6 +4092,20 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/actions-deployment-skew/actions-deployment-skew.test.ts": {
+    "passed": [
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a normal action should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a normal action should respond with a 404 for an unknown server action"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/actions-navigation/index.test.ts": {
     "passed": [
       "app-dir action handling should handle actions correctly after following a relative link",
@@ -4174,8 +4189,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -4186,6 +4201,8 @@
       "app-dir action handling should be possible to catch network errors",
       "app-dir action handling should be possible to catch regular errors",
       "app-dir action handling should bundle external libraries if they are on the action layer",
+      "app-dir action handling should forward action request to a worker that contains the action handler (edge)",
+      "app-dir action handling should forward action request to a worker that contains the action handler (node)",
       "app-dir action handling should handle action correctly with middleware rewrite",
       "app-dir action handling should handle actions executed in quick succession",
       "app-dir action handling should handle basic actions correctly",
@@ -4225,10 +4242,7 @@
       "app-dir action handling should trigger an error boundary for action responses with an invalid content-type",
       "app-dir action handling should work with interception routes"
     ],
-    "failed": [
-      "app-dir action handling should forward action request to a worker that contains the action handler (edge)",
-      "app-dir action handling should forward action request to a worker that contains the action handler (node)"
-    ],
+    "failed": [],
     "pending": [
       "app-dir action handling fetch actions should handle unstable_expireTag + redirect",
       "app-dir action handling server actions render client components client component imported action should support importing client components from actions"
@@ -4305,8 +4319,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -5237,6 +5251,7 @@
       "app dir - basic searchParams prop server component should have the correct search params on middleware rewrite",
       "app dir - basic searchParams prop server component should have the correct search params on rewrite",
       "app dir - basic server components Loading should render loading.js in browser for slow layout",
+      "app dir - basic server components Loading should render loading.js in browser for slow layout and page",
       "app dir - basic server components Loading should render loading.js in browser for slow page",
       "app dir - basic server components Loading should render loading.js in initial html for slow layout",
       "app dir - basic server components Loading should render loading.js in initial html for slow layout and page",
@@ -5251,7 +5266,6 @@
       "app dir - basic server components dynamic routes should only pass params that apply to the layout",
       "app dir - basic server components middleware should strip internal query parameters from requests to middleware for redirect",
       "app dir - basic server components middleware should strip internal query parameters from requests to middleware for rewrite",
-      "app dir - basic server components next/router should support router.back and router.forward",
       "app dir - basic server components should include client component layout with server component route should include it client-side",
       "app dir - basic server components should include client component layout with server component route should include it server-side",
       "app dir - basic server components should not serve .client.js as a path",
@@ -5295,7 +5309,7 @@
     ],
     "failed": [
       "app dir - basic <Link /> should navigate to pages dynamic route from pages page if it overlaps with an app page",
-      "app dir - basic server components Loading should render loading.js in browser for slow layout and page"
+      "app dir - basic server components next/router should support router.back and router.forward"
     ],
     "pending": [
       "app dir - basic HMR should HMR correctly when changing the component type",
@@ -6423,20 +6437,28 @@
   },
   "test/e2e/app-dir/fallback-shells/fallback-shells.test.ts": {
     "passed": [
-      "fallback-shells with cached IO and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
-      "fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
-      "fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
-      "fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
-      "fallback-shells with cached IO and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
-      "fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
-      "fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
-      "fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page shares a cached parent layout between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params transformed with an async function and then passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached parent layout between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params transformed with an async function and then passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page resumes a postponed fallback shell",
       "fallback-shells without IO should start and not postpone the response"
     ],
     "failed": [],
     "pending": [
-      "fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
-      "fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page shares a cached layout with unused params between a prerendered route shell and the fallback shell"
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page includes a cached layout with unused params in the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached layout with unused params between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page includes a cached layout with unused params in the fallback shell"
     ],
     "flakey": [],
     "runtimeError": false
@@ -7098,6 +7120,7 @@
       "app-dir - metadata-streaming should still load viewport meta tags even if metadata is delayed",
       "app-dir - metadata-streaming static should determine dynamic metadata in build and render in the body",
       "app-dir - metadata-streaming static should render static metadata in the head",
+      "app-dir - metadata-streaming static should still render blocking metadata for Google speed insights bot (special case)",
       "app-dir - metadata-streaming static should still render dynamic metadata in the head for html bots"
     ],
     "failed": [],
@@ -8688,6 +8711,16 @@
     "passed": [
       "rsc-query-routing should contain rsc query in rsc request when redirect the page",
       "rsc-query-routing should contain rsc query in rsc request when rewrite the page"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/rsc-redirect/rsc-redirect.test.ts": {
+    "passed": [
+      "rsc-redirect should get 200 status code for rsc request",
+      "rsc-redirect should get 307 status code for document request"
     ],
     "failed": [],
     "pending": [],
@@ -13548,6 +13581,7 @@
       "Config Experimental Warning should not show warning with default config from function",
       "Config Experimental Warning should not show warning with default value",
       "Config Experimental Warning should show the configured value for numerical features",
+      "Config Experimental Warning should show the configured value for string features",
       "Config Experimental Warning should show warning with a symbol indicating that a default `true` value is set to `false`",
       "Config Experimental Warning should show warning with config from function with experimental",
       "Config Experimental Warning should show warning with config from object with experimental",
@@ -21336,6 +21370,8 @@
   },
   "test/integration/server-side-dev-errors/test/index.test.js": {
     "passed": [
+      "server-side dev errors should show server-side error for api route correctly",
+      "server-side dev errors should show server-side error for dynamic api route correctly",
       "server-side dev errors should show server-side error for dynamic gssp page correctly",
       "server-side dev errors should show server-side error for gsp page correctly",
       "server-side dev errors should show server-side error for gssp page correctly",
@@ -21344,10 +21380,7 @@
       "server-side dev errors should show server-side error for uncaught exception correctly",
       "server-side dev errors should show server-side error for uncaught rejection correctly"
     ],
-    "failed": [
-      "server-side dev errors should show server-side error for api route correctly",
-      "server-side dev errors should show server-side error for dynamic api route correctly"
-    ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false

@@ -17,6 +17,7 @@ const CSS_SELECTORS_TO_EXCLUDE_ON_CLICK_OUTSIDE = [
   '[data-nextjs-error-overlay-nav]',
   '[data-info-popover]',
   '[data-nextjs-devtools-panel-overlay]',
+  '[data-nextjs-devtools-panel-footer]',
 ]
 
 const Dialog: React.FC<DialogProps> = function Dialog({

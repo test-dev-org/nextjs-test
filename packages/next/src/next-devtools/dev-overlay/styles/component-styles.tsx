@@ -25,6 +25,10 @@ import { DEV_TOOLS_INFO_RENDER_FILES_STYLES } from '../components/overview/segme
 import { FADER_STYLES } from '../components/fader'
 import { RESTART_SERVER_BUTTON_STYLES } from '../components/errors/error-overlay-toolbar/restart-server-button'
 import { DEVTOOLS_PANEL_STYLES } from '../components/devtools-panel/devtools-panel'
+import { DEVTOOLS_PANEL_FOOTER_STYLES } from '../components/devtools-panel/devtools-panel-footer'
+import { DEVTOOLS_PANEL_VERSION_INFO_STYLES } from '../components/devtools-panel/devtools-panel-version-info'
+import { DEVTOOLS_PANEL_TAB_SETTINGS_STYLES } from '../components/devtools-panel/devtools-panel-tab/settings-tab'
+import { CALL_STACK_STYLES } from '../components/call-stack/call-stack'
 
 export function ComponentStyles() {
   return (
@@ -32,6 +36,7 @@ export function ComponentStyles() {
       {css`
         ${COPY_BUTTON_STYLES}
         ${CALL_STACK_FRAME_STYLES}
+        ${CALL_STACK_STYLES}
         ${ENVIRONMENT_NAME_LABEL_STYLES}
         ${overlay}
         ${toast}
@@ -56,6 +61,9 @@ export function ComponentStyles() {
         ${DEV_TOOLS_INFO_RENDER_FILES_STYLES}
         ${FADER_STYLES}
         ${DEVTOOLS_PANEL_STYLES}
+        ${DEVTOOLS_PANEL_FOOTER_STYLES}
+        ${DEVTOOLS_PANEL_VERSION_INFO_STYLES}
+        ${DEVTOOLS_PANEL_TAB_SETTINGS_STYLES}
       `}
     </style>
   )

@@ -77,7 +77,6 @@ mod state;
 pub mod task;
 pub mod task_statistics;
 pub mod trace;
-mod trait_helpers;
 mod trait_ref;
 mod triomphe_utils;
 pub mod util;
