@@ -10,11 +10,7 @@ use swc_core::{
     ecma::{
         ast::{Module, ModuleItem, Program, Script},
         preset_env::{self, Targets},
-        transforms::{
-            base::{assumptions::Assumptions, helpers::inject_helpers},
-            optimization::inline_globals,
-            react::react,
-        },
+        transforms::{base::assumptions::Assumptions, optimization::inline_globals, react::react},
     },
     quote,
 };
@@ -238,15 +234,13 @@ impl EcmascriptInputTransform {
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                *program = module_program.apply((
-                    preset_env::transform_from_env::<&'_ dyn Comments>(
+                *program =
+                    module_program.apply(preset_env::transform_from_env::<&'_ dyn Comments>(
                         top_level_mark,
                         Some(&comments),
                         config,
                         Assumptions::default(),
-                    ),
-                    inject_helpers(unresolved_mark),
-                ));
+                    ));
             }
             EcmascriptInputTransform::TypeScript {
                 // TODO(WEB-1213)
@@ -270,7 +264,7 @@ impl EcmascriptInputTransform {
                     ..Default::default()
                 };
 
-                program.mutate((decorators(config), inject_helpers(unresolved_mark)));
+                program.mutate(decorators(config));
             }
             EcmascriptInputTransform::Plugin(transform) => {
                 transform.await?.transform(program, ctx).await?
