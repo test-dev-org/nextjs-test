@@ -33,7 +33,10 @@ use turbo_tasks::{
     trace::TraceRawVcs,
 };
 use turbo_tasks_env::{EnvMap, ProcessEnv};
-use turbo_tasks_fs::{DiskFileSystem, FileSystem, FileSystemPath, VirtualFileSystem, invalidation};
+use turbo_tasks_fs::{
+    DiskFileSystem, FileSystem, FileSystemPath, VirtualFileSystem, get_relative_path_to,
+    invalidation,
+};
 use turbopack::{
     ModuleAssetContext, evaluate_context::node_build_environment,
     global_module_ids::get_global_module_id_strategy, transition::TransitionOptions,
@@ -662,7 +665,7 @@ impl Project {
 
     #[turbo_tasks::function]
     pub fn output_fs(&self) -> Vc<DiskFileSystem> {
-        DiskFileSystem::new(rcstr!("output"), self.project_path.clone(), vec![])
+        DiskFileSystem::new(rcstr!("output"), self.root_path.clone(), vec![])
     }
 
     #[turbo_tasks::function]
@@ -673,7 +676,13 @@ impl Project {
     #[turbo_tasks::function]
     pub async fn node_root(self: Vc<Self>) -> Result<Vc<FileSystemPath>> {
         let this = self.await?;
-        Ok(self.output_fs().root().join(this.dist_dir.clone()))
+        let relative_from_root_to_project_path =
+            get_relative_path_to(&this.root_path, &this.project_path);
+        Ok(self
+            .output_fs()
+            .root()
+            .join(relative_from_root_to_project_path.into())
+            .join(this.dist_dir.clone()))
     }
 
     #[turbo_tasks::function]

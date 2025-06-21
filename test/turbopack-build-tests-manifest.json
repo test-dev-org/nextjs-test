@@ -71,6 +71,20 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/actions-deployment-skew/actions-deployment-skew.test.ts": {
+    "passed": [
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a normal action should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a normal action should respond with a 404 for an unknown server action"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/actions-navigation/index.test.ts": {
     "passed": [
       "app-dir action handling should handle actions correctly after following a relative link",
@@ -152,8 +166,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -286,8 +300,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -648,7 +662,8 @@
   },
   "test/e2e/app-dir/app-fetch-deduping/app-fetch-deduping.test.ts": {
     "passed": [
-      "app-fetch-deduping during static generation dedupes requests amongst static workers"
+      "app-fetch-deduping during static generation dedupes requests amongst static workers",
+      "app-fetch-deduping during static generation does not print a fetch cache size limit warning"
     ],
     "failed": [],
     "pending": [],
@@ -2424,23 +2439,6 @@
     "flakey": [],
     "runtimeError": false
   },
-  "test/e2e/app-dir/empty-fallback-shells/empty-fallback-shells.test.ts": {
-    "passed": [
-      "empty-fallback-shells should not log a HANGING_PROMISE_REJECTION error",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
-      "empty-fallback-shells without IO should start and not postpone the response"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
   "test/e2e/app-dir/error-boundary-navigation/index.test.ts": {
     "passed": [
       "app dir - not found navigation should allow navigating to a non-existent page",
@@ -2529,6 +2527,35 @@
     "passed": ["fallback-prefetch should prefetch the page without errors"],
     "failed": [],
     "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/fallback-shells/fallback-shells.test.ts": {
+    "passed": [
+      "fallback-shells should not log a HANGING_PROMISE_REJECTION error",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params transformed with an async function and then passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached parent layout between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params transformed with an async function and then passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page resumes a postponed fallback shell",
+      "fallback-shells without IO should start and not postpone the response"
+    ],
+    "failed": [],
+    "pending": [
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page includes a cached layout with unused params in the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached layout with unused params between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page includes a cached layout with unused params in the fallback shell"
+    ],
     "flakey": [],
     "runtimeError": false
   },
@@ -3154,6 +3181,7 @@
       "app-dir - metadata-streaming should still load viewport meta tags even if metadata is delayed",
       "app-dir - metadata-streaming static should determine dynamic metadata in build and render in the body",
       "app-dir - metadata-streaming static should render static metadata in the head",
+      "app-dir - metadata-streaming static should still render blocking metadata for Google speed insights bot (special case)",
       "app-dir - metadata-streaming static should still render dynamic metadata in the head for html bots"
     ],
     "failed": [],
@@ -3874,6 +3902,18 @@
     "passed": [
       "app dir - not-found - group route with default runtime should use the not-found page under group routes",
       "app dir - not-found - group route with runtime = edge should use the not-found page under group routes"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/nx-handling/nx-handling.test.ts": {
+    "passed": [
+      "nx-handling should work for pages API",
+      "nx-handling should work for pages page",
+      "nx-handling should work with app page",
+      "nx-handling should work with app route"
     ],
     "failed": [],
     "pending": [],
@@ -4949,6 +4989,16 @@
     "passed": [
       "rsc-query-routing should contain rsc query in rsc request when redirect the page",
       "rsc-query-routing should contain rsc query in rsc request when rewrite the page"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/rsc-redirect/rsc-redirect.test.ts": {
+    "passed": [
+      "rsc-redirect should get 200 status code for rsc request",
+      "rsc-redirect should get 307 status code for document request"
     ],
     "failed": [],
     "pending": [],
@@ -9890,6 +9940,7 @@
       "Config Experimental Warning should not show warning with default config from function",
       "Config Experimental Warning should not show warning with default value",
       "Config Experimental Warning should show the configured value for numerical features",
+      "Config Experimental Warning should show the configured value for string features",
       "Config Experimental Warning should show warning with a symbol indicating that a default `true` value is set to `false`",
       "Config Experimental Warning should show warning with config from function with experimental",
       "Config Experimental Warning should show warning with config from object with experimental",
@@ -10259,10 +10310,7 @@
     "runtimeError": false
   },
   "test/integration/css-features/test/browserslist.test.js": {
-    "passed": [
-      "Browserslist: New production mode should have compiled successfully",
-      "Browserslist: Old production mode should have compiled successfully"
-    ],
+    "passed": [],
     "failed": [
       "Browserslist: New production mode should've emitted a single CSS file",
       "Browserslist: Old production mode should've emitted a single CSS file"
@@ -18443,6 +18491,18 @@
   },
   "test/production/app-dir/build-output-debug/index.test.ts": {
     "passed": ["next build --debug should log Redirects above Route(app)"],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/production/app-dir/build-output-prerender/build-output-prerender.test.ts": {
+    "passed": [
+      "build-output-prerender with --debug-prerender prints a warning and the customized experimental flags",
+      "build-output-prerender with --debug-prerender shows all prerender errors with readable stacks and code frames",
+      "build-output-prerender without --debug-prerender prints only the user-selected experimental flags",
+      "build-output-prerender without --debug-prerender shows only a single prerender error with a mangled stack"
+    ],
     "failed": [],
     "pending": [],
     "flakey": [],

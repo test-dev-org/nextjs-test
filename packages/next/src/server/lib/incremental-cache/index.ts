@@ -15,7 +15,6 @@ import {
   type SetIncrementalResponseCacheContext,
 } from '../../response-cache'
 import type { DeepReadonly } from '../../../shared/lib/deep-readonly'
-
 import FileSystemCache from './file-system-cache'
 import { normalizePagePath } from '../../../shared/lib/page-path/normalize-page-path'
 
@@ -24,7 +23,7 @@ import {
   PRERENDER_REVALIDATE_HEADER,
 } from '../../../lib/constants'
 import { toRoute } from '../to-route'
-import { SharedCacheControls } from './shared-cache-controls'
+import { SharedCacheControls } from './shared-cache-controls.external'
 import {
   getPrerenderResumeDataCache,
   getRenderResumeDataCache,
@@ -34,6 +33,7 @@ import { InvariantError } from '../../../shared/lib/invariant-error'
 import type { Revalidate } from '../cache-control'
 import { getPreviouslyRevalidatedTags } from '../../server-utils'
 import { workAsyncStorage } from '../../app-render/work-async-storage.external'
+import { DetachedPromise } from '../../../lib/detached-promise'
 
 export interface CacheHandlerContext {
   fs?: CacheFs
@@ -88,9 +88,11 @@ export class IncrementalCache implements IncrementalCacheType {
   readonly allowedRevalidateHeaderKeys?: string[]
   readonly minimalMode?: boolean
   readonly fetchCacheKeyPrefix?: string
-  readonly revalidatedTags?: string[]
   readonly isOnDemandRevalidate?: boolean
+  readonly revalidatedTags?: readonly string[]
 
+  private static readonly debug: boolean =
+    !!process.env.NEXT_PRIVATE_DEBUG_CACHE
   private readonly locks = new Map<string, Promise<void>>()
 
   /**
@@ -124,7 +126,6 @@ export class IncrementalCache implements IncrementalCacheType {
     fetchCacheKeyPrefix?: string
     CurCacheHandler?: typeof CacheHandler
   }) {
-    const debug = !!process.env.NEXT_PRIVATE_DEBUG_CACHE
     this.hasCustomCacheHandler = Boolean(CurCacheHandler)
 
     const cacheHandlersSymbol = Symbol.for('@next/cache-handlers')
@@ -142,13 +143,13 @@ export class IncrementalCache implements IncrementalCacheType {
         CurCacheHandler = globalCacheHandler.FetchCache
       } else {
         if (fs && serverDistDir) {
-          if (debug) {
+          if (IncrementalCache.debug) {
             console.log('using filesystem cache handler')
           }
           CurCacheHandler = FileSystemCache
         }
       }
-    } else if (debug) {
+    } else if (IncrementalCache.debug) {
       console.log('using custom cache handler', CurCacheHandler.name)
     }
 
@@ -177,7 +178,7 @@ export class IncrementalCache implements IncrementalCacheType {
     }
 
     if (minimalMode) {
-      revalidatedTags = getPreviouslyRevalidatedTags(
+      revalidatedTags = this.revalidatedTags = getPreviouslyRevalidatedTags(
         requestHeaders,
         this.prerenderManifest?.preview?.previewModeId
       )
@@ -234,23 +235,42 @@ export class IncrementalCache implements IncrementalCacheType {
     this.cacheHandler?.resetRequestCache?.()
   }
 
-  async lock(cacheKey: string) {
-    let unlockNext: () => Promise<void> = () => Promise.resolve()
-    const existingLock = this.locks.get(cacheKey)
+  async lock(cacheKey: string): Promise<() => Promise<void> | void> {
+    // Wait for any existing lock on this cache key to be released
+    // This implements a simple queue-based locking mechanism
+    while (true) {
+      const lock = this.locks.get(cacheKey)
 
-    if (existingLock) {
-      await existingLock
+      if (IncrementalCache.debug) {
+        console.log('lock get', cacheKey, !!lock)
+      }
+
+      // If no lock exists, we can proceed to acquire it
+      if (!lock) break
+
+      // Wait for the existing lock to be released before trying again
+      await lock
     }
 
-    const newLock = new Promise<void>((resolve) => {
-      unlockNext = async () => {
-        resolve()
-        this.locks.delete(cacheKey) // Remove the lock upon release
-      }
-    })
+    // Create a new detached promise that will represent this lock
+    // The resolve function (unlock) will be returned to the caller
+    const { resolve, promise } = new DetachedPromise<void>()
 
-    this.locks.set(cacheKey, newLock)
-    return unlockNext
+    if (IncrementalCache.debug) {
+      console.log('successfully locked', cacheKey)
+    }
+
+    // Store the lock promise in the locks map
+    this.locks.set(cacheKey, promise)
+
+    return () => {
+      // Resolve the promise to release the lock.
+      resolve()
+
+      // Remove the lock from the map once it's released so that future gets
+      // can acquire the lock.
+      this.locks.delete(cacheKey)
+    }
   }
 
   async revalidateTag(tags: string | string[]): Promise<void> {
@@ -405,7 +425,13 @@ export class IncrementalCache implements IncrementalCacheType {
       if (resumeDataCache) {
         const memoryCacheData = resumeDataCache.fetch.get(cacheKey)
         if (memoryCacheData?.kind === CachedRouteKind.FETCH) {
+          if (IncrementalCache.debug) {
+            console.log('rdc:hit', cacheKey)
+          }
+
           return { isStale: false, value: memoryCacheData }
+        } else if (IncrementalCache.debug) {
+          console.log('rdc:miss', cacheKey)
         }
       }
     }
@@ -449,7 +475,32 @@ export class IncrementalCache implements IncrementalCacheType {
             workStore?.pendingRevalidatedTags?.includes(tag)
         )
       ) {
+        if (IncrementalCache.debug) {
+          console.log('stale tag', cacheKey)
+        }
+
         return null
+      }
+
+      // As we're able to get the cache entry for this fetch, and the prerender
+      // resume data cache (RDC) is available, it must have been populated by a
+      // previous fetch, but was not yet present in the in-memory cache. This
+      // could be the case when performing multiple renders in parallel during
+      // build time where we de-duplicate the fetch calls.
+      //
+      // We add it to the RDC so that the next fetch call will be able to use it
+      // and it won't have to reach into the fetch cache implementation.
+      const workUnitStore = workUnitAsyncStorage.getStore()
+      if (workUnitStore) {
+        const prerenderResumeDataCache =
+          getPrerenderResumeDataCache(workUnitStore)
+        if (prerenderResumeDataCache) {
+          if (IncrementalCache.debug) {
+            console.log('rdc:set', cacheKey)
+          }
+
+          prerenderResumeDataCache.fetch.set(cacheKey, cacheData.value)
+        }
       }
 
       const revalidate = ctx.revalidate || cacheData.value.revalidate
@@ -550,6 +601,10 @@ export class IncrementalCache implements IncrementalCacheType {
         ? getPrerenderResumeDataCache(workUnitStore)
         : null
       if (prerenderResumeDataCache) {
+        if (IncrementalCache.debug) {
+          console.log('rdc:set', pathname)
+        }
+
         prerenderResumeDataCache.fetch.set(pathname, data)
       }
     }
