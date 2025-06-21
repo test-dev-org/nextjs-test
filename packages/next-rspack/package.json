@@ -1,6 +1,6 @@
 {
   "name": "next-rspack",
-  "version": "15.4.0-canary.89",
+  "version": "15.4.0-canary.90",
   "repository": {
     "url": "vercel/next.js",
     "directory": "packages/next-rspack"

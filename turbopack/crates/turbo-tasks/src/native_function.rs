@@ -157,15 +157,15 @@ pub struct FunctionMeta {
 /// `#[turbo_tasks::function]`.
 pub struct NativeFunction {
     /// A readable name of the function that is used to reporting purposes.
-    pub name: String,
+    pub(crate) name: &'static str,
 
-    pub function_meta: FunctionMeta,
+    pub(crate) function_meta: FunctionMeta,
 
-    pub arg_meta: ArgMeta,
+    pub(crate) arg_meta: ArgMeta,
 
     /// The functor that creates a functor from inputs. The inner functor
     /// handles the task execution.
-    pub implementation: Box<dyn TaskFn + Send + Sync + 'static>,
+    pub(crate) implementation: Box<dyn TaskFn + Send + Sync + 'static>,
 }
 
 impl Debug for NativeFunction {
@@ -179,7 +179,7 @@ impl Debug for NativeFunction {
 
 impl NativeFunction {
     pub fn new_function<Mode, Inputs>(
-        name: String,
+        name: &'static str,
         function_meta: FunctionMeta,
         implementation: impl IntoTaskFn<Mode, Inputs>,
     ) -> Self
@@ -195,7 +195,7 @@ impl NativeFunction {
     }
 
     pub fn new_method_without_this<Mode, Inputs, I>(
-        name: String,
+        name: &'static str,
         function_meta: FunctionMeta,
         arg_filter: Option<(FilterOwnedArgsFunctor, FilterAndResolveFunctor)>,
         implementation: I,
@@ -217,7 +217,7 @@ impl NativeFunction {
     }
 
     pub fn new_method<Mode, This, Inputs, I>(
-        name: String,
+        name: &'static str,
         function_meta: FunctionMeta,
         arg_filter: Option<(FilterOwnedArgsFunctor, FilterAndResolveFunctor)>,
         implementation: I,
@@ -256,21 +256,13 @@ impl NativeFunction {
     pub fn span(&'static self, persistence: TaskPersistence) -> Span {
         match persistence {
             TaskPersistence::Persistent => {
-                tracing::trace_span!("turbo_tasks::function", name = self.name.as_str())
+                tracing::trace_span!("turbo_tasks::function", name = self.name)
             }
             TaskPersistence::Transient => {
-                tracing::trace_span!(
-                    "turbo_tasks::function",
-                    name = self.name.as_str(),
-                    transient = true,
-                )
+                tracing::trace_span!("turbo_tasks::function", name = self.name, transient = true,)
             }
             TaskPersistence::Local => {
-                tracing::trace_span!(
-                    "turbo_tasks::function",
-                    name = self.name.as_str(),
-                    local = true,
-                )
+                tracing::trace_span!("turbo_tasks::function", name = self.name, local = true,)
             }
         }
     }
@@ -278,21 +270,17 @@ impl NativeFunction {
     pub fn resolve_span(&'static self, persistence: TaskPersistence) -> Span {
         match persistence {
             TaskPersistence::Persistent => {
-                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name.as_str())
+                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name)
             }
             TaskPersistence::Transient => {
                 tracing::trace_span!(
                     "turbo_tasks::resolve_call",
-                    name = self.name.as_str(),
+                    name = self.name,
                     transient = true,
                 )
             }
             TaskPersistence::Local => {
-                tracing::trace_span!(
-                    "turbo_tasks::resolve_call",
-                    name = self.name.as_str(),
-                    local = true,
-                )
+                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name, local = true,)
             }
         }
     }
