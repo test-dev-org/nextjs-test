@@ -31,6 +31,7 @@ import { DEVTOOLS_PANEL_TAB_SETTINGS_STYLES } from '../components/devtools-panel
 import { CALL_STACK_STYLES } from '../components/call-stack/call-stack'
 import { DEVTOOLS_PANEL_TAB_ISSUES_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab'
 import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar'
+import { ISSUES_TAB_SIDEBAR_FRAME_SKELETON_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar-frame-skeleton'
 
 export function ComponentStyles() {
   return (
@@ -68,6 +69,7 @@ export function ComponentStyles() {
         ${DEVTOOLS_PANEL_TAB_SETTINGS_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES}
+        ${ISSUES_TAB_SIDEBAR_FRAME_SKELETON_STYLES}
       `}
     </style>
   )

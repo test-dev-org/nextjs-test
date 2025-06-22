@@ -6,6 +6,7 @@ import { css } from '../../../../utils/css'
 import { getFrameSource } from '../../../../../shared/stack-frame'
 import { useFrames } from '../../../../utils/get-error-by-type'
 import { getErrorTypeLabel } from '../../../../container/errors'
+import { IssuesTabSidebarFrameSkeleton } from './issues-tab-sidebar-frame-skeleton'
 
 export function IssuesTabSidebar({
   runtimeErrors,
@@ -20,14 +21,16 @@ export function IssuesTabSidebar({
   return (
     <aside data-nextjs-devtools-panel-tab-issues-sidebar>
       {runtimeErrors.map((runtimeError, idx) => {
-        // TODO: Loading state
+        const isActive = idx === activeIdx
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense
+            key={idx}
+            fallback={<IssuesTabSidebarFrameSkeleton isActive={isActive} />}
+          >
             <IssuesTabSidebarFrame
-              key={idx}
               runtimeError={runtimeError}
               idx={idx}
-              activeIdx={activeIdx}
+              isActive={isActive}
               setActiveIndex={setActiveIndex}
             />
           </Suspense>
@@ -40,12 +43,12 @@ export function IssuesTabSidebar({
 function IssuesTabSidebarFrame({
   runtimeError,
   idx,
-  activeIdx,
+  isActive,
   setActiveIndex,
 }: {
   runtimeError: ReadyRuntimeError
   idx: number
-  activeIdx: number
+  isActive: boolean
   setActiveIndex: (idx: number) => void
 }) {
   const frames = useFrames(runtimeError)
@@ -72,9 +75,7 @@ function IssuesTabSidebarFrame({
   return (
     <button
       data-nextjs-devtools-panel-tab-issues-sidebar-frame
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame-active={
-        idx === activeIdx
-      }
+      data-nextjs-devtools-panel-tab-issues-sidebar-frame-active={isActive}
       onClick={() => setActiveIndex(idx)}
     >
       <span data-nextjs-devtools-panel-tab-issues-sidebar-frame-error-type>
