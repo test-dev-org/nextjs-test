@@ -159,12 +159,14 @@ export const DEVTOOLS_PANEL_STYLES = css`
   [data-nextjs-devtools-panel-overlay] {
     padding: initial;
     margin: auto;
+    width: 100%;
     /* TODO: This is for fullscreen mode. */
     /* top: 10vh; */
 
     @media (max-width: 575px) {
       left: 20px !important;
       right: 20px !important;
+      width: auto;
     }
 
     @media (min-width: 576px) {
