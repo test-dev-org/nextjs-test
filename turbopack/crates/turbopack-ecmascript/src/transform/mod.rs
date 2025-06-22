@@ -217,14 +217,12 @@ impl EcmascriptInputTransform {
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                program.mutate(
-                    (preset_env::transform_from_env::<&'_ dyn Comments>(
-                        top_level_mark,
-                        Some(&comments),
-                        config,
-                        Assumptions::default(),
-                    )),
-                );
+                program.mutate(preset_env::transform_from_env::<&'_ dyn Comments>(
+                    top_level_mark,
+                    Some(&comments),
+                    config,
+                    Assumptions::default(),
+                ));
             }
             EcmascriptInputTransform::TypeScript {
                 // TODO(WEB-1213)
