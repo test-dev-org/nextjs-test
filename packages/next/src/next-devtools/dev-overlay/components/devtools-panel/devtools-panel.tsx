@@ -162,7 +162,10 @@ export const DEVTOOLS_PANEL_STYLES = css`
     /* TODO: This is for fullscreen mode. */
     /* top: 10vh; */
 
-    width: 100%;
+    @media (max-width: 575px) {
+      left: 20px !important;
+      right: 20px !important;
+    }
 
     @media (min-width: 576px) {
       max-width: 540px;
@@ -174,14 +177,6 @@ export const DEVTOOLS_PANEL_STYLES = css`
 
     @media (min-width: 992px) {
       max-width: 960px;
-    }
-
-    @media (min-width: 1200px) {
-      max-width: 1140px;
-    }
-
-    @media (min-width: 1440px) {
-      max-width: 1200px;
     }
   }
 
@@ -208,6 +203,7 @@ export const DEVTOOLS_PANEL_STYLES = css`
     overflow-y: auto;
     width: 100%;
     max-height: 50vh;
+    min-height: 450px;
   }
 
   [data-nextjs-devtools-panel-header] {
