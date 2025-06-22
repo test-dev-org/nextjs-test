@@ -20,6 +20,7 @@ import { hasCustomExportOutput } from '../../export/utils'
 import { Telemetry } from '../../telemetry/storage'
 import { setGlobal } from '../../trace'
 import { isCI } from '../../server/ci-info'
+import { backgroundLogCompilationEvents } from '../../shared/lib/turbopack/compilation-events'
 import { getSupportedBrowsers } from '../utils'
 
 export async function turbopackBuild(): Promise<{
