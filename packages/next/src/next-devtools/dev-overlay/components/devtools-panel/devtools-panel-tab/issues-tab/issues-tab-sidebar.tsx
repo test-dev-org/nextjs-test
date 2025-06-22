@@ -95,6 +95,8 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES = css`
     gap: 4px;
     padding: 8px;
     border-right: 1px solid var(--color-gray-400);
+    overflow-y: auto;
+    min-height: 0;
 
     min-width: 128px;
 

@@ -90,11 +90,14 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_STYLES = css`
   [data-nextjs-devtools-panel-tab-issues] {
     display: flex;
     flex: 1;
+    min-height: 0;
   }
 
   [data-nextjs-devtools-panel-tab-issues-content] {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
   }
 `
