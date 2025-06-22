@@ -143,7 +143,7 @@ export function DevToolsPanel({
                   </div>
                 </div>
               </DialogHeader>
-              <DialogBody>
+              <DialogBody data-nextjs-devtools-panel-dialog-body>
                 <DevToolsPanelTab
                   activeTab={activeTab}
                   devToolsPosition={state.devToolsPosition}
@@ -167,9 +167,49 @@ export function DevToolsPanel({
 }
 
 export const DEVTOOLS_PANEL_STYLES = css`
+  [data-nextjs-devtools-panel-dialog-body] {
+    overflow-y: auto;
+  }
+
+  [data-nextjs-devtools-panel-dialog-body],
+  [data-nextjs-devtools-panel-dialog-body] * {
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+      border-radius: 0 0 1rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    &::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    &::-webkit-scrollbar-track {
+      border-radius: 0 0 1rem 1rem;
+      background-color: var(--color-background-100);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 1rem;
+      background-color: var(--color-gray-500);
+    }
+  }
+
   /* TODO: Better override dialog header style. This conflicts with issues tab content. */
   [data-nextjs-devtools-panel-dialog-header] {
     margin-bottom: 0 !important;
+  }
+
+  /* Make DialogContent expand to push footer to bottom */
+  [data-nextjs-devtools-panel-dialog] [data-nextjs-dialog-content] {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Make DialogBody a flex container so its children can expand */
+  [data-nextjs-devtools-panel-dialog] [data-nextjs-dialog-body] {
+    display: flex;
+    flex-direction: column;
   }
 
   [data-nextjs-devtools-panel-overlay] {
@@ -218,7 +258,6 @@ export const DEVTOOLS_PANEL_STYLES = css`
     border-radius: var(--rounded-xl);
     box-shadow: var(--shadow-lg);
     position: relative;
-    overflow-y: auto;
     width: 100%;
     max-height: 50vh;
     min-height: 450px;
