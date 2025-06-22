@@ -49,7 +49,6 @@ export const DEVTOOLS_PANEL_FOOTER_STYLES = css`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: auto;
     border-top: 1px solid var(--color-gray-400);
     border-radius: 0 0 var(--rounded-xl) var(--rounded-xl);
   }
