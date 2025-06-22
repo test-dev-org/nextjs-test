@@ -65,10 +65,20 @@ impl PartialEq for LightningCssTargets {
 
 /// Returns the LightningCSS targets for the given browserslist query.
 #[turbo_tasks::function]
-fn get_lightningcss_browser_targets(
-    browserslist_query: RcStr,
+async fn get_lightningcss_browser_targets(
+    environment: Option<ResolvedVc<Environment>>,
     handle_nesting: bool,
 ) -> Result<Vc<LightningCssTargets>> {
+    let browserslist_query = if let Some(environment) = environment {
+        (*environment.browserslist_query().await?).clone()
+    } else {
+        // This case should never happen because the only time `environment` is `None`
+        // is for Turbopack runtime code currently.
+        //
+        // TODO: Remove this once we have a proper environment for runtime code.
+        todo!()
+    };
+
     let browserslist_browsers = lightningcss::targets::Browsers::from_browserslist_with_config(
         browserslist_query.split(','),
         BrowserslistConfig {
@@ -115,17 +125,9 @@ impl StyleSheetLike<'_, '_> {
             None
         };
 
-        let browserslist_query = if let Some(environment) = environment {
-            (*environment.browserslist_query().await?).clone()
-        } else {
-            // This case should never happen because the only time `environment` is `None`
-            // is for Turbopack runtime code currently.
-            //
-            // TODO: Remove this once we have a proper environment for runtime code.
-            todo!()
-        };
-
-        let targets = *get_lightningcss_browser_targets(browserslist_query, handle_nesting).await?;
+        let targets =
+            *get_lightningcss_browser_targets(environment.as_deref().copied(), handle_nesting)
+                .await?;
 
         let result = ss.to_css(PrinterOptions {
             minify: matches!(minify_type, MinifyType::Minify { .. }),
@@ -509,17 +511,9 @@ async fn process_content(
                     }
                 }
 
-                let browserslist_query = if let Some(environment) = environment {
-                    (*environment.browserslist_query().await?).clone()
-                } else {
-                    // This case should never happen because the only time `environment` is `None`
-                    // is for Turbopack runtime code currently.
-                    //
-                    // TODO: Remove this once we have a proper environment for runtime code.
-                    todo!()
-                };
-
-                let targets = *get_lightningcss_browser_targets(browserslist_query, true).await?;
+                let targets =
+                    *get_lightningcss_browser_targets(environment.as_deref().copied(), true)
+                        .await?;
 
                 // minify() is actually transform, and it performs operations like CSS modules
                 // handling.
