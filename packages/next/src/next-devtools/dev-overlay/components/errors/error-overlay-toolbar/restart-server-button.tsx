@@ -47,7 +47,7 @@ export function RestartServerButton({ error }: { error: Error }) {
       title="Clears the bundler cache and restarts the dev server. Helpful if you are seeing stale errors or changes are not appearing."
     >
       <RefreshClockWise width={14} height={14} />
-      Clear Cache &amp; Restart
+      Clear Bundler Cache &amp; Restart
     </button>
   )
 }
