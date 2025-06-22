@@ -25,7 +25,7 @@ export function IssuesTabSidebarFrameSkeleton({
   )
 }
 
-export const ISSUES_TAB_SIDEBAR_FRAME_SKELETON_STYLES = css`
+export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES = css`
   [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar] {
     height: var(--size-12);
     border-radius: 100px;
