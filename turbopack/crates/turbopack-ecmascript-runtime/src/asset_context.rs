@@ -6,7 +6,7 @@ use turbopack::{
 };
 use turbopack_core::{
     compile_time_info::CompileTimeInfo, context::AssetContext, environment::Environment,
-    ident::LayerName,
+    ident::Layer,
 };
 use turbopack_ecmascript::TreeShakingMode;
 
@@ -35,7 +35,7 @@ pub async fn get_runtime_asset_context(
         compile_time_info,
         module_options_context,
         Vc::default(),
-        LayerName::new(rcstr!("runtime")),
+        Layer::new(rcstr!("runtime")),
     ));
 
     Ok(asset_context)

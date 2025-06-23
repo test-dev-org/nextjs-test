@@ -42,7 +42,7 @@ use turbopack_core::{
     context::AssetContext,
     environment::{Environment, ExecutionEnvironment, NodeJsEnvironment},
     file_source::FileSource,
-    ident::LayerName,
+    ident::Layer,
     output::OutputAsset,
     rebase::RebasedAsset,
     reference_type::ReferenceType,
@@ -369,7 +369,7 @@ async fn node_file_trace_operation(
             ..Default::default()
         }
         .cell(),
-        LayerName::new(rcstr!("test")),
+        Layer::new(rcstr!("test")),
     );
     let module = module_asset_context
         .process(Vc::upcast(source), ReferenceType::Undefined)

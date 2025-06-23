@@ -24,7 +24,7 @@ use turbo_tasks_hash::{DeterministicHash, Xxh3Hash64Hasher};
 
 use crate::{
     asset::{Asset, AssetContent},
-    ident::{AssetIdent, LayerName},
+    ident::{AssetIdent, Layer},
     source::Source,
     source_map::{GenerateSourceMap, SourceMap, TokenWithSource},
     source_pos::SourcePos,
@@ -651,7 +651,7 @@ impl PlainTraceItem {
         let fs_name = fs_path.fs.to_string().owned().await?;
         let root_path = fs_path.fs.root().await?.path.clone();
         let path = fs_path.path.clone();
-        let layer = asset.layer.as_ref().map(LayerName::user_friendly_name);
+        let layer = asset.layer.as_ref().map(Layer::user_friendly_name).cloned();
         Ok(Self {
             fs_name,
             root_path,

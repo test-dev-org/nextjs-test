@@ -16,7 +16,7 @@ use turbopack_core::{
     context::AssetContext,
     environment::{Environment, ExecutionEnvironment, NodeJsEnvironment},
     file_source::FileSource,
-    ident::LayerName,
+    ident::Layer,
     rebase::RebasedAsset,
     reference_type::ReferenceType,
 };
@@ -114,7 +114,7 @@ fn bench_emit(b: &mut Bencher, bench_input: &BenchInput) {
                         ..Default::default()
                     }
                     .cell(),
-                    LayerName::new(rcstr!("node_file_trace")),
+                    Layer::new(rcstr!("node_file_trace")),
                 );
                 let module = module_asset_context
                     .process(Vc::upcast(source), ReferenceType::Undefined)

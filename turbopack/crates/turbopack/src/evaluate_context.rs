@@ -9,7 +9,7 @@ use turbopack_core::{
     condition::ContextCondition,
     context::AssetContext,
     environment::{Environment, ExecutionEnvironment, NodeJsEnvironment},
-    ident::LayerName,
+    ident::Layer,
     resolve::options::{ImportMap, ImportMapping},
 };
 use turbopack_ecmascript::TreeShakingMode;
@@ -34,7 +34,7 @@ pub async fn node_evaluate_asset_context(
     execution_context: Vc<ExecutionContext>,
     import_map: Option<Vc<ImportMap>>,
     transitions: Option<Vc<TransitionOptions>>,
-    layer: LayerName,
+    layer: Layer,
     ignore_dynamic_requests: bool,
 ) -> Result<Vc<Box<dyn AssetContext>>> {
     let mut import_map = if let Some(import_map) = import_map {

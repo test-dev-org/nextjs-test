@@ -19,7 +19,7 @@ use turbopack_core::{
     context::AssetContext,
     environment::{Environment, ExecutionEnvironment, NodeJsEnvironment},
     file_source::FileSource,
-    ident::LayerName,
+    ident::Layer,
     rebase::RebasedAsset,
 };
 use turbopack_resolve::resolve_options_context::ResolveOptionsContext;
@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
                     ..Default::default()
                 }
                 .cell(),
-                LayerName::new(rcstr!("default")),
+                Layer::new(rcstr!("default")),
             );
             let module = module_asset_context
                 .process(

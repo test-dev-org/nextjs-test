@@ -19,7 +19,7 @@ use turbopack::evaluate_context::node_evaluate_asset_context;
 use turbopack_core::{
     asset::AssetContent,
     context::AssetContext,
-    ident::{AssetIdent, LayerName},
+    ident::{AssetIdent, Layer},
     issue::{IssueExt, IssueSeverity, StyledString},
     reference_type::{InnerAssets, ReferenceType},
     resolve::{
@@ -699,7 +699,7 @@ async fn get_mock_stylesheet(
         execution_context,
         None,
         None,
-        LayerName::new(rcstr!("next_font")),
+        Layer::new(rcstr!("next_font")),
         false,
     );
     let loader_path = mock_fs.root().join(rcstr!("loader.js"));

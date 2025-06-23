@@ -42,7 +42,7 @@ use turbopack_core::{
     environment::{BrowserEnvironment, Environment, ExecutionEnvironment, NodeJsEnvironment},
     file_source::FileSource,
     free_var_references,
-    ident::LayerName,
+    ident::Layer,
     issue::IssueDescriptionExt,
     module::Module,
     module_graph::{
@@ -347,7 +347,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
             ..Default::default()
         }
         .cell(),
-        LayerName::new(rcstr!("test")),
+        Layer::new(rcstr!("test")),
     ));
 
     let runtime_entries = maybe_load_env(asset_context, *project_path)

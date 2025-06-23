@@ -11,7 +11,7 @@ use turbo_tasks_hash::{DeterministicHash, Xxh3Hash64Hasher, encode_hex, hash_xxh
 
 use crate::resolve::ModulePart;
 
-/// A layer name identifies a distinct part of the module graph.
+/// A layer identifies a distinct part of the module graph.
 #[derive(
     Clone,
     TaskInput,
@@ -25,12 +25,12 @@ use crate::resolve::ModulePart;
     Deserialize,
     NonLocalValue,
 )]
-pub struct LayerName {
+pub struct Layer {
     name: RcStr,
     user_friendly_name: Option<RcStr>,
 }
 
-impl LayerName {
+impl Layer {
     pub fn new(name: RcStr) -> Self {
         Self::new_impl(name, None)
     }
@@ -50,14 +50,12 @@ impl LayerName {
     }
 
     /// Returns a user friendly name for this layer
-    pub fn user_friendly_name(&self) -> RcStr {
-        self.user_friendly_name
-            .as_ref()
-            .unwrap_or(&self.name)
-            .clone()
+    pub fn user_friendly_name(&self) -> &RcStr {
+        self.user_friendly_name.as_ref().unwrap_or(&self.name)
     }
-    pub fn name(&self) -> RcStr {
-        self.name.clone()
+
+    pub fn name(&self) -> &RcStr {
+        &self.name
     }
 }
 
@@ -79,7 +77,7 @@ pub struct AssetIdent {
     /// The parts of the asset that are (ECMAScript) modules
     pub parts: Vec<ModulePart>,
     /// The asset layer the asset was created from.
-    pub layer: Option<LayerName>,
+    pub layer: Option<Layer>,
     /// The MIME content type, if this asset was created from a data URL.
     pub content_type: Option<RcStr>,
 }
@@ -233,7 +231,7 @@ impl AssetIdent {
     }
 
     #[turbo_tasks::function]
-    pub fn with_layer(&self, layer: LayerName) -> Vc<Self> {
+    pub fn with_layer(&self, layer: Layer) -> Vc<Self> {
         let mut this = self.clone();
         this.layer = Some(layer);
         Self::new(this)
