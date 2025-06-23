@@ -33,6 +33,7 @@ import { DEVTOOLS_PANEL_TAB_ISSUES_STYLES } from '../components/devtools-panel/d
 import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar'
 import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar-frame-skeleton'
 import { DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-content'
+import { ISSUE_FEEDBACK_BUTTON_STYLES } from '../components/errors/error-overlay-toolbar/issue-feedback-button'
 
 export function ComponentStyles() {
   return (
@@ -73,6 +74,7 @@ export function ComponentStyles() {
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES}
+        ${ISSUE_FEEDBACK_BUTTON_STYLES}
       `}
     </style>
   )

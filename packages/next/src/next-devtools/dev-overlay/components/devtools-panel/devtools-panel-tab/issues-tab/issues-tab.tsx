@@ -15,6 +15,7 @@ import { ErrorOverlayToolbar } from '../../../errors/error-overlay-toolbar/error
 import { ErrorTypeLabel } from '../../../errors/error-type-label/error-type-label'
 import { css } from '../../../../utils/css'
 import { useActiveRuntimeError } from '../../../../hooks/use-active-runtime-error'
+import { IssueFeedbackButton } from '../../../errors/error-overlay-toolbar/issue-feedback-button'
 
 export function IssuesTab({
   debugInfo,
@@ -80,6 +81,10 @@ export function IssuesTab({
             <ErrorOverlayToolbar
               error={activeError.error}
               debugInfo={debugInfo}
+              // TODO: Move the button inside and remove the feedback on the footer of the error overlay.
+              feedbackButton={
+                errorCode && <IssueFeedbackButton errorCode={errorCode} />
+              }
             />
           </div>
           <ErrorMessage errorMessage={errorMessage} />
