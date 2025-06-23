@@ -6,14 +6,13 @@ use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use crate::{
-    self as turbo_tasks,
+    RawVc, TaskInput, TaskPersistence,
     magic_any::{MagicAny, MagicAnyDeserializeSeed, MagicAnySerializeSeed},
     registry::register_function,
     task::{
-        function::{IntoTaskFnWithThis, NativeTaskFuture},
         IntoTaskFn, TaskFn,
+        function::{IntoTaskFnWithThis, NativeTaskFuture},
     },
-    RawVc, TaskInput, TaskPersistence,
 };
 
 type ResolveFuture<'a> = Pin<Box<dyn Future<Output = Result<Box<dyn MagicAny>>> + Send + 'a>>;
@@ -89,13 +88,15 @@ impl ArgMeta {
         (self.filter_owned)(args)
     }
 
+    /// This will return `(None, _)` even if the target is a method, if the method does not use
+    /// `self`.
     pub async fn filter_and_resolve(&self, args: &dyn MagicAny) -> Result<Box<dyn MagicAny>> {
         (self.filter_and_resolve)(args).await
     }
 }
 
 fn resolve_functor_impl<T: MagicAny + TaskInput>(value: &dyn MagicAny) -> ResolveFuture<'_> {
-    Box::pin(async {
+    Box::pin(async move {
         let value = downcast_args_ref::<T>(value);
         let resolved = value.resolve_input().await?;
         Ok(Box::new(resolved) as Box<dyn MagicAny>)
@@ -143,25 +144,28 @@ pub struct FunctionMeta {
     /// task-local state. The function call itself will not be cached, but cells will be created on
     /// the parent task.
     pub local: bool,
+
+    /// If true, the function will be allowed to call `get_invalidator`. If this is false, the
+    /// `get_invalidator` function will panic on calls.
+    pub invalidator: bool,
+
+    /// If true, the function is statically analyzable immutable.
+    pub immutable: bool,
 }
 
 /// A native (rust) turbo-tasks function. It's used internally by
 /// `#[turbo_tasks::function]`.
-#[turbo_tasks::value(cell = "new", serialization = "none", eq = "manual")]
 pub struct NativeFunction {
     /// A readable name of the function that is used to reporting purposes.
-    pub name: String,
+    pub(crate) name: &'static str,
 
-    #[turbo_tasks(trace_ignore)]
-    pub function_meta: FunctionMeta,
+    pub(crate) function_meta: FunctionMeta,
 
-    #[turbo_tasks(debug_ignore, trace_ignore)]
-    pub arg_meta: ArgMeta,
+    pub(crate) arg_meta: ArgMeta,
 
     /// The functor that creates a functor from inputs. The inner functor
     /// handles the task execution.
-    #[turbo_tasks(debug_ignore, trace_ignore)]
-    pub implementation: Box<dyn TaskFn + Send + Sync + 'static>,
+    pub(crate) implementation: Box<dyn TaskFn + Send + Sync + 'static>,
 }
 
 impl Debug for NativeFunction {
@@ -175,7 +179,7 @@ impl Debug for NativeFunction {
 
 impl NativeFunction {
     pub fn new_function<Mode, Inputs>(
-        name: String,
+        name: &'static str,
         function_meta: FunctionMeta,
         implementation: impl IntoTaskFn<Mode, Inputs>,
     ) -> Self
@@ -190,8 +194,30 @@ impl NativeFunction {
         }
     }
 
+    pub fn new_method_without_this<Mode, Inputs, I>(
+        name: &'static str,
+        function_meta: FunctionMeta,
+        arg_filter: Option<(FilterOwnedArgsFunctor, FilterAndResolveFunctor)>,
+        implementation: I,
+    ) -> Self
+    where
+        Inputs: TaskInput + Serialize + for<'de> Deserialize<'de> + 'static,
+        I: IntoTaskFn<Mode, Inputs>,
+    {
+        Self {
+            name,
+            function_meta,
+            arg_meta: if let Some((filter_owned, filter_and_resolve)) = arg_filter {
+                ArgMeta::with_filter_trait_call::<Inputs>(filter_owned, filter_and_resolve)
+            } else {
+                ArgMeta::new::<Inputs>()
+            },
+            implementation: Box::new(implementation.into_task_fn()),
+        }
+    }
+
     pub fn new_method<Mode, This, Inputs, I>(
-        name: String,
+        name: &'static str,
         function_meta: FunctionMeta,
         arg_filter: Option<(FilterOwnedArgsFunctor, FilterAndResolveFunctor)>,
         implementation: I,
@@ -216,7 +242,13 @@ impl NativeFunction {
     /// Executed the function
     pub fn execute(&'static self, this: Option<RawVc>, arg: &dyn MagicAny) -> NativeTaskFuture {
         match (self.implementation).functor(this, arg) {
-            Ok(functor) => functor,
+            Ok(functor) => {
+                if !self.function_meta.invalidator {
+                    return Box::pin(crate::invalidation::disallow_invalidator(functor));
+                }
+
+                functor
+            }
             Err(err) => Box::pin(async { Err(err) }),
         }
     }
@@ -224,21 +256,13 @@ impl NativeFunction {
     pub fn span(&'static self, persistence: TaskPersistence) -> Span {
         match persistence {
             TaskPersistence::Persistent => {
-                tracing::trace_span!("turbo_tasks::function", name = self.name.as_str())
+                tracing::trace_span!("turbo_tasks::function", name = self.name)
             }
             TaskPersistence::Transient => {
-                tracing::trace_span!(
-                    "turbo_tasks::function",
-                    name = self.name.as_str(),
-                    transient = true,
-                )
+                tracing::trace_span!("turbo_tasks::function", name = self.name, transient = true,)
             }
             TaskPersistence::Local => {
-                tracing::trace_span!(
-                    "turbo_tasks::function",
-                    name = self.name.as_str(),
-                    local = true,
-                )
+                tracing::trace_span!("turbo_tasks::function", name = self.name, local = true,)
             }
         }
     }
@@ -246,21 +270,17 @@ impl NativeFunction {
     pub fn resolve_span(&'static self, persistence: TaskPersistence) -> Span {
         match persistence {
             TaskPersistence::Persistent => {
-                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name.as_str())
+                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name)
             }
             TaskPersistence::Transient => {
                 tracing::trace_span!(
                     "turbo_tasks::resolve_call",
-                    name = self.name.as_str(),
+                    name = self.name,
                     transient = true,
                 )
             }
             TaskPersistence::Local => {
-                tracing::trace_span!(
-                    "turbo_tasks::resolve_call",
-                    name = self.name.as_str(),
-                    local = true,
-                )
+                tracing::trace_span!("turbo_tasks::resolve_call", name = self.name, local = true,)
             }
         }
     }

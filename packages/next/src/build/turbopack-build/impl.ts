@@ -19,6 +19,8 @@ import loadConfig from '../../server/config'
 import { hasCustomExportOutput } from '../../export/utils'
 import { Telemetry } from '../../telemetry/storage'
 import { setGlobal } from '../../trace'
+import { isCI } from '../../server/ci-info'
+import { backgroundLogCompilationEvents } from '../../shared/lib/turbopack/compilation-events'
 
 export async function turbopackBuild(): Promise<{
   duration: number
@@ -69,6 +71,7 @@ export async function turbopackBuild(): Promise<{
         config,
         dev,
         distDir,
+        projectPath: dir,
         fetchCacheKeyPrefix: config.experimental.fetchCacheKeyPrefix,
         hasRewrites,
         // Implemented separately in Turbopack, doesn't have to be passed here.
@@ -84,9 +87,12 @@ export async function turbopackBuild(): Promise<{
       persistentCaching,
       memoryLimit: config.experimental?.turbopackMemoryLimit,
       dependencyTracking: persistentCaching,
+      isCi: isCI,
     }
   )
   try {
+    backgroundLogCompilationEvents(project)
+
     // Write an empty file in a known location to signal this was built with Turbopack
     await fs.writeFile(path.join(distDir, 'turbopack'), '')
 
@@ -218,7 +224,8 @@ export async function workerMain(workerData: {
   /// load the config because it's not serializable
   NextBuildContext.config = await loadConfig(
     PHASE_PRODUCTION_BUILD,
-    NextBuildContext.dir!
+    NextBuildContext.dir!,
+    { debugPrerender: NextBuildContext.debugPrerender }
   )
 
   // Matches handling in build/index.ts

@@ -1,16 +1,18 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
-use turbo_rcstr::RcStr;
+use turbo_esregex::EsRegex;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
-    debug::ValueDebugFormat, trace::TraceRawVcs, FxIndexMap, NonLocalValue, OperationValue,
-    ResolvedVc, TaskInput, Vc,
+    FxIndexMap, NonLocalValue, OperationValue, ResolvedVc, TaskInput, Vc, debug::ValueDebugFormat,
+    trace::TraceRawVcs,
 };
 use turbo_tasks_env::EnvMap;
 use turbo_tasks_fs::FileSystemPath;
 use turbopack::module_options::{
-    module_options_context::MdxTransformOptions, LoaderRuleItem, OptionWebpackRules,
+    ConditionItem, ConditionPath, LoaderRuleItem, OptionWebpackRules,
+    module_options_context::{MdxTransformOptions, OptionWebpackConditions},
 };
 use turbopack_core::{
     issue::{Issue, IssueSeverity, IssueStage, OptionStyledString, StyledString},
@@ -60,7 +62,7 @@ impl Default for CacheKinds {
 
 #[turbo_tasks::value(serialization = "custom", eq = "manual")]
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, OperationValue)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct NextConfig {
     // TODO all fields should be private and access should be wrapped within a turbo-tasks function
     // Otherwise changing NextConfig will lead to invalidating all tasks accessing it.
@@ -541,9 +543,52 @@ pub struct TurbopackConfig {
     /// This option has been replaced by `rules`.
     pub loaders: Option<JsonValue>,
     pub rules: Option<FxIndexMap<RcStr, RuleConfigItemOrShortcut>>,
+    #[turbo_tasks(trace_ignore)]
+    pub conditions: Option<FxIndexMap<RcStr, ConfigConditionItem>>,
     pub resolve_alias: Option<FxIndexMap<RcStr, JsonValue>>,
     pub resolve_extensions: Option<Vec<RcStr>>,
     pub module_ids: Option<ModuleIds>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct RegexComponents {
+    source: RcStr,
+    flags: RcStr,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "camelCase")]
+pub enum ConfigConditionPath {
+    Glob(RcStr),
+    Regex(RegexComponents),
+}
+
+impl TryInto<ConditionPath> for ConfigConditionPath {
+    fn try_into(self) -> Result<ConditionPath> {
+        Ok(match self {
+            ConfigConditionPath::Glob(path) => ConditionPath::Glob(path),
+            ConfigConditionPath::Regex(path) => {
+                ConditionPath::Regex(EsRegex::new(&path.source, &path.flags)?.resolved_cell())
+            }
+        })
+    }
+
+    type Error = anyhow::Error;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ConfigConditionItem {
+    pub path: ConfigConditionPath,
+}
+
+impl TryInto<ConditionItem> for ConfigConditionItem {
+    fn try_into(self) -> Result<ConditionItem> {
+        Ok(ConditionItem {
+            path: self.path.try_into()?,
+        })
+    }
+
+    type Error = anyhow::Error;
 }
 
 #[derive(
@@ -750,6 +795,12 @@ pub struct ExperimentalConfig {
     turbopack_persistent_caching: Option<bool>,
     turbopack_source_maps: Option<bool>,
     turbopack_tree_shaking: Option<bool>,
+    // Whether to enable the global-not-found convention
+    global_not_found: Option<bool>,
+    /// Defaults to false in development mode, true in production mode.
+    turbopack_remove_unused_exports: Option<bool>,
+    /// Devtool option for the segment explorer.
+    devtool_segment_explorer: Option<bool>,
 }
 
 #[derive(
@@ -1065,8 +1116,9 @@ impl NextConfig {
     #[turbo_tasks::function]
     pub async fn from_string(string: Vc<RcStr>) -> Result<Vc<Self>> {
         let string = string.await?;
-        let config: NextConfig = serde_json::from_str(&string)
-            .with_context(|| format!("failed to parse next.config.js: {}", string))?;
+        let mut jdeserializer = serde_json::Deserializer::from_str(&string);
+        let config: NextConfig = serde_path_to_error::deserialize(&mut jdeserializer)
+            .with_context(|| format!("failed to parse next.config.js: {string}"))?;
         Ok(config.cell())
     }
 
@@ -1137,6 +1189,11 @@ impl NextConfig {
     #[turbo_tasks::function]
     pub fn page_extensions(&self) -> Vc<Vec<RcStr>> {
         Vc::cell(self.page_extensions.clone())
+    }
+
+    #[turbo_tasks::function]
+    pub fn is_global_not_found_enabled(&self) -> Vc<bool> {
+        Vc::cell(self.experimental.global_not_found.unwrap_or_default())
     }
 
     #[turbo_tasks::function]
@@ -1225,6 +1282,24 @@ impl NextConfig {
             }
         }
         Vc::cell(Some(ResolvedVc::cell(rules)))
+    }
+
+    #[turbo_tasks::function]
+    pub fn webpack_conditions(&self) -> Result<Vc<OptionWebpackConditions>> {
+        let Some(config_conditions) = self.turbopack.as_ref().and_then(|t| t.conditions.as_ref())
+        else {
+            return Ok(Vc::cell(None));
+        };
+
+        let conditions = config_conditions
+            .iter()
+            .map(|(k, v)| {
+                let item: Result<ConditionItem> = TryInto::<ConditionItem>::try_into((*v).clone());
+                item.map(|item| (k.clone(), item))
+            })
+            .collect::<Result<FxIndexMap<RcStr, ConditionItem>>>()?;
+
+        Ok(Vc::cell(Some(ResolvedVc::cell(conditions))))
     }
 
     #[turbo_tasks::function]
@@ -1390,7 +1465,7 @@ impl NextConfig {
         let this = self.await?;
 
         match &this.deployment_id {
-            Some(deployment_id) => Ok(Vc::cell(Some(format!("?dpl={}", deployment_id).into()))),
+            Some(deployment_id) => Ok(Vc::cell(Some(format!("?dpl={deployment_id}").into()))),
             None => Ok(Vc::cell(None)),
         }
     }
@@ -1488,11 +1563,26 @@ impl NextConfig {
     }
 
     #[turbo_tasks::function]
-    pub fn module_ids(&self) -> Vc<OptionModuleIds> {
-        let Some(module_ids) = self.turbopack.as_ref().and_then(|t| t.module_ids) else {
-            return Vc::cell(None);
-        };
-        Vc::cell(Some(module_ids))
+    pub fn turbopack_remove_unused_exports(&self, is_development: bool) -> Vc<bool> {
+        Vc::cell(
+            self.experimental
+                .turbopack_remove_unused_exports
+                .unwrap_or(!is_development),
+        )
+    }
+
+    #[turbo_tasks::function]
+    pub async fn module_ids(&self, mode: Vc<NextMode>) -> Result<Vc<ModuleIds>> {
+        Ok(match *mode.await? {
+            // Ignore configuration in development mode, HMR only works with `named`
+            NextMode::Development => ModuleIds::Named.cell(),
+            NextMode::Build => self
+                .turbopack
+                .as_ref()
+                .and_then(|t| t.module_ids)
+                .unwrap_or(ModuleIds::Deterministic)
+                .cell(),
+        })
     }
 
     #[turbo_tasks::function]
@@ -1544,7 +1634,7 @@ impl JsConfig {
     pub async fn from_string(string: Vc<RcStr>) -> Result<Vc<Self>> {
         let string = string.await?;
         let config: JsConfig = serde_json::from_str(&string)
-            .with_context(|| format!("failed to parse next.config.js: {}", string))?;
+            .with_context(|| format!("failed to parse next.config.js: {string}"))?;
 
         Ok(config.cell())
     }
@@ -1565,9 +1655,8 @@ struct OutdatedConfigIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for OutdatedConfigIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        IssueSeverity::Error.into()
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Error
     }
 
     #[turbo_tasks::function]
@@ -1584,7 +1673,7 @@ impl Issue for OutdatedConfigIssue {
     fn title(&self) -> Vc<StyledString> {
         StyledString::Line(vec![
             StyledString::Code(self.old_name.clone()),
-            StyledString::Text(" has been replaced by ".into()),
+            StyledString::Text(rcstr!(" has been replaced by ")),
             StyledString::Code(self.new_name.clone()),
         ])
         .cell()

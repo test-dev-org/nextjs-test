@@ -17,7 +17,7 @@ use crate::{
 
 #[turbo_tasks::value(shared)]
 pub struct ResolvingIssue {
-    pub severity: ResolvedVc<IssueSeverity>,
+    pub severity: IssueSeverity,
     pub request_type: String,
     pub request: ResolvedVc<Request>,
     pub file_path: ResolvedVc<FileSystemPath>,
@@ -28,9 +28,8 @@ pub struct ResolvingIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for ResolvingIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        *self.severity
+    fn severity(&self) -> IssueSeverity {
+        self.severity
     }
 
     #[turbo_tasks::function]
@@ -70,7 +69,7 @@ impl Issue for ResolvingIssue {
             for request in request_parts {
                 match lookup_import_map(**import_map, *self.file_path, **request).await {
                     Ok(None) => {}
-                    Ok(Some(str)) => writeln!(description, "Import map: {}", str)?,
+                    Ok(Some(str)) => writeln!(description, "Import map: {str}")?,
                     Err(err) => {
                         writeln!(
                             description,

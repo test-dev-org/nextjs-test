@@ -4,37 +4,47 @@ use dashmap::mapref::entry::Entry;
 use once_cell::sync::Lazy;
 
 use crate::{
+    FxDashMap, TraitType, ValueType,
     id::{FunctionId, TraitTypeId, ValueTypeId},
     id_factory::IdFactory,
     native_function::NativeFunction,
     no_move_vec::NoMoveVec,
-    FxDashMap, TraitType, ValueType,
 };
 
-static FUNCTION_ID_FACTORY: IdFactory<FunctionId> = IdFactory::new(1, u32::MAX as u64);
+static FUNCTION_ID_FACTORY: IdFactory<FunctionId> = IdFactory::new_const(
+    FunctionId::MIN.to_non_zero_u64(),
+    FunctionId::MAX.to_non_zero_u64(),
+);
 static FUNCTIONS_BY_NAME: Lazy<FxDashMap<&'static str, FunctionId>> = Lazy::new(FxDashMap::default);
 static FUNCTIONS_BY_VALUE: Lazy<FxDashMap<&'static NativeFunction, FunctionId>> =
     Lazy::new(FxDashMap::default);
 static FUNCTIONS: Lazy<NoMoveVec<(&'static NativeFunction, &'static str)>> =
     Lazy::new(NoMoveVec::new);
 
-static VALUE_TYPE_ID_FACTORY: IdFactory<ValueTypeId> = IdFactory::new(1, u32::MAX as u64);
+static VALUE_TYPE_ID_FACTORY: IdFactory<ValueTypeId> = IdFactory::new_const(
+    ValueTypeId::MIN.to_non_zero_u64(),
+    ValueTypeId::MAX.to_non_zero_u64(),
+);
 static VALUE_TYPES_BY_NAME: Lazy<FxDashMap<&'static str, ValueTypeId>> =
     Lazy::new(FxDashMap::default);
 static VALUE_TYPES_BY_VALUE: Lazy<FxDashMap<&'static ValueType, ValueTypeId>> =
     Lazy::new(FxDashMap::default);
 static VALUE_TYPES: Lazy<NoMoveVec<(&'static ValueType, &'static str)>> = Lazy::new(NoMoveVec::new);
 
-static TRAIT_TYPE_ID_FACTORY: IdFactory<TraitTypeId> = IdFactory::new(1, u32::MAX as u64);
+static TRAIT_TYPE_ID_FACTORY: IdFactory<TraitTypeId> = IdFactory::new_const(
+    TraitTypeId::MIN.to_non_zero_u64(),
+    TraitTypeId::MAX.to_non_zero_u64(),
+);
 static TRAIT_TYPES_BY_NAME: Lazy<FxDashMap<&'static str, TraitTypeId>> =
     Lazy::new(FxDashMap::default);
 static TRAIT_TYPES_BY_VALUE: Lazy<FxDashMap<&'static TraitType, TraitTypeId>> =
     Lazy::new(FxDashMap::default);
 static TRAIT_TYPES: Lazy<NoMoveVec<(&'static TraitType, &'static str)>> = Lazy::new(NoMoveVec::new);
 
+/// Registers the value and returns its id if this is the initial
 fn register_thing<
-    K: TryFrom<NonZeroU64> + Deref<Target = u32> + Sync + Send + Copy,
-    V: Clone + Hash + Eq + Sync + Send + Copy,
+    K: Copy + Deref<Target = u32> + TryFrom<NonZeroU64>,
+    V: Copy + Hash + Eq,
     const INITIAL_CAPACITY_BITS: u32,
 >(
     global_name: &'static str,
@@ -43,7 +53,7 @@ fn register_thing<
     store: &NoMoveVec<(V, &'static str), INITIAL_CAPACITY_BITS>,
     map_by_name: &FxDashMap<&'static str, K>,
     map_by_value: &FxDashMap<V, K>,
-) {
+) -> Option<K> {
     if let Entry::Vacant(e) = map_by_value.entry(value) {
         let new_id = id_factory.get();
         // SAFETY: this is a fresh id
@@ -52,20 +62,21 @@ fn register_thing<
         }
         map_by_name.insert(global_name, new_id);
         e.insert(new_id);
+        Some(new_id)
+    } else {
+        None
     }
 }
 
-fn get_thing_id<
-    K: From<u32> + Deref<Target = u32> + Sync + Send + Copy + Debug,
-    V: Clone + Hash + Eq + Debug + Sync + Send + Debug,
->(
-    value: V,
-    map_by_value: &FxDashMap<V, K>,
-) -> K {
+fn get_thing_id<K, V>(value: V, map_by_value: &FxDashMap<V, K>) -> K
+where
+    V: Hash + Eq + Debug,
+    K: Clone,
+{
     if let Some(id) = map_by_value.get(&value) {
-        *id
+        id.clone()
     } else {
-        panic!("Use of unregistered {:?}", value);
+        panic!("Use of unregistered {value:?}");
     }
 }
 
@@ -77,7 +88,7 @@ pub fn register_function(global_name: &'static str, func: &'static NativeFunctio
         &FUNCTIONS,
         &FUNCTIONS_BY_NAME,
         &FUNCTIONS_BY_VALUE,
-    )
+    );
 }
 
 pub fn get_function_id(func: &'static NativeFunction) -> FunctionId {
@@ -96,7 +107,10 @@ pub fn get_function_global_name(id: FunctionId) -> &'static str {
     FUNCTIONS.get(*id as usize).unwrap().1
 }
 
-pub fn register_value_type(global_name: &'static str, ty: &'static ValueType) {
+pub fn register_value_type(
+    global_name: &'static str,
+    ty: &'static ValueType,
+) -> Option<ValueTypeId> {
     register_thing(
         global_name,
         ty,
@@ -131,7 +145,7 @@ pub fn register_trait_type(global_name: &'static str, ty: &'static TraitType) {
         &TRAIT_TYPES,
         &TRAIT_TYPES_BY_NAME,
         &TRAIT_TYPES_BY_VALUE,
-    )
+    );
 }
 
 pub fn get_trait_type_id(func: &'static TraitType) -> TraitTypeId {

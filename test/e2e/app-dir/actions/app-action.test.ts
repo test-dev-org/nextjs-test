@@ -1,5 +1,5 @@
 /* eslint-disable jest/no-standalone-expect */
-import { nextTestSetup } from 'e2e-utils'
+import { FileRef, nextTestSetup } from 'e2e-utils'
 import {
   assertHasRedbox,
   retry,
@@ -7,11 +7,11 @@ import {
   waitFor,
   getRedboxSource,
 } from 'next-test-utils'
-import type { Page, Request, Response, Route } from 'playwright'
-import fs from 'fs-extra'
-import nodeFs from 'fs'
-import { join } from 'path'
+import type { Request, Response } from 'playwright'
+import fs from 'node:fs/promises'
+import { join } from 'node:path'
 import { outdent } from 'outdent'
+import { setTimeout } from 'node:timers/promises'
 
 const GENERIC_RSC_ERROR =
   'Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.'
@@ -20,6 +20,11 @@ describe('app-dir action handling', () => {
   const { next, isNextDev, isNextStart, isNextDeploy, isTurbopack } =
     nextTestSetup({
       files: __dirname,
+      overrideFiles: process.env.TEST_NODE_MIDDLEWARE
+        ? {
+            'middleware.js': new FileRef(join(__dirname, 'middleware-node.js')),
+          }
+        : {},
       dependencies: {
         nanoid: '4.0.1',
         'server-only': 'latest',
@@ -30,7 +35,7 @@ describe('app-dir action handling', () => {
     const browser = await next.browser('/rewrite-to-static-first')
     let actionRequestStatus: number | undefined
 
-    browser.on('response', async (res: Response) => {
+    browser.on('response', async (res) => {
       if (
         res.url().includes('rewrite-to-static-first') &&
         res.request().method() === 'POST'
@@ -100,8 +105,8 @@ describe('app-dir action handling', () => {
   it('should propagate errors from a `text/plain` response to an error boundary', async () => {
     const customErrorText = 'Custom error!'
     const browser = await next.browser('/error-handling', {
-      beforePageLoad(page: Page) {
-        page.route('**/error-handling', async (route: Route) => {
+      beforePageLoad(page) {
+        page.route('**/error-handling', async (route) => {
           const requestHeaders = await route.request().allHeaders()
           if (requestHeaders['next-action']) {
             await route.fulfill({
@@ -124,8 +129,8 @@ describe('app-dir action handling', () => {
   it('should trigger an error boundary for action responses with an invalid content-type', async () => {
     const customErrorText = 'Custom error!'
     const browser = await next.browser('/error-handling', {
-      beforePageLoad(page: Page) {
-        page.route('**/error-handling', async (route: Route) => {
+      beforePageLoad(page) {
+        page.route('**/error-handling', async (route) => {
           const requestHeaders = await route.request().allHeaders()
           if (requestHeaders['next-action']) {
             await route.fulfill({
@@ -535,10 +540,10 @@ describe('app-dir action handling', () => {
     // this triggers a revalidate + redirect in a client component
     await browser.elementById('redirect-revalidate-client').click()
     await retry(async () => {
+      expect(await browser.url()).toBe(`${next.url}/revalidate?foo=bar`)
+
       const newJustPutIt = await browser.elementById('justputit').text()
       expect(newJustPutIt).not.toBe(initialJustPutit)
-
-      expect(await browser.url()).toBe(`${next.url}/revalidate?foo=bar`)
     })
 
     // this triggers a revalidate + redirect in a server component
@@ -588,7 +593,8 @@ describe('app-dir action handling', () => {
       beforePageLoad(page) {
         page.on('request', (request) => {
           const url = new URL(request.url())
-          if (url.pathname === '/server') {
+          // Only count POST requests to /server (form submissions)
+          if (url.pathname === '/server' && request.method() === 'POST') {
             requestCount++
           }
         })
@@ -727,7 +733,7 @@ describe('app-dir action handling', () => {
   it('should reset the form state when the action redirects to itself', async () => {
     const browser = await next.browser('/self-redirect')
     const requests = []
-    browser.on('request', async (req: Request) => {
+    browser.on('request', async (req) => {
       const url = new URL(req.url())
 
       if (url.pathname === '/self-redirect') {
@@ -820,7 +826,7 @@ describe('app-dir action handling', () => {
   it('should be possible to catch network errors', async () => {
     const browser = await next.browser('/catching-error', {
       beforePageLoad(page) {
-        page.route('**/catching-error', (route: Route) => {
+        page.route('**/catching-error', (route) => {
           if (route.request().method() !== 'POST') {
             route.fallback()
             return
@@ -892,7 +898,8 @@ describe('app-dir action handling', () => {
       await browser
         .elementByCss(`[href='/delayed-action/${runtime}/other']`)
         .click()
-        .waitForElementByCss('#other-page')
+
+      await browser.waitForElementByCss('#other-page')
 
       await retry(async () => {
         expect(
@@ -918,8 +925,8 @@ describe('app-dir action handling', () => {
     async (runtime) => {
       let redirectResponseCode
       const browser = await next.browser(`/delayed-action/${runtime}`, {
-        beforePageLoad(page: Page) {
-          page.on('response', async (res: Response) => {
+        beforePageLoad(page) {
+          page.on('response', async (res) => {
             const headers = await res.allHeaders().catch(() => ({}))
             if (headers['x-action-redirect']) {
               redirectResponseCode = res.status()
@@ -950,16 +957,21 @@ describe('app-dir action handling', () => {
   if (isNextStart) {
     it('should not expose action content in sourcemaps', async () => {
       // We check all sourcemaps in the `static` folder for sensitive information given that chunking
-      const sourcemaps = nodeFs
-        .readdirSync(join(next.testDir, '.next', 'static'), {
+      const sourcemaps = await fs
+        .readdir(join(next.testDir, '.next', 'static'), {
           recursive: true,
           encoding: 'utf8',
         })
-        .filter((f) => f.endsWith('.js.map'))
-        .map((f) =>
-          nodeFs.readFileSync(join(next.testDir, '.next', 'static', f), {
-            encoding: 'utf8',
-          })
+        .then((files) =>
+          Promise.all(
+            files
+              .filter((f) => f.endsWith('.js.map'))
+              .map((f) =>
+                fs.readFile(join(next.testDir, '.next', 'static', f), {
+                  encoding: 'utf8',
+                })
+              )
+          )
         )
 
       expect(sourcemaps).not.toBeEmpty()
@@ -1033,23 +1045,22 @@ describe('app-dir action handling', () => {
     it('should bundle external libraries if they are on the action layer', async () => {
       await next.fetch('/client')
       const pageBundle = await fs.readFile(
-        join(next.testDir, '.next', 'server', 'app', 'client', 'page.js')
+        join(next.testDir, '.next', 'server', 'app', 'client', 'page.js'),
+        { encoding: 'utf8' }
       )
       if (isTurbopack) {
-        const chunkPaths = pageBundle
-          .toString()
-          .matchAll(/loadChunk\("([^"]*)"\)/g)
-        // @ts-ignore
+        const chunkPaths = pageBundle.matchAll(/loadChunk\("([^"]*)"\)/g)
         const reads = [...chunkPaths].map(async (match) => {
           const bundle = await fs.readFile(
-            join(next.testDir, '.next', ...match[1].split(/[\\/]/g))
+            join(next.testDir, '.next', ...match[1].split(/[\\/]/g)),
+            { encoding: 'utf8' }
           )
-          return bundle.toString().includes('node_modules/nanoid/index.js')
+          return bundle.includes('node_modules/nanoid/index.js')
         })
 
         expect(await Promise.all(reads)).toContain(true)
       } else {
-        expect(pageBundle.toString()).toContain('node_modules/nanoid/index.js')
+        expect(pageBundle).toContain('node_modules/nanoid/index.js')
       }
     })
   }
@@ -1117,7 +1128,7 @@ describe('app-dir action handling', () => {
         const requests: Request[] = []
         const responses: Response[] = []
 
-        browser.on('request', (req: Request) => {
+        browser.on('request', (req) => {
           const url = req.url()
 
           if (
@@ -1128,7 +1139,7 @@ describe('app-dir action handling', () => {
           }
         })
 
-        browser.on('response', (res: Response) => {
+        browser.on('response', (res) => {
           const url = res.url()
 
           if (
@@ -1234,7 +1245,7 @@ describe('app-dir action handling', () => {
         const requests: Request[] = []
         const responses: Response[] = []
 
-        browser.on('request', (req: Request) => {
+        browser.on('request', (req) => {
           const url = req.url()
 
           if (
@@ -1245,7 +1256,7 @@ describe('app-dir action handling', () => {
           }
         })
 
-        browser.on('response', (res: Response) => {
+        browser.on('response', (res) => {
           const url = res.url()
 
           if (
@@ -1513,7 +1524,7 @@ describe('app-dir action handling', () => {
         const browser = await next.browser('/revalidate')
         await browser.refresh()
 
-        const thankYouNext = await browser.elementByCss('#thankyounext').text()
+        const original = await browser.elementByCss('#thankyounext').text()
 
         await browser.elementByCss('#another').click()
         await retry(async () => {
@@ -1522,44 +1533,54 @@ describe('app-dir action handling', () => {
           )
         })
 
-        const newThankYouNext = await browser
-          .elementByCss('#thankyounext')
-          .text()
-
-        // Should be the same number
-        expect(thankYouNext).toEqual(newThankYouNext)
+        // Should be the same number although in serverless it might be
+        // eventually consistent.
+        if (!isNextDeploy) {
+          await retry(async () => {
+            const another = await browser.elementByCss('#thankyounext').text()
+            expect(another).toEqual(original)
+          })
+        }
 
         await browser.elementByCss('#back').click()
+        await retry(async () => {
+          expect(await browser.elementByCss('#title').text()).toBe('revalidate')
+        })
+
+        switch (type) {
+          case 'tag':
+            await browser.elementByCss('#revalidate-thankyounext').click()
+            break
+          case 'path':
+            await browser.elementByCss('#revalidate-path').click()
+            break
+          default:
+            throw new Error(`Invalid type: ${type}`)
+        }
+
+        // Give some time for it to be revalidated.
+        if (isNextDeploy) {
+          await setTimeout(5000)
+        }
 
         // Should be different
-        let revalidatedThankYouNext
+        let revalidated
         await retry(async () => {
-          switch (type) {
-            case 'tag':
-              await browser.elementByCss('#revalidate-thankyounext').click()
-              break
-            case 'path':
-              await browser.elementByCss('#revalidate-path').click()
-              break
-            default:
-              throw new Error(`Invalid type: ${type}`)
-          }
-
-          revalidatedThankYouNext = await browser
-            .elementByCss('#thankyounext')
-            .text()
-
-          expect(thankYouNext).not.toBe(revalidatedThankYouNext)
+          revalidated = await browser.elementByCss('#thankyounext').text()
+          expect(revalidated).not.toBe(original)
         })
 
         await browser.elementByCss('#another').click()
+        await retry(async () => {
+          expect(await browser.elementByCss('#title').text()).toBe(
+            'another route'
+          )
+        })
 
         // The other page should be revalidated too
         await retry(async () => {
-          const newThankYouNext = await browser
-            .elementByCss('#thankyounext')
-            .text()
-          expect(revalidatedThankYouNext).toBe(newThankYouNext)
+          const another = await browser.elementByCss('#thankyounext').text()
+          expect(another).toBe(revalidated)
         })
       }
     )
@@ -1641,14 +1662,14 @@ describe('app-dir action handling', () => {
 
       const browser = await next.browser('/redirects', {
         beforePageLoad(page) {
-          page.on('request', (request: Request) => {
+          page.on('request', (request) => {
             const url = new URL(request.url())
             if (request.method() === 'POST') {
               postRequests.push(url.pathname)
             }
           })
 
-          page.on('response', (response: Response) => {
+          page.on('response', (response) => {
             const url = new URL(response.url())
             const status = response.status()
 
@@ -1675,14 +1696,14 @@ describe('app-dir action handling', () => {
 
       const browser = await next.browser('/redirects', {
         beforePageLoad(page) {
-          page.on('request', (request: Request) => {
+          page.on('request', (request) => {
             const url = new URL(request.url())
             if (request.method() === 'POST') {
               postRequests.push(url.pathname)
             }
           })
 
-          page.on('response', (response: Response) => {
+          page.on('response', (response) => {
             const url = new URL(response.url())
             const status = response.status()
 
@@ -1762,21 +1783,21 @@ describe('app-dir action handling', () => {
     })
 
     it.each(['307', '308'])(
-      `redirects properly when server action handler redirects with a %s status code`,
+      `redirects properly when route handler redirects with a %s status code`,
       async (statusCode) => {
         const postRequests = []
         const responseCodes = []
 
         const browser = await next.browser('/redirects', {
           beforePageLoad(page) {
-            page.on('request', (request: Request) => {
+            page.on('request', (request) => {
               const url = new URL(request.url())
               if (request.method() === 'POST') {
                 postRequests.push(`${url.pathname}${url.search}`)
               }
             })
 
-            page.on('response', (response: Response) => {
+            page.on('response', (response) => {
               const url = new URL(response.url())
               const status = response.status()
 

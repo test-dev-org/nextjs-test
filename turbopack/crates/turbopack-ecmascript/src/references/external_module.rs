@@ -2,9 +2,9 @@ use std::{fmt::Display, io::Write};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use turbo_rcstr::RcStr;
-use turbo_tasks::{trace::TraceRawVcs, NonLocalValue, ResolvedVc, TaskInput, Vc};
-use turbo_tasks_fs::{glob::Glob, rope::RopeBuilder, FileContent, FileSystem, VirtualFileSystem};
+use turbo_rcstr::{RcStr, rcstr};
+use turbo_tasks::{NonLocalValue, ResolvedVc, TaskInput, Vc, trace::TraceRawVcs};
+use turbo_tasks_fs::{FileContent, FileSystem, VirtualFileSystem, glob::Glob, rope::RopeBuilder};
 use turbopack_core::{
     asset::{Asset, AssetContent},
     chunk::{AsyncModuleInfo, ChunkItem, ChunkType, ChunkableModule, ChunkingContext},
@@ -15,6 +15,7 @@ use turbopack_core::{
 };
 
 use crate::{
+    EcmascriptModuleContent, EcmascriptOptions,
     chunk::{
         EcmascriptChunkItem, EcmascriptChunkItemContent, EcmascriptChunkPlaceable,
         EcmascriptChunkType, EcmascriptExports,
@@ -24,13 +25,7 @@ use crate::{
         TURBOPACK_EXPORT_NAMESPACE, TURBOPACK_EXTERNAL_IMPORT, TURBOPACK_EXTERNAL_REQUIRE,
     },
     utils::StringifyJs,
-    EcmascriptModuleContent, EcmascriptOptions,
 };
-
-#[turbo_tasks::function]
-fn layer() -> Vc<RcStr> {
-    Vc::cell("external".into())
-}
 
 #[derive(
     Copy,
@@ -49,6 +44,7 @@ pub enum CachedExternalType {
     CommonJs,
     EcmaScriptViaRequire,
     EcmaScriptViaImport,
+    Global,
 }
 
 impl Display for CachedExternalType {
@@ -57,6 +53,7 @@ impl Display for CachedExternalType {
             CachedExternalType::CommonJs => write!(f, "cjs"),
             CachedExternalType::EcmaScriptViaRequire => write!(f, "esm_require"),
             CachedExternalType::EcmaScriptViaImport => write!(f, "esm_import"),
+            CachedExternalType::Global => write!(f, "global"),
         }
     }
 }
@@ -87,19 +84,33 @@ impl CachedExternalModule {
     pub fn content(&self) -> Result<Vc<EcmascriptModuleContent>> {
         let mut code = RopeBuilder::default();
 
-        if self.external_type == CachedExternalType::EcmaScriptViaImport {
-            writeln!(
-                code,
-                "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
-                StringifyJs(&self.request)
-            )?;
-        } else {
-            writeln!(
-                code,
-                "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
-                StringifyJs(&self.request),
-                StringifyJs(&self.request)
-            )?;
+        match self.external_type {
+            CachedExternalType::EcmaScriptViaImport => {
+                writeln!(
+                    code,
+                    "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
+                    StringifyJs(&self.request)
+                )?;
+            }
+            CachedExternalType::Global => {
+                if self.request.is_empty() {
+                    writeln!(code, "const mod = {{}};")?;
+                } else {
+                    writeln!(
+                        code,
+                        "const mod = globalThis[{}];",
+                        StringifyJs(&self.request)
+                    )?;
+                }
+            }
+            CachedExternalType::EcmaScriptViaRequire | CachedExternalType::CommonJs => {
+                writeln!(
+                    code,
+                    "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
+                    StringifyJs(&self.request),
+                    StringifyJs(&self.request)
+                )?;
+            }
         }
 
         writeln!(code)?;
@@ -123,21 +134,21 @@ impl CachedExternalModule {
 impl Module for CachedExternalModule {
     #[turbo_tasks::function]
     fn ident(&self) -> Vc<AssetIdent> {
-        let fs = VirtualFileSystem::new_with_name("externals".into());
+        let fs = VirtualFileSystem::new_with_name(rcstr!("externals"));
 
         AssetIdent::from_path(fs.root().join(self.request.clone()))
-            .with_layer(layer())
-            .with_modifier(Vc::cell(self.request.clone()))
-            .with_modifier(Vc::cell(self.external_type.to_string().into()))
+            .with_layer(rcstr!("external"))
+            .with_modifier(self.request.clone())
+            .with_modifier(self.external_type.to_string().into())
     }
 
     #[turbo_tasks::function]
-    async fn references(&self) -> Result<Vc<ModuleReferences>> {
+    fn references(&self) -> Result<Vc<ModuleReferences>> {
         Ok(Vc::cell(self.additional_references.clone()))
     }
 
     #[turbo_tasks::function]
-    async fn is_self_async(&self) -> Result<Vc<bool>> {
+    fn is_self_async(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(
             self.external_type == CachedExternalType::EcmaScriptViaImport,
         ))
@@ -217,7 +228,7 @@ pub struct CachedExternalModuleChunkItem {
 // Without this wrapper, VirtualFileSystem::new_with_name always returns a new filesystem
 #[turbo_tasks::function]
 fn external_fs() -> Vc<VirtualFileSystem> {
-    VirtualFileSystem::new_with_name("externals".into())
+    VirtualFileSystem::new_with_name(rcstr!("externals"))
 }
 
 #[turbo_tasks::value_impl]
@@ -266,37 +277,5 @@ impl EcmascriptChunkItem for CachedExternalModuleChunkItem {
             EcmascriptOptions::default().cell(),
             async_module_options,
         )
-    }
-}
-
-/// A module that only has an ident and no content nor references.
-///
-/// It is used to include a module's ident in the module graph before the module
-/// itself is resolved, as is the case with NextServerComponentModule's
-/// "client modules" and "ssr modules".
-#[turbo_tasks::value]
-pub struct IncludeIdentModule {
-    ident: ResolvedVc<AssetIdent>,
-}
-
-#[turbo_tasks::value_impl]
-impl IncludeIdentModule {
-    #[turbo_tasks::function]
-    pub fn new(ident: ResolvedVc<AssetIdent>) -> Vc<Self> {
-        Self { ident }.cell()
-    }
-}
-
-impl Asset for IncludeIdentModule {
-    fn content(self: Vc<Self>) -> Vc<AssetContent> {
-        todo!("IncludeIdentModule doesn't implement content()")
-    }
-}
-
-#[turbo_tasks::value_impl]
-impl Module for IncludeIdentModule {
-    #[turbo_tasks::function]
-    fn ident(&self) -> Vc<AssetIdent> {
-        *self.ident
     }
 }

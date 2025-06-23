@@ -1,12 +1,11 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use next_core::emit_assets;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use turbo_rcstr::RcStr;
 use turbo_tasks::{
-    debug::ValueDebugFormat, trace::TraceRawVcs, FxIndexSet, NonLocalValue, OperationValue,
-    OperationVc, ResolvedVc, State, TryFlatJoinIterExt, TryJoinIterExt, ValueDefault,
-    ValueToString, Vc,
+    FxIndexSet, NonLocalValue, OperationValue, OperationVc, ResolvedVc, State, TryFlatJoinIterExt,
+    TryJoinIterExt, ValueDefault, ValueToString, Vc, debug::ValueDebugFormat, trace::TraceRawVcs,
 };
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
@@ -212,16 +211,15 @@ impl VersionedContentMap {
             assets_operation: _,
             path_to_asset,
         }) = &*result
+            && let Some(&asset) = path_to_asset.get(&path)
         {
-            if let Some(&asset) = path_to_asset.get(&path) {
-                return Ok(Vc::cell(Some(asset)));
-            }
+            return Ok(Vc::cell(Some(asset)));
         }
 
         Ok(Vc::cell(None))
     }
 
-    #[turbo_tasks::function]
+    #[turbo_tasks::function(invalidator)]
     pub async fn keys_in_path(&self, root: Vc<FileSystemPath>) -> Result<Vc<Vec<RcStr>>> {
         let keys = {
             let map = &self.map_path_to_op.get().0;
@@ -236,7 +234,7 @@ impl VersionedContentMap {
         Ok(Vc::cell(keys))
     }
 
-    #[turbo_tasks::function]
+    #[turbo_tasks::function(invalidator)]
     fn raw_get(&self, path: ResolvedVc<FileSystemPath>) -> Vc<OptionMapEntry> {
         let assets = {
             let map = &self.map_path_to_op.get().0;

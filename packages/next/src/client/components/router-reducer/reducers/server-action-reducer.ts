@@ -19,9 +19,9 @@ import {
 const { createFromFetch, createTemporaryReferenceSet, encodeReply } = (
   !!process.env.NEXT_RUNTIME
     ? // eslint-disable-next-line import/no-extraneous-dependencies
-      require('react-server-dom-webpack/client.edge')
+      (require('react-server-dom-webpack/client.edge') as typeof import('react-server-dom-webpack/client.edge'))
     : // eslint-disable-next-line import/no-extraneous-dependencies
-      require('react-server-dom-webpack/client')
+      (require('react-server-dom-webpack/client') as typeof import('react-server-dom-webpack/client'))
 ) as typeof import('react-server-dom-webpack/client')
 
 import {
@@ -45,6 +45,7 @@ import { handleSegmentMismatch } from '../handle-segment-mismatch'
 import { refreshInactiveParallelSegments } from '../refetch-inactive-parallel-segments'
 import {
   normalizeFlightData,
+  prepareFlightRouterStateForRequest,
   type NormalizedFlightData,
 } from '../../../flight-data-helpers'
 import { getRedirectError } from '../../redirect'
@@ -87,13 +88,13 @@ async function fetchServerAction(
 
   const body = await encodeReply(usedArgs, { temporaryReferences })
 
-  const res = await fetch('', {
+  const res = await fetch(state.canonicalUrl, {
     method: 'POST',
     headers: {
       Accept: RSC_CONTENT_TYPE_HEADER,
       [ACTION_HEADER]: actionId,
-      [NEXT_ROUTER_STATE_TREE_HEADER]: encodeURIComponent(
-        JSON.stringify(state.tree)
+      [NEXT_ROUTER_STATE_TREE_HEADER]: prepareFlightRouterStateForRequest(
+        state.tree
       ),
       ...(process.env.NEXT_DEPLOYMENT_ID
         ? {
