@@ -90,19 +90,16 @@ function RuntimeError({ error }: { error: ReadyRuntimeError }) {
     return frames[firstFirstPartyFrameIndex] ?? null
   }, [frames])
 
-  if (!firstFrame?.originalStackFrame || !firstFrame?.originalCodeFrame) {
-    // TODO: Better handling
-    return null
-  }
-
   return (
     <>
-      {firstFrame && (
-        <CodeFrame
-          stackFrame={firstFrame.originalStackFrame}
-          codeFrame={firstFrame.originalCodeFrame}
-        />
-      )}
+      {firstFrame &&
+        firstFrame.originalStackFrame &&
+        firstFrame.originalCodeFrame && (
+          <CodeFrame
+            stackFrame={firstFrame.originalStackFrame}
+            codeFrame={firstFrame.originalCodeFrame}
+          />
+        )}
 
       {frames.length > 0 && (
         <CallStack
