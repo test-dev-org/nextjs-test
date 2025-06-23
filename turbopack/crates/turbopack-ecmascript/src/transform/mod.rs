@@ -8,9 +8,16 @@ use swc_core::{
     base::SwcComments,
     common::{Mark, SourceMap, comments::Comments},
     ecma::{
-        ast::{ModuleItem, Program},
+        ast::{ModuleItem, Pass, Program},
         preset_env::{self, Targets},
-        transforms::{base::assumptions::Assumptions, optimization::inline_globals, react::react},
+        transforms::{
+            base::{
+                assumptions::Assumptions,
+                helpers::{HELPERS, HelperData, Helpers},
+            },
+            optimization::inline_globals,
+            react::react,
+        },
     },
     quote,
 };
@@ -116,7 +123,12 @@ pub struct TransformContext<'a> {
 }
 
 impl EcmascriptInputTransform {
-    pub async fn apply(&self, program: &mut Program, ctx: &TransformContext<'_>) -> Result<()> {
+    pub async fn apply(
+        &self,
+        program: &mut Program,
+        ctx: &TransformContext<'_>,
+        helpers: HelperData,
+    ) -> Result<HelperData> {
         let &TransformContext {
             comments,
             source_map,
@@ -124,18 +136,23 @@ impl EcmascriptInputTransform {
             unresolved_mark,
             ..
         } = ctx;
-        match self {
+
+        Ok(match self {
             EcmascriptInputTransform::GlobalTypeofs { window_value } => {
                 let mut typeofs: FxHashMap<Atom, Atom> = Default::default();
                 typeofs.insert(Atom::from("window"), Atom::from(&**window_value));
 
-                program.mutate(inline_globals(
-                    unresolved_mark,
-                    Default::default(),
-                    Default::default(),
-                    Default::default(),
-                    Arc::new(typeofs),
-                ));
+                apply_transform(
+                    program,
+                    helpers,
+                    inline_globals(
+                        unresolved_mark,
+                        Default::default(),
+                        Default::default(),
+                        Default::default(),
+                        Arc::new(typeofs),
+                    ),
+                )
             }
             EcmascriptInputTransform::React {
                 development,
@@ -178,13 +195,17 @@ impl EcmascriptInputTransform {
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                program.mutate(react::<&dyn Comments>(
-                    source_map.clone(),
-                    Some(&comments),
-                    config,
-                    top_level_mark,
-                    unresolved_mark,
-                ));
+                let helpers = apply_transform(
+                    program,
+                    helpers,
+                    react::<&dyn Comments>(
+                        source_map.clone(),
+                        Some(&comments),
+                        config,
+                        top_level_mark,
+                        unresolved_mark,
+                    ),
+                );
 
                 if *refresh {
                     let stmt = quote!(
@@ -204,6 +225,8 @@ impl EcmascriptInputTransform {
                         }
                     }
                 }
+
+                helpers
             }
             EcmascriptInputTransform::PresetEnv(env) => {
                 let versions = env.runtime_versions().await?;
@@ -217,12 +240,16 @@ impl EcmascriptInputTransform {
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                program.mutate(preset_env::transform_from_env::<&'_ dyn Comments>(
-                    top_level_mark,
-                    Some(&comments),
-                    config,
-                    Assumptions::default(),
-                ));
+                apply_transform(
+                    program,
+                    helpers,
+                    preset_env::transform_from_env::<&'_ dyn Comments>(
+                        top_level_mark,
+                        Some(&comments),
+                        config,
+                        Assumptions::default(),
+                    ),
+                )
             }
             EcmascriptInputTransform::TypeScript {
                 // TODO(WEB-1213)
@@ -230,7 +257,11 @@ impl EcmascriptInputTransform {
             } => {
                 use swc_core::ecma::transforms::typescript::typescript;
                 let config = Default::default();
-                program.mutate(typescript(config, unresolved_mark, top_level_mark));
+                apply_transform(
+                    program,
+                    helpers,
+                    typescript(config, unresolved_mark, top_level_mark),
+                )
             }
             EcmascriptInputTransform::Decorators {
                 is_legacy,
@@ -246,14 +277,23 @@ impl EcmascriptInputTransform {
                     ..Default::default()
                 };
 
-                program.mutate(decorators(config));
+                apply_transform(program, helpers, decorators(config))
             }
             EcmascriptInputTransform::Plugin(transform) => {
-                transform.await?.transform(program, ctx).await?
+                // We cannot pass helpers to plugins, so we return them as is
+                transform.await?.transform(program, ctx).await?;
+                helpers
             }
-        }
-        Ok(())
+        })
     }
+}
+
+fn apply_transform(program: &mut Program, helpers: HelperData, op: impl Pass) -> HelperData {
+    let helpers = Helpers::from_data(helpers);
+    HELPERS.set(&helpers, || {
+        program.mutate(op);
+    });
+    helpers.data()
 }
 
 pub fn remove_shebang(program: &mut Program) {

@@ -422,6 +422,7 @@ async fn parse_file_content(
                 FxHashSet::default()
             };
 
+            let mut helpers = Helpers::new(true).data();
             let transform_context = TransformContext {
                 comments: &comments,
                 source_map: &source_map,
@@ -436,8 +437,8 @@ async fn parse_file_content(
             let span = tracing::trace_span!("transforms");
             async {
                 for transform in transforms.iter() {
-                    transform
-                        .apply(&mut parsed_program, &transform_context)
+                    helpers = transform
+                        .apply(&mut parsed_program, &transform_context, helpers)
                         .await?;
                 }
                 anyhow::Ok(())
@@ -461,9 +462,12 @@ async fn parse_file_content(
                 return Ok(ParseResult::Unparseable { messages });
             }
 
-            parsed_program.visit_mut_with(
-                &mut swc_core::ecma::transforms::base::helpers::inject_helpers(unresolved_mark),
-            );
+            let helpers = Helpers::from_data(helpers);
+            HELPERS.set(&helpers, || {
+                parsed_program.mutate(
+                    swc_core::ecma::transforms::base::helpers::inject_helpers(unresolved_mark),
+                );
+            });
 
             let eval_context = EvalContext::new(
                 &parsed_program,
@@ -486,7 +490,7 @@ async fn parse_file_content(
         },
         |f, cx| {
             GLOBALS.set(globals_ref, || {
-                HANDLER.set(&handler, || HELPERS.set(&Helpers::new(true), || f.poll(cx)))
+                HANDLER.set(&handler, || f.poll(cx))
             })
         },
     )
