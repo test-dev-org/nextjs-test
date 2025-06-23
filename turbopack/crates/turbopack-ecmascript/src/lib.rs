@@ -1321,10 +1321,9 @@ async fn merge_modules(
                     scope_hoisting_syntax_contexts: Some(module_contexts),
                     ..
                 } = content
-                    && let Program::Module(content) = program
                 {
                     GLOBALS.set(globals_merged, || {
-                        content.visit_mut_with(&mut SetSyntaxContextVisitor {
+                        program.visit_mut_with(&mut SetSyntaxContextVisitor {
                             modules_header_width: module_contexts
                                 .len()
                                 .next_power_of_two()
@@ -1341,9 +1340,16 @@ async fn merge_modules(
                         });
                     });
 
-                    Ok(content.take().body)
+                    Ok(match program.take() {
+                        Program::Module(module) => Either::Left(module.body.into_iter()),
+                        // A module without any ModuleItem::ModuleDecl but a
+                        // SpecifiedModuleType::EcmaScript can still contain a Module::Script.
+                        Program::Script(script) => {
+                            Either::Right(script.body.into_iter().map(ModuleItem::Stmt))
+                        }
+                    })
                 } else {
-                    bail!("Expected Program::Module with scope_hosting_syntax_contexts");
+                    bail!("Expected scope_hosting_syntax_contexts");
                 }
             };
 
