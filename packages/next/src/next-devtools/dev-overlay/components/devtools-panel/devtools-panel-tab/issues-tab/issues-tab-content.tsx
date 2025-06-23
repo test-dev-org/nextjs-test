@@ -1,8 +1,19 @@
-import type { ReadyRuntimeError } from '../../../../utils/get-error-by-type'
 import type { OverlayState } from '../../../../shared'
+import type { DebugInfo } from '../../../../../shared/types'
+import type { ReadyRuntimeError } from '../../../../utils/get-error-by-type'
+import type { ErrorType } from '../../../errors/error-type-label/error-type-label'
 
 import { Suspense, useMemo, useState } from 'react'
 
+import {
+  GenericErrorDescription,
+  HydrationErrorDescription,
+} from '../../../../container/errors'
+import { EnvironmentNameLabel } from '../../../errors/environment-name-label/environment-name-label'
+import { ErrorMessage } from '../../../errors/error-message/error-message'
+import { ErrorOverlayToolbar } from '../../../errors/error-overlay-toolbar/error-overlay-toolbar'
+import { ErrorTypeLabel } from '../../../errors/error-type-label/error-type-label'
+import { IssueFeedbackButton } from '../../../errors/error-overlay-toolbar/issue-feedback-button'
 import { Terminal } from '../../../terminal'
 import { HotlinkedText } from '../../../hot-linked-text'
 import { PseudoHtmlDiff } from '../../../../container/runtime-error/component-stack-pseudo-html'
@@ -10,8 +21,8 @@ import { useFrames } from '../../../../utils/get-error-by-type'
 import { CodeFrame } from '../../../code-frame/code-frame'
 import { CallStack } from '../../../call-stack/call-stack'
 import { NEXTJS_HYDRATION_ERROR_LINK } from '../../../../../shared/react-19-hydration-error'
-import { css } from '../../../../utils/css'
 import { ErrorContentSkeleton } from '../../../../container/runtime-error/error-content-skeleton'
+import { css } from '../../../../utils/css'
 
 export function IssuesTabContent({
   notes,
@@ -19,6 +30,9 @@ export function IssuesTabContent({
   hydrationWarning,
   errorDetails,
   activeError,
+  errorCode,
+  errorType,
+  debugInfo,
 }: {
   notes: string | null
   buildError: OverlayState['buildError']
@@ -29,13 +43,47 @@ export function IssuesTabContent({
     reactOutputComponentDiff: string | null
   }
   activeError: ReadyRuntimeError
+  errorCode: string | undefined
+  errorType: ErrorType
+  debugInfo: DebugInfo
 }) {
   if (buildError) {
     return <Terminal content={buildError} />
   }
 
+  const errorMessage = hydrationWarning ? (
+    <HydrationErrorDescription message={hydrationWarning} />
+  ) : (
+    <GenericErrorDescription error={activeError.error} />
+  )
+
   return (
-    <>
+    <div data-nextjs-devtools-panel-tab-issues-content-container>
+      <div className="nextjs-container-errors-header">
+        <div
+          className="nextjs__container_errors__error_title"
+          // allow assertion in tests before error rating is implemented
+          data-nextjs-error-code={errorCode}
+        >
+          <span data-nextjs-error-label-group>
+            <ErrorTypeLabel errorType={errorType} />
+            {activeError.error.environmentName && (
+              <EnvironmentNameLabel
+                environmentName={activeError.error.environmentName}
+              />
+            )}
+          </span>
+          <ErrorOverlayToolbar
+            error={activeError.error}
+            debugInfo={debugInfo}
+            // TODO: Move the button inside and remove the feedback on the footer of the error overlay.
+            feedbackButton={
+              errorCode && <IssueFeedbackButton errorCode={errorCode} />
+            }
+          />
+        </div>
+        <ErrorMessage errorMessage={errorMessage} />
+      </div>
       <div className="error-overlay-notes-container">
         {notes ? (
           <>
@@ -66,7 +114,7 @@ export function IssuesTabContent({
       <Suspense fallback={<ErrorContentSkeleton />}>
         <RuntimeError key={activeError.id.toString()} error={activeError} />
       </Suspense>
-    </>
+    </div>
   )
 }
 
@@ -113,4 +161,14 @@ function RuntimeError({ error }: { error: ReadyRuntimeError }) {
   )
 }
 
-export const DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES = css``
+// The components in this file shares the style with the Error Overlay.
+export const DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES = css`
+  [data-nextjs-devtools-panel-tab-issues-content-container] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 14px;
+  }
+`
