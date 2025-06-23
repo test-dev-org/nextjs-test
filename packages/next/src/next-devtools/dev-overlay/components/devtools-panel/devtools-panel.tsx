@@ -2,7 +2,7 @@ import type { OverlayDispatch, OverlayState, Corners } from '../../shared'
 import type { ReadyRuntimeError } from '../../utils/get-error-by-type'
 import type { HydrationErrorState } from '../../../shared/hydration-error'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { DevToolsPanelFooter } from './devtools-panel-footer'
 import { DevToolsPanelTab } from './devtools-panel-tab/devtools-panel-tab'
@@ -14,6 +14,7 @@ import {
   ACTION_DEVTOOLS_SCALE,
   STORAGE_KEY_SCALE,
   STORAGE_KEY_POSITION,
+  ACTION_ERROR_OVERLAY_CLOSE,
 } from '../../shared'
 import { css } from '../../utils/css'
 import { OverlayBackdrop } from '../overlay'
@@ -42,8 +43,13 @@ export function DevToolsPanel({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
+  useEffect(() => {
+    setIsFullscreen(state.isErrorOverlayOpen)
+  }, [state.isErrorOverlayOpen])
+
   const onCloseDevToolsPanel = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   const handlePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -64,6 +70,7 @@ export function DevToolsPanel({
 
   const handleFullscreenToggle = () => {
     setIsFullscreen((prev) => !prev)
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   return (

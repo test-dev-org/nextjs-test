@@ -62,25 +62,27 @@ export function DevOverlay({
                     )}
                   </>
                 ) : (
-                  <DevToolsIndicator
-                    scale={scale}
-                    setScale={setScale}
-                    state={state}
-                    dispatch={dispatch}
-                    errorCount={totalErrorCount}
-                    isBuildError={isBuildError}
-                  />
-                ))}
+                  <>
+                    <DevToolsIndicator
+                      scale={scale}
+                      setScale={setScale}
+                      state={state}
+                      dispatch={dispatch}
+                      errorCount={totalErrorCount}
+                      isBuildError={isBuildError}
+                    />
 
-              <ErrorOverlay
-                state={state}
-                dispatch={dispatch}
-                getSquashedHydrationErrorDetails={
-                  getSquashedHydrationErrorDetails
-                }
-                runtimeErrors={runtimeErrors}
-                errorCount={totalErrorCount}
-              />
+                    <ErrorOverlay
+                      state={state}
+                      dispatch={dispatch}
+                      getSquashedHydrationErrorDetails={
+                        getSquashedHydrationErrorDetails
+                      }
+                      runtimeErrors={runtimeErrors}
+                      errorCount={totalErrorCount}
+                    />
+                  </>
+                ))}
             </>
           )
         }}
