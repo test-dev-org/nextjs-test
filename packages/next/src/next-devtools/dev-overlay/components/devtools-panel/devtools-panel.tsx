@@ -40,7 +40,7 @@ export function DevToolsPanel({
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
   const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(state.isErrorOverlayOpen)
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   useEffect(() => {
