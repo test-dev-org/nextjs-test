@@ -38,6 +38,7 @@ export function ErrorContentSkeleton() {
           <button
             data-nextjs-call-stack-ignored-list-toggle-button
             data-nextjs-call-stack-ignored-list-toggle-button-skeleton
+            aria-hidden="true"
           >
             <div data-nextjs-call-stack-skeleton-bar />
           </button>
