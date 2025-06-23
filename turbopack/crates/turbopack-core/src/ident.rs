@@ -34,8 +34,8 @@ impl Layer {
     pub fn new(name: RcStr) -> Self {
         Self::new_impl(name, None)
     }
-    pub fn with_user_friendly_name(name: RcStr, user_friendly_name: RcStr) -> Self {
-        Self::new_impl(name, Some(user_friendly_name))
+    pub fn with_user_friendly_name(self, user_friendly_name: RcStr) -> Self {
+        Self::new_impl(self.name, Some(user_friendly_name))
     }
 
     fn new_impl(name: RcStr, user_friendly_name: Option<RcStr>) -> Self {

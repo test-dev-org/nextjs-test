@@ -366,7 +366,7 @@ impl PagesProject {
             self.project().client_compile_time_info(),
             self.client_module_options_context(),
             self.client_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("client"), rcstr!("Browser")),
+            Layer::new(rcstr!("client")).with_user_friendly_name(rcstr!("Browser")),
         )
     }
 
@@ -377,7 +377,7 @@ impl PagesProject {
             self.project().server_compile_time_info(),
             self.ssr_module_options_context(),
             self.ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("ssr"), rcstr!("SSR")),
+            Layer::new(rcstr!("ssr")).with_user_friendly_name(rcstr!("SSR")),
         )
     }
 
@@ -390,7 +390,7 @@ impl PagesProject {
             self.project().server_compile_time_info(),
             self.api_module_options_context(),
             self.ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("api"), rcstr!("Route")),
+            Layer::new(rcstr!("api")).with_user_friendly_name(rcstr!("Route")),
         )
     }
 
@@ -412,7 +412,7 @@ impl PagesProject {
             self.project().edge_compile_time_info(),
             self.edge_ssr_module_options_context(),
             self.edge_ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("edge-ssr"), rcstr!("Edge SSR")),
+            Layer::new(rcstr!("edge-ssr")).with_user_friendly_name(rcstr!("Edge SSR")),
         )
     }
 
@@ -423,7 +423,7 @@ impl PagesProject {
             self.project().edge_compile_time_info(),
             self.edge_api_module_options_context(),
             self.edge_ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("edge-api"), rcstr!("Edge Route")),
+            Layer::new(rcstr!("edge-api")).with_user_friendly_name(rcstr!("Edge Route")),
         )
     }
 

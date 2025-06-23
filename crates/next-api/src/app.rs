@@ -439,7 +439,7 @@ impl AppProject {
             self.project().server_compile_time_info(),
             self.rsc_module_options_context(),
             self.rsc_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("app-rsc"), rcstr!("Server Component")),
+            Layer::new(rcstr!("app-rsc")).with_user_friendly_name(rcstr!("Server Component")),
         ))
     }
 
@@ -454,7 +454,8 @@ impl AppProject {
             self.project().edge_compile_time_info(),
             self.edge_rsc_module_options_context(),
             self.edge_rsc_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("app-edge-rsc"), rcstr!("Edge Server Component")),
+            Layer::new(rcstr!("app-edge-rsc"))
+                .with_user_friendly_name(rcstr!("Edge Server Component")),
         ))
     }
 
@@ -505,7 +506,7 @@ impl AppProject {
             self.project().server_compile_time_info(),
             self.route_module_options_context(),
             self.route_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("app-route"), rcstr!("App Route")),
+            Layer::new(rcstr!("app-route")).with_user_friendly_name(rcstr!("App Route")),
         ))
     }
 
@@ -555,7 +556,7 @@ impl AppProject {
             self.project().edge_compile_time_info(),
             self.edge_route_module_options_context(),
             self.edge_route_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("app-edge-route"), rcstr!("Edge App Route")),
+            Layer::new(rcstr!("app-edge-route")).with_user_friendly_name(rcstr!("Edge App Route")),
         ))
     }
 
@@ -582,10 +583,8 @@ impl AppProject {
             self.project().client_compile_time_info(),
             self.client_module_options_context(),
             self.client_resolve_options_context(),
-            Layer::with_user_friendly_name(
-                rcstr!("app-client"),
-                rcstr!("Client Component Browser"),
-            ),
+            Layer::new(rcstr!("app-client"))
+                .with_user_friendly_name(rcstr!("Client Component Browser")),
         ))
     }
 
@@ -670,7 +669,7 @@ impl AppProject {
             self.project().server_compile_time_info(),
             self.ssr_module_options_context(),
             self.ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(rcstr!("app-ssr"), rcstr!("Client Component SSR")),
+            Layer::new(rcstr!("app-ssr")).with_user_friendly_name(rcstr!("Client Component SSR")),
         ))
     }
 
@@ -730,10 +729,8 @@ impl AppProject {
             self.project().edge_compile_time_info(),
             self.edge_ssr_module_options_context(),
             self.edge_ssr_resolve_options_context(),
-            Layer::with_user_friendly_name(
-                rcstr!("app-edge-ssr"),
-                rcstr!("Client Component SSR - Edge"),
-            ),
+            Layer::new(rcstr!("app-edge-ssr"))
+                .with_user_friendly_name(rcstr!("Client Component SSR - Edge")),
         ))
     }
 
