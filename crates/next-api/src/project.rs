@@ -1497,7 +1497,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            LayerName::new(rcstr!("instrumentation")),
+            LayerName::with_user_friendly_name(rcstr!("instrumentation"), rcstr!("Instrumentation")),
         )))
     }
 
@@ -1553,7 +1553,8 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            LayerName::new(rcstr!("instrumentation-edge")),
+            ```suggestion
+            LayerName::with_user_friendly_name(rcstr!("instrumentation"), rcstr!("Edge Instrumentation")),
         )))
     }
 
