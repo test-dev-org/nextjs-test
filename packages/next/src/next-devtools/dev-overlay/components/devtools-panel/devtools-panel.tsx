@@ -97,7 +97,7 @@ export function DevToolsPanel({
             aria-describedby="nextjs__container_dev_tools_panel_desc"
             onClose={onCloseDevToolsPanel}
           >
-            <DialogContent>
+            <DialogContent data-nextjs-devtools-panel-dialog-content>
               <DialogHeader data-nextjs-devtools-panel-dialog-header>
                 <div data-nextjs-devtools-panel-header>
                   <div data-nextjs-devtools-panel-header-tab-group>
@@ -172,7 +172,7 @@ export const DEVTOOLS_PANEL_STYLES = css`
     margin-bottom: 0 !important;
   }
 
-  [data-nextjs-devtools-panel-dialog] [data-nextjs-dialog-content] {
+  [data-nextjs-devtools-panel-dialog-content] {
     /* Make DialogContent expand to push footer to bottom. */
     flex: 1;
     /* Hide overflow of devtools panel dialog since we want it on the dialog body only. */
@@ -181,6 +181,9 @@ export const DEVTOOLS_PANEL_STYLES = css`
 
   [data-nextjs-devtools-panel-dialog-body] {
     overflow: auto;
+    /* Make DialogBody a flex container so its children can expand. */
+    display: flex;
+    flex-direction: column;
   }
 
   [data-nextjs-devtools-panel-overlay] {
