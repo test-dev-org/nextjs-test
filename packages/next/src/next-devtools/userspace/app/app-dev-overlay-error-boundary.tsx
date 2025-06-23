@@ -29,11 +29,10 @@ function ErroredHtml({
       </html>
     )
   }
-  const globalErrorElement = <GlobalError error={error} />
   return (
     <ErrorBoundary errorComponent={DefaultGlobalError}>
       {globalErrorStyles}
-      {globalErrorElement}
+      <GlobalError error={error} />
     </ErrorBoundary>
   )
 }
