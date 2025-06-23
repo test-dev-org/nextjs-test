@@ -65,7 +65,6 @@ function IssuesTabSidebarFrame({
   }, [frames])
 
   if (!firstFrame?.originalStackFrame) {
-    // TODO: Better handling
     return null
   }
 
