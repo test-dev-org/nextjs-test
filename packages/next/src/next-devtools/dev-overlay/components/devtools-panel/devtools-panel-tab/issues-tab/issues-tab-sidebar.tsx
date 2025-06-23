@@ -107,6 +107,10 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES = css`
     overflow-y: auto;
     min-height: 0;
 
+    @media (max-width: 575px) {
+      max-width: 112px;
+    }
+
     @media (min-width: 576px) {
       max-width: 138px;
       width: 100%;
