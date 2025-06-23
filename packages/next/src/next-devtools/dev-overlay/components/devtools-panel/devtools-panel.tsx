@@ -262,10 +262,9 @@ export const DEVTOOLS_PANEL_STYLES = css`
     /* For draggable */
     cursor: move;
     user-select: none;
-    /* Reset for children */
-    & * {
+    & > * {
       cursor: auto;
-      /* user-select: auto; seems to not restore properly */
+      /* user-select: auto; follows the parent (parent none -> child none), so reset the direct child to text */
       user-select: text;
     }
   }
