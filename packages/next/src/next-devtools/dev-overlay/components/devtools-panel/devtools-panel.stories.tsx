@@ -44,7 +44,7 @@ export const WithIssues: Story = {
   args: {
     state,
     dispatch: () => {},
-    issueCount: 3,
+    issueCount: runtimeErrors.length,
     runtimeErrors,
     getSquashedHydrationErrorDetails: () => null,
   },
