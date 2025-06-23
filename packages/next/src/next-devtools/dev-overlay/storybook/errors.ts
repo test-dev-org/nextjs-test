@@ -185,7 +185,7 @@ export const runtimeErrors: ReadyRuntimeError[] = [
   {
     id: 5,
     runtime: true,
-    error: new Error('Fifth error message'),
+    error: new Error('Very long stack frame file name.'),
     frames: () =>
       Promise.resolve([
         {
@@ -193,8 +193,14 @@ export const runtimeErrors: ReadyRuntimeError[] = [
           reason: 'Fifth error message',
           external: false,
           ignored: false,
-          sourceStackFrame,
-          originalStackFrame,
+          sourceStackFrame: {
+            ...sourceStackFrame,
+            file: 'foo/bar/baz/qux/quux/quuz/corge/grault/garply/waldo/fred/plugh/xyzzy/thud.tsx',
+          },
+          originalStackFrame: {
+            ...originalStackFrame,
+            file: 'foo/bar/baz/qux/quux/quuz/corge/grault/garply/waldo/fred/plugh/xyzzy/thud.tsx (0:0)',
+          },
           originalCodeFrame: originalCodeFrame('Fifth error message'),
         },
       ]),

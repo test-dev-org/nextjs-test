@@ -107,8 +107,6 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES = css`
     overflow-y: auto;
     min-height: 0;
 
-    min-width: 128px;
-
     @media (min-width: 576px) {
       max-width: 138px;
       width: 100%;
@@ -160,5 +158,14 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES = css`
     color: var(--color-gray-900);
     font-size: var(--size-13);
     line-height: var(--size-18);
+  }
+
+  /* Ellipsis for long stack frame source or small devices. */
+  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-error-type],
+  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-source] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
 `
