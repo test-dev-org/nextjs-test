@@ -238,7 +238,15 @@ export default function BlogPage() {
 
 Deduplication is the process of _preventing duplicate requests_ for the same resource during a render pass. It allows you to fetch the same data in different components while preventing multiple network requests to your data source.
 
-If you are using `fetch`, requests can be deduplicated by adding `cache: 'force-cache'`. This means you can safely call the same URL with the same options, and only one request will be made.
+Next.js wraps `fetch` with [`React.cache`](https://react.dev/reference/react/cache) so that identical `fetch` calls (`GET` and `HEAD` only) within the same render pass result in a single request.
+
+In other words, you can call the same URL with the same options multiple times in the current render pass and only one request will be made. You can opt out of this behavior by using an `Abort` signal.
+
+Deduplicating requests with [`React.cache`](https://react.dev/reference/react/cache) is a form of memoization, which is scoped to the current request — concurrent requests don’t share this cache.
+
+You can also enable deduplication across components and future renders by setting `cache: 'force-cache'` in your `fetch` options.
+
+This means that future calls to the same URL and options will also return the cached result.
 
 If you are _not_ using `fetch`, and instead using an ORM or database directly, you can wrap your data fetch with the [React `cache`](https://react.dev/reference/react/cache) function.
 
