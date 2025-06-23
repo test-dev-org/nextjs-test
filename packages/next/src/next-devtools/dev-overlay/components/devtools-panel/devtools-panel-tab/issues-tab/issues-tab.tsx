@@ -40,8 +40,6 @@ export function IssuesTab({
     errorDetails,
   } = useActiveRuntimeError({ runtimeErrors, getSquashedHydrationErrorDetails })
 
-  console.log({ activeError })
-
   if (!activeError) {
     return (
       <div data-nextjs-devtools-panel-tab-issues-empty>
