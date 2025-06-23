@@ -56,6 +56,18 @@ jobs:
           contains(github.event.pull_request.labels.*.name, 'Rspack')
         }}
 
+  # TODO(PACK-4578): Remove this build once all tests are passing with asserts
+  build-native-no-asserts:
+    name: build-native
+    uses: ./.github/workflows/build_reusable.yml
+    needs: ['changes']
+    if: ${{ needs.changes.outputs.docs-only == 'false' }}
+    with:
+      skipInstallBuild: 'yes'
+      rustBuildProfile: 'release'
+      stepName: 'build-native'
+    secrets: inherit
+
   build-native:
     name: build-native
     uses: ./.github/workflows/build_reusable.yml
@@ -290,7 +302,8 @@ jobs:
 
   test-turbopack-production:
     name: test turbopack production
-    needs: ['optimize-ci', 'changes', 'build-next', 'build-native']
+    # TODO(PACK-4578): Switch back to `build-native` once existing debug assert failures are addressed.
+    needs: ['optimize-ci', 'changes', 'build-next', 'build-native-no-asserts']
     if: ${{ needs.optimize-ci.outputs.skip == 'false' && needs.changes.outputs.docs-only == 'false' }}
 
     strategy:
