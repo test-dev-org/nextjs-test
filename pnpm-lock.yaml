@@ -156,7 +156,7 @@ importers:
         version: 1.1.0
       '@testing-library/jest-dom':
         specifier: 6.1.2
-        version: 6.1.2(@jest/globals@30.0.2)(@types/jest@29.5.5)(jest@30.0.2(@types/node@20.17.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0))(vitest@3.0.4(@types/node@20.17.6)(jsdom@26.1.0)(sass@1.54.0)(tsx@4.19.2))
+        version: 6.1.2(@jest/globals@30.0.2)(@types/jest@30.0.0)(jest@30.0.2(@types/node@20.17.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0))(vitest@3.0.4(@types/node@20.17.6)(jsdom@26.1.0)(sass@1.54.0)(tsx@4.19.2))
       '@testing-library/react':
         specifier: ^15.0.5
         version: 15.0.7(@types/react@19.1.1)(react-dom@19.2.0-canary-197d6a04-20250424(react@19.2.0-canary-197d6a04-20250424))(react@19.2.0-canary-197d6a04-20250424)
@@ -185,8 +185,8 @@ importers:
         specifier: 1.17.3
         version: 1.17.3
       '@types/jest':
-        specifier: 29.5.5
-        version: 29.5.5
+        specifier: 30.0.0
+        version: 30.0.0
       '@types/node':
         specifier: 20.17.6
         version: 20.17.6
@@ -5703,8 +5703,8 @@ packages:
   '@types/istanbul-reports@3.0.4':
     resolution: {integrity: sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ==}
 
-  '@types/jest@29.5.5':
-    resolution: {integrity: sha512-ebylz2hnsWR9mYvmBFbXJXr+33UPc4+ZdxyDXh5w0FlPBTfCVN3wPL+kuOiQt3xvrK419v7XWeAs+AeOksafXg==}
+  '@types/jest@30.0.0':
+    resolution: {integrity: sha512-XTYugzhuwqWjws0CVz8QpM36+T+Dz5mTEBKhNs/esGLnCIlGdRy+Dq78NRjd7ls7r8BC8ZRMOrKlkO1hU0JOwA==}
 
   '@types/jscodeshift@0.11.0':
     resolution: {integrity: sha512-OcJgr5GznWCEx2Oeg4eMUZYwssTHFj/tU8grrNCKdFQtAEAa0ezDiPHbCdSkyWrRSurXrYbNbHdhxbbB76pXNg==}
@@ -5867,9 +5867,6 @@ packages:
 
   '@types/split2@4.2.3':
     resolution: {integrity: sha512-59OXIlfUsi2k++H6CHgUQKEb2HKRokUA39HY1i1dS8/AIcqVjtAAFdf8u+HxTWK/4FUHMJQlKSZ4I6irCBJ1Zw==}
-
-  '@types/stack-utils@2.0.1':
-    resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -14074,10 +14071,6 @@ packages:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
 
-  pretty-format@29.5.0:
-    resolution: {integrity: sha512-V2mGkI31qdttvTFX7Mt4efOqHXqJWMu4/r66Xh3Z3BwZaPfPJgp6/gbwoujRpPUtfEF6AUUWx3Jim3GCw5g/Qw==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-
   pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -17539,7 +17532,7 @@ snapshots:
 
   '@babel/highlight@7.22.20':
     dependencies:
-      '@babel/helper-validator-identifier': 7.25.9
+      '@babel/helper-validator-identifier': 7.27.1
       chalk: 2.4.2
       js-tokens: 4.0.0
 
@@ -21709,7 +21702,7 @@ snapshots:
       lz-string: 1.5.0
       pretty-format: 27.5.1
 
-  '@testing-library/jest-dom@6.1.2(@jest/globals@30.0.2)(@types/jest@29.5.5)(jest@30.0.2(@types/node@20.17.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0))(vitest@3.0.4(@types/node@20.17.6)(jsdom@26.1.0)(sass@1.54.0)(tsx@4.19.2))':
+  '@testing-library/jest-dom@6.1.2(@jest/globals@30.0.2)(@types/jest@30.0.0)(jest@30.0.2(@types/node@20.17.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0))(vitest@3.0.4(@types/node@20.17.6)(jsdom@26.1.0)(sass@1.54.0)(tsx@4.19.2))':
     dependencies:
       '@adobe/css-tools': 4.3.1
       '@babel/runtime': 7.27.0
@@ -21721,7 +21714,7 @@ snapshots:
       redent: 3.0.0
     optionalDependencies:
       '@jest/globals': 30.0.2
-      '@types/jest': 29.5.5
+      '@types/jest': 30.0.0
       jest: 30.0.2(@types/node@20.17.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0)
       vitest: 3.0.4(@types/node@20.17.6)(jsdom@26.1.0)(sass@1.54.0)(tsx@4.19.2)
 
@@ -21994,7 +21987,7 @@ snapshots:
 
   '@types/istanbul-lib-report@3.0.0':
     dependencies:
-      '@types/istanbul-lib-coverage': 2.0.4
+      '@types/istanbul-lib-coverage': 2.0.6
 
   '@types/istanbul-reports@3.0.0':
     dependencies:
@@ -22008,10 +22001,10 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-report': 3.0.0
 
-  '@types/jest@29.5.5':
+  '@types/jest@30.0.0':
     dependencies:
-      expect: 29.7.0
-      pretty-format: 29.5.0
+      expect: 30.0.2
+      pretty-format: 30.0.2
 
   '@types/jscodeshift@0.11.0':
     dependencies:
@@ -22181,8 +22174,6 @@ snapshots:
   '@types/split2@4.2.3':
     dependencies:
       '@types/node': 20.17.6
-
-  '@types/stack-utils@2.0.1': {}
 
   '@types/stack-utils@2.0.3': {}
 
@@ -28856,7 +28847,7 @@ snapshots:
     dependencies:
       '@babel/code-frame': 7.26.2
       '@jest/types': 29.6.3
-      '@types/stack-utils': 2.0.1
+      '@types/stack-utils': 2.0.3
       chalk: 4.1.2
       graceful-fs: 4.2.11
       micromatch: 4.0.8
@@ -32722,12 +32713,6 @@ snapshots:
   pretty-format@27.5.1:
     dependencies:
       ansi-regex: 5.0.1
-      ansi-styles: 5.2.0
-      react-is: 19.2.0-canary-197d6a04-20250424
-
-  pretty-format@29.5.0:
-    dependencies:
-      '@jest/schemas': 29.6.3
       ansi-styles: 5.2.0
       react-is: 19.2.0-canary-197d6a04-20250424
 
