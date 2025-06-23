@@ -163,6 +163,7 @@ export function DevToolsPanel({
                   activeTab={activeTab}
                   devToolsPosition={state.devToolsPosition}
                   scale={state.scale}
+                  routerType={state.routerType}
                   handlePositionChange={handlePositionChange}
                   handleScaleChange={handleScaleChange}
                   debugInfo={state.debugInfo}
