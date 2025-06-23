@@ -37,9 +37,7 @@ export function DevToolsPanel({
   runtimeErrors: ReadyRuntimeError[]
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
-  const [activeTab, setActiveTab] = useState<'issues' | 'route' | 'settings'>(
-    'settings'
-  )
+  const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const onCloseDevToolsPanel = () => {
