@@ -324,7 +324,7 @@ export const DEVTOOLS_PANEL_STYLES = css`
   [data-nextjs-devtools-panel-header-action-button] {
     background: transparent;
     border: none;
-    cursor: pointer !important;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
