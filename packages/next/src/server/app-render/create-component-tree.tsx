@@ -544,13 +544,8 @@ async function createComponentTreeInternal({
           </Template>
         )
 
-        // template boundary is the same level with layout and page
-        const templateFilePath = getConventionPathByType(
-          parallelRoute,
-          dir,
-          'template'
-        )
-        // error boundary is from the parent segment level
+        const templateFilePath = getConventionPathByType(tree, dir, 'template')
+
         const errorFilePath = getConventionPathByType(tree, dir, 'error')
 
         const wrappedErrorStyles =
