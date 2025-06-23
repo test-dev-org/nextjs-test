@@ -21,6 +21,7 @@ import { Draggable } from '../errors/dev-tools-indicator/draggable'
 import { INDICATOR_PADDING } from '../devtools-indicator/devtools-indicator'
 import { FullScreenIcon } from '../../icons/fullscreen'
 import { Cross } from '../../icons/cross'
+import { MinimizeIcon } from '../../icons/minimize'
 
 export type DevToolsPanelTabType = 'issues' | 'route' | 'settings'
 
@@ -38,6 +39,7 @@ export function DevToolsPanel({
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
   const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const onCloseDevToolsPanel = () => {
@@ -60,19 +62,27 @@ export function DevToolsPanel({
     localStorage.setItem(STORAGE_KEY_SCALE, e.target.value)
   }
 
+  const handleFullscreenToggle = () => {
+    setIsFullscreen((prev) => !prev)
+  }
+
   return (
     <Overlay
       data-nextjs-devtools-panel-overlay
-      style={{
-        [vertical]: `${INDICATOR_PADDING}px`,
-        [horizontal]: `${INDICATOR_PADDING}px`,
-        [vertical === 'top' ? 'bottom' : 'top']: 'auto',
-        [horizontal === 'left' ? 'right' : 'left']: 'auto',
-      }}
+      style={
+        !isFullscreen
+          ? {
+              [vertical]: `${INDICATOR_PADDING}px`,
+              [horizontal]: `${INDICATOR_PADDING}px`,
+              [vertical === 'top' ? 'bottom' : 'top']: 'auto',
+              [horizontal === 'left' ? 'right' : 'left']: 'auto',
+            }
+          : {}
+      }
     >
       {/* TODO: Investigate why onCloseDevToolsPanel on Dialog doesn't close when clicked outside. */}
       <OverlayBackdrop
-        data-nextjs-devtools-panel-overlay-backdrop
+        data-nextjs-devtools-panel-overlay-backdrop={isFullscreen}
         onClick={onCloseDevToolsPanel}
       />
       <Draggable
@@ -128,9 +138,15 @@ export function DevToolsPanel({
                     </button>
                   </div>
                   <div data-nextjs-devtools-panel-header-action-button-group>
-                    {/* TODO: Currently no-op, will add fullscreen toggle. */}
-                    <button data-nextjs-devtools-panel-header-action-button>
-                      <FullScreenIcon width={16} height={16} />
+                    <button
+                      data-nextjs-devtools-panel-header-action-button
+                      onClick={handleFullscreenToggle}
+                    >
+                      {isFullscreen ? (
+                        <MinimizeIcon width={16} height={16} />
+                      ) : (
+                        <FullScreenIcon width={16} height={16} />
+                      )}
                     </button>
                     <button
                       data-nextjs-devtools-panel-header-action-button
@@ -186,11 +202,8 @@ export const DEVTOOLS_PANEL_STYLES = css`
   }
 
   [data-nextjs-devtools-panel-overlay] {
-    padding: initial;
     margin: auto;
     width: 100%;
-    /* TODO: This is for fullscreen mode. */
-    /* top: 10vh; */
 
     @media (max-width: 575px) {
       left: 20px !important;
@@ -212,8 +225,11 @@ export const DEVTOOLS_PANEL_STYLES = css`
   }
 
   [data-nextjs-devtools-panel-overlay-backdrop] {
-    /* TODO: Blur on fullscreen mode. */
     opacity: 0;
+  }
+
+  [data-nextjs-devtools-panel-overlay-backdrop='true'] {
+    opacity: 1;
   }
 
   [data-nextjs-devtools-panel-draggable] {
