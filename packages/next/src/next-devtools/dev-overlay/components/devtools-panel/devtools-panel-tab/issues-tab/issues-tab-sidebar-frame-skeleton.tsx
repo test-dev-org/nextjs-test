@@ -1,27 +1,11 @@
 import { css } from '../../../../utils/css'
 
-export function IssuesTabSidebarFrameSkeleton({
-  isActive,
-  ...props
-}: {
-  isActive: boolean
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function IssuesTabSidebarFrameSkeleton() {
   return (
-    <button
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame-active={isActive}
-      {...props}
-    >
-      <div
-        data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar
-        data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar-1
-      />
-      <div
-        data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar
-        data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar-2
-      />
-    </button>
+    <>
+      <div data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar="1" />
+      <div data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar="2" />
+    </>
   )
 }
 
@@ -39,12 +23,12 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES = css`
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
   }
 
-  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar-1] {
+  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar='1'] {
     width: 75%;
     margin-bottom: 8px;
   }
 
-  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar-2] {
+  [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar='2'] {
     width: 36.5%;
   }
 

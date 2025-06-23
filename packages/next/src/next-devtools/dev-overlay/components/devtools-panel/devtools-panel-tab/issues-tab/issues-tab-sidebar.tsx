@@ -1,6 +1,6 @@
 import type { ReadyRuntimeError } from '../../../../utils/get-error-by-type'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, memo } from 'react'
 
 import { css } from '../../../../utils/css'
 import { getFrameSource } from '../../../../../shared/stack-frame'
@@ -23,33 +23,23 @@ export function IssuesTabSidebar({
       {runtimeErrors.map((runtimeError, idx) => {
         const isActive = idx === activeIdx
         return (
-          <Suspense
+          <IssuesTabSidebarFrame
             key={idx}
-            fallback={<IssuesTabSidebarFrameSkeleton isActive={isActive} />}
-          >
-            <IssuesTabSidebarFrame
-              runtimeError={runtimeError}
-              idx={idx}
-              isActive={isActive}
-              setActiveIndex={setActiveIndex}
-            />
-          </Suspense>
+            runtimeError={runtimeError}
+            idx={idx}
+            isActive={isActive}
+            setActiveIndex={setActiveIndex}
+          />
         )
       })}
     </aside>
   )
 }
 
-function IssuesTabSidebarFrame({
+const IssuesTabSidebarFrameItem = memo(function IssuesTabSidebarFrameItem({
   runtimeError,
-  idx,
-  isActive,
-  setActiveIndex,
 }: {
   runtimeError: ReadyRuntimeError
-  idx: number
-  isActive: boolean
-  setActiveIndex: (idx: number) => void
 }) {
   const frames = useFrames(runtimeError)
 
@@ -68,24 +58,44 @@ function IssuesTabSidebarFrame({
     return null
   }
 
-  const frameSource = getFrameSource(firstFrame.originalStackFrame)
   const errorType = getErrorTypeLabel(runtimeError.error, runtimeError.type)
+  const frameSource = getFrameSource(firstFrame.originalStackFrame)
 
   return (
-    <button
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame
-      data-nextjs-devtools-panel-tab-issues-sidebar-frame-active={isActive}
-      onClick={() => setActiveIndex(idx)}
-    >
+    <>
       <span data-nextjs-devtools-panel-tab-issues-sidebar-frame-error-type>
         {errorType}
       </span>
       <span data-nextjs-devtools-panel-tab-issues-sidebar-frame-source>
         {frameSource}
       </span>
+    </>
+  )
+})
+
+const IssuesTabSidebarFrame = memo(function IssuesTabSidebarFrame({
+  runtimeError,
+  idx,
+  isActive,
+  setActiveIndex,
+}: {
+  runtimeError: ReadyRuntimeError
+  idx: number
+  isActive: boolean
+  setActiveIndex: (idx: number) => void
+}) {
+  return (
+    <button
+      data-nextjs-devtools-panel-tab-issues-sidebar-frame
+      data-nextjs-devtools-panel-tab-issues-sidebar-frame-active={isActive}
+      onClick={() => setActiveIndex(idx)}
+    >
+      <Suspense fallback={<IssuesTabSidebarFrameSkeleton />}>
+        <IssuesTabSidebarFrameItem runtimeError={runtimeError} />
+      </Suspense>
     </button>
   )
-}
+})
 
 export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES = css`
   [data-nextjs-devtools-panel-tab-issues-sidebar] {
