@@ -557,12 +557,17 @@ impl EsmExports {
         parsed: Option<Vc<ParseResult>>,
         export_usage_info: Option<ResolvedVc<ModuleExportUsageInfo>>,
     ) -> Result<CodeGeneration> {
-        if scope_hoisting_context.skip_module_exports() {
-            // If the current module is not exposed, no need to generate exports
+        let expanded = self.expand_exports(export_usage_info.map(|v| *v)).await?;
+
+        if scope_hoisting_context.skip_module_exports() && expanded.dynamic_exports.is_empty() {
+            // If the current module is not exposed, no need to generate exports.
+            //
+            // If there are dynamic_exports, we still need to export everything because it wasn't
+            // possible to determine statically where a reexport is coming from which will instead
+            // be handled at runtime via property access, e.g. `export * from "./some-dynamic-cjs"`
             return Ok(CodeGeneration::empty());
         }
 
-        let expanded = self.expand_exports(export_usage_info.map(|v| *v)).await?;
         let parsed = if let Some(parsed) = parsed {
             Some(parsed.await?)
         } else {
