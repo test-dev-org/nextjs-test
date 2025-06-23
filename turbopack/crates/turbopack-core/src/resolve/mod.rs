@@ -1164,20 +1164,20 @@ async fn type_exists(
     ty: FileSystemEntryType,
     refs: &mut Vec<ResolvedVc<Box<dyn Source>>>,
 ) -> Result<Option<FileSystemPath>> {
-    let result = fs_path.resolve().await?.realpath_with_links().await?;
+    let result = fs_path.realpath_with_links().await?;
     refs.extend(
         result
             .symlinks
             .iter()
             .map(|path| async move {
                 Ok(ResolvedVc::upcast(
-                    FileSource::new(**path).to_resolved().await?,
+                    FileSource::new(path.clone()).to_resolved().await?,
                 ))
             })
             .try_join()
             .await?,
     );
-    let path = result.path;
+    let path = result.clone_value().path;
     Ok(if *path.get_type().await? == ty {
         Some(path)
     } else {
@@ -1189,20 +1189,20 @@ async fn any_exists(
     fs_path: FileSystemPath,
     refs: &mut Vec<ResolvedVc<Box<dyn Source>>>,
 ) -> Result<Option<(FileSystemEntryType, FileSystemPath)>> {
-    let result = fs_path.resolve().await?.realpath_with_links().await?;
+    let result = fs_path.realpath_with_links().await?;
     refs.extend(
         result
             .symlinks
             .iter()
             .map(|path| async move {
                 Ok(ResolvedVc::upcast(
-                    FileSource::new(**path).to_resolved().await?,
+                    FileSource::new(path.clone()).to_resolved().await?,
                 ))
             })
             .try_join()
             .await?,
     );
-    let path = result.path;
+    let path = result.clone_value().path;
     let ty = *path.get_type().await?;
     Ok(
         if matches!(
@@ -1211,7 +1211,7 @@ async fn any_exists(
         ) {
             None
         } else {
-            Some((ty, *path))
+            Some((ty, path))
         },
     )
 }
@@ -1226,7 +1226,7 @@ enum ExportsFieldResult {
 /// appropriate [AliasMap] for lookups.
 #[turbo_tasks::function]
 async fn exports_field(package_json_path: FileSystemPath) -> Result<Vc<ExportsFieldResult>> {
-    let read = read_package_json(*package_json_path).await?;
+    let read = read_package_json(package_json_path.clone()).await?;
     let package_json = match &*read {
         Some(json) => json,
         None => return Ok(ExportsFieldResult::None.cell()),
@@ -1267,7 +1267,7 @@ async fn imports_field(lookup_path: FileSystemPath) -> Result<Vc<ImportsFieldRes
         return Ok(ImportsFieldResult::None.cell());
     };
 
-    let read = read_package_json(**package_json_path).await?;
+    let read = read_package_json(package_json_path.clone()).await?;
     let package_json = match &*read {
         Some(json) => json,
         None => return Ok(ImportsFieldResult::None.cell()),
@@ -1277,10 +1277,10 @@ async fn imports_field(lookup_path: FileSystemPath) -> Result<Vc<ImportsFieldRes
         return Ok(ImportsFieldResult::None.cell());
     };
     match imports.try_into() {
-        Ok(imports) => Ok(ImportsFieldResult::Some(imports, *package_json_path).cell()),
+        Ok(imports) => Ok(ImportsFieldResult::Some(imports, package_json_path.clone()).cell()),
         Err(err) => {
             PackageJsonIssue {
-                path: *package_json_path,
+                path: package_json_path.clone(),
                 error_message: err.to_string().into(),
             }
             .resolved_cell()
@@ -1308,12 +1308,12 @@ pub async fn find_context_file(
 ) -> Result<Vc<FindContextFileResult>> {
     let mut refs = Vec::new();
     for name in &*names.await? {
-        let fs_path = lookup_path.join(name.clone());
+        let fs_path = lookup_path.join(name)?;
         if let Some(fs_path) = exists(fs_path, &mut refs).await? {
             return Ok(FindContextFileResult::Found(fs_path, refs).cell());
         }
     }
-    if lookup_path.await?.is_root() {
+    if lookup_path.is_root() {
         return Ok(FindContextFileResult::NotFound(refs).cell());
     }
     if refs.is_empty() {
@@ -1321,15 +1321,15 @@ pub async fn find_context_file(
         Ok(find_context_file(
             // Hot codepath optimization: resolve all arguments to avoid an automatically-created
             // intermediate task
-            lookup_path.parent().resolve().await?,
+            lookup_path.parent(),
             names,
         ))
     } else {
-        let parent_result = find_context_file(lookup_path.parent().resolve().await?, names).await?;
+        let parent_result = find_context_file(lookup_path.parent(), names).await?;
         Ok(match &*parent_result {
             FindContextFileResult::Found(p, r) => {
                 refs.extend(r.iter().copied());
-                FindContextFileResult::Found(*p, refs)
+                FindContextFileResult::Found(p.clone(), refs)
             }
             FindContextFileResult::NotFound(r) => {
                 refs.extend(r.iter().copied());
@@ -1348,34 +1348,31 @@ pub async fn find_context_file_or_package_key(
     package_key: RcStr,
 ) -> Result<Vc<FindContextFileResult>> {
     let mut refs = Vec::new();
-    let package_json_path = lookup_path.join(rcstr!("package.json"));
+    let package_json_path = lookup_path.join("package.json")?;
     if let Some(package_json_path) = exists(package_json_path, &mut refs).await?
-        && let Some(json) = &*read_package_json(*package_json_path).await?
+        && let Some(json) = &*read_package_json(package_json_path.clone()).await?
         && json.get(&*package_key).is_some()
     {
         return Ok(FindContextFileResult::Found(package_json_path, refs).into());
     }
     for name in &*names.await? {
-        let fs_path = lookup_path.join(name.clone());
+        let fs_path = lookup_path.join(name)?;
         if let Some(fs_path) = exists(fs_path, &mut refs).await? {
             return Ok(FindContextFileResult::Found(fs_path, refs).into());
         }
     }
-    if lookup_path.await?.is_root() {
+    if lookup_path.is_root() {
         return Ok(FindContextFileResult::NotFound(refs).into());
     }
     if refs.is_empty() {
         // Tailcall
-        Ok(find_context_file(
-            lookup_path.parent().resolve().await?,
-            names,
-        ))
+        Ok(find_context_file(lookup_path.parent(), names))
     } else {
-        let parent_result = find_context_file(lookup_path.parent().resolve().await?, names).await?;
+        let parent_result = find_context_file(lookup_path.parent(), names).await?;
         Ok(match &*parent_result {
             FindContextFileResult::Found(p, r) => {
                 refs.extend(r.iter().copied());
-                FindContextFileResult::Found(*p, refs)
+                FindContextFileResult::Found(p.clone(), refs)
             }
             FindContextFileResult::NotFound(r) => {
                 refs.extend(r.iter().copied());
@@ -1386,7 +1383,7 @@ pub async fn find_context_file_or_package_key(
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TraceRawVcs, Debug, NonLocalValue)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, TraceRawVcs, Debug, NonLocalValue)]
 enum FindPackageItem {
     PackageDirectory(FileSystemPath),
     PackageFile(FileSystemPath),
@@ -1410,25 +1407,25 @@ async fn find_package(
     for resolve_modules in &options.modules {
         match resolve_modules {
             ResolveModules::Nested(root_vc, names) => {
-                let mut lookup_path = lookup_path;
-                let mut lookup_path_value = lookup_path.await?;
+                let mut lookup_path = lookup_path.clone();
+                let mut lookup_path_value = lookup_path.clone();
                 // For clippy -- This explicit deref is necessary
-                let root = &*root_vc.await?;
-                while lookup_path_value.is_inside_ref(root) {
+                let root = root_vc.clone();
+                while lookup_path_value.is_inside_ref(&root) {
                     for name in names.iter() {
-                        let fs_path = lookup_path.join(name.clone());
+                        let fs_path = lookup_path.join(name)?;
                         if let Some(fs_path) = dir_exists(fs_path, &mut affecting_sources).await? {
-                            let fs_path = fs_path.join(package_name.clone());
+                            let fs_path = fs_path.join(&package_name.clone())?;
                             if let Some(fs_path) =
-                                dir_exists(fs_path, &mut affecting_sources).await?
+                                dir_exists(fs_path.clone(), &mut affecting_sources).await?
                             {
                                 packages.push(FindPackageItem::PackageDirectory(fs_path));
                             }
                         }
                     }
-                    lookup_path = lookup_path.parent().resolve().await?;
-                    let new_context_value = lookup_path.await?;
-                    if *new_context_value == *lookup_path_value {
+                    lookup_path = lookup_path.parent();
+                    let new_context_value = lookup_path.clone();
+                    if new_context_value == lookup_path_value {
                         break;
                     }
                     lookup_path_value = new_context_value;
@@ -1439,20 +1436,16 @@ async fn find_package(
                 excluded_extensions,
             } => {
                 let excluded_extensions = excluded_extensions.await?;
-                let package_dir = dir.join(package_name.clone());
+                let package_dir = dir.join(&package_name)?;
                 if let Some((ty, package_dir)) =
-                    any_exists(package_dir, &mut affecting_sources).await?
+                    any_exists(package_dir.clone(), &mut affecting_sources).await?
                 {
                     match ty {
                         FileSystemEntryType::Directory => {
-                            packages.push(FindPackageItem::PackageDirectory(
-                                package_dir.to_resolved().await?,
-                            ));
+                            packages.push(FindPackageItem::PackageDirectory(package_dir.clone()));
                         }
                         FileSystemEntryType::File => {
-                            packages.push(FindPackageItem::PackageFile(
-                                package_dir.to_resolved().await?,
-                            ));
+                            packages.push(FindPackageItem::PackageFile(package_dir.clone()));
                         }
                         _ => {}
                     }
@@ -1461,7 +1454,7 @@ async fn find_package(
                     if excluded_extensions.contains(extension) {
                         continue;
                     }
-                    let package_file = package_dir.append(extension.clone());
+                    let package_file = package_dir.append(&extension.clone())?;
                     if let Some(package_file) = exists(package_file, &mut affecting_sources).await?
                     {
                         packages.push(FindPackageItem::PackageFile(package_file));
@@ -1515,12 +1508,12 @@ pub async fn resolve_raw(
         let RealPathResult { path, symlinks } = &*path.realpath_with_links().await?;
         Ok(*ResolveResult::source_with_affecting_sources(
             RequestKey::new(request.into()),
-            ResolvedVc::upcast(FileSource::new(**path).to_resolved().await?),
+            ResolvedVc::upcast(FileSource::new(path.clone()).to_resolved().await?),
             symlinks
                 .iter()
                 .map(|symlink| async move {
                     anyhow::Ok(ResolvedVc::upcast(
-                        FileSource::new(**symlink).to_resolved().await?,
+                        FileSource::new(symlink.clone()).to_resolved().await?,
                     ))
                 })
                 .try_join()
@@ -1530,14 +1523,20 @@ pub async fn resolve_raw(
 
     let mut results = Vec::new();
 
-    let lookup_dir_str = lookup_dir.to_string().await?;
+    let lookup_dir_str = lookup_dir.value_to_string().await?;
     let pat = path.await?;
     if let Some(pat) = pat
         .filter_could_match("/ROOT/")
         .and_then(|pat| pat.filter_could_not_match("/ROOT/fsd8nz8og54z"))
     {
         let path = Pattern::new(pat);
-        let matches = read_matches(lookup_dir.root(), rcstr!("/ROOT/"), true, path).await?;
+        let matches = read_matches(
+            lookup_dir.root().await?.clone_value(),
+            rcstr!("/ROOT/"),
+            true,
+            path,
+        )
+        .await?;
         if matches.len() > 10000 {
             let path_str = path.to_string().await?;
             println!(
@@ -1549,7 +1548,7 @@ pub async fn resolve_raw(
         } else {
             for m in matches.iter() {
                 if let PatternMatch::File(request, path) = m {
-                    results.push(to_result(request, *path).await?);
+                    results.push(to_result(request, path.clone()).await?);
                 }
             }
         }
@@ -1567,7 +1566,7 @@ pub async fn resolve_raw(
         }
         for m in matches.iter() {
             if let PatternMatch::File(request, path) = m {
-                results.push(to_result(request, *path).await?);
+                results.push(to_result(request, path.clone()).await?);
             }
         }
     }
@@ -1592,7 +1591,7 @@ pub async fn resolve_inline(
     options: Vc<ResolveOptions>,
 ) -> Result<Vc<ResolveResult>> {
     let span = {
-        let lookup_path = lookup_path.to_string().await?.to_string();
+        let lookup_path = lookup_path.value_to_string().await?.to_string();
         let request = request.to_string().await?.to_string();
         tracing::info_span!(
             "resolving",
@@ -1602,14 +1601,18 @@ pub async fn resolve_inline(
         )
     };
     async {
-        let before_plugins_result =
-            handle_before_resolve_plugins(lookup_path, reference_type.clone(), request, options)
-                .await?;
+        let before_plugins_result = handle_before_resolve_plugins(
+            lookup_path.clone(),
+            reference_type.clone(),
+            request,
+            options,
+        )
+        .await?;
 
         let raw_result = match before_plugins_result {
             Some(result) => result,
             None => {
-                resolve_internal(lookup_path, request, options)
+                resolve_internal(lookup_path.clone(), request, options)
                     .resolve()
                     .await?
             }
@@ -1632,10 +1635,10 @@ pub async fn url_resolve(
     issue_source: Option<IssueSource>,
     is_optional: bool,
 ) -> Result<Vc<ModuleResolveResult>> {
-    let resolve_options = origin.resolve_options(reference_type.clone());
+    let resolve_options = origin.resolve_options(reference_type.clone()).await?;
     let rel_request = request.as_relative();
     let rel_result = resolve(
-        origin.origin_path().parent(),
+        origin.origin_path().await?.parent(),
         reference_type.clone(),
         rel_request,
         resolve_options,
@@ -1643,7 +1646,7 @@ pub async fn url_resolve(
     let result = if *rel_result.is_unresolvable().await? && rel_request.resolve().await? != request
     {
         resolve(
-            origin.origin_path().parent(),
+            origin.origin_path().await?.parent(),
             reference_type.clone(),
             request,
             resolve_options,
@@ -1664,7 +1667,7 @@ pub async fn url_resolve(
     handle_resolve_error(
         result,
         reference_type,
-        origin.origin_path(),
+        origin.origin_path().await?.clone_value(),
         request,
         resolve_options,
         is_optional,
@@ -1687,7 +1690,7 @@ async fn handle_before_resolve_plugins(
         }
 
         if let Some(result) = *plugin
-            .before_resolve(lookup_path, reference_type.clone(), request)
+            .before_resolve(lookup_path.clone(), reference_type.clone(), request)
             .await?
         {
             return Ok(Some(*result));
@@ -1713,9 +1716,14 @@ async fn handle_after_resolve_plugins(
     ) -> Result<Option<Vc<ResolveResult>>> {
         for plugin in &options.await?.after_resolve_plugins {
             let after_resolve_condition = plugin.after_resolve_condition().resolve().await?;
-            if *after_resolve_condition.matches(path).await?
+            if *after_resolve_condition.matches(path.clone()).await?
                 && let Some(result) = *plugin
-                    .after_resolve(path, lookup_path, reference_type.clone(), request)
+                    .after_resolve(
+                        path.clone(),
+                        lookup_path.clone(),
+                        reference_type.clone(),
+                        request,
+                    )
                     .await?
             {
                 return Ok(Some(*result));
@@ -1732,10 +1740,15 @@ async fn handle_after_resolve_plugins(
 
     for (key, primary) in result_value.primary.iter() {
         if let &ResolveResultItem::Source(source) = primary {
-            let path = source.ident().path().resolve().await?;
-            if let Some(new_result) =
-                apply_plugins_to_path(path, lookup_path, reference_type.clone(), request, options)
-                    .await?
+            let path = source.ident().path().await?.clone_value();
+            if let Some(new_result) = apply_plugins_to_path(
+                path.clone(),
+                lookup_path.clone(),
+                reference_type.clone(),
+                request,
+                options,
+            )
+            .await?
             {
                 let new_result = new_result.await?;
                 changed = true;
@@ -1774,7 +1787,7 @@ async fn resolve_internal(
     request: ResolvedVc<Request>,
     options: ResolvedVc<ResolveOptions>,
 ) -> Result<Vc<ResolveResult>> {
-    resolve_internal_inline(*lookup_path, *request, *options).await
+    resolve_internal_inline(lookup_path.clone(), *request, *options).await
 }
 
 async fn resolve_internal_inline(
@@ -1783,7 +1796,7 @@ async fn resolve_internal_inline(
     options: Vc<ResolveOptions>,
 ) -> Result<Vc<ResolveResult>> {
     let span = {
-        let lookup_path = lookup_path.to_string().await?.to_string();
+        let lookup_path = lookup_path.value_to_string().await?.to_string();
         let request = request.to_string().await?.to_string();
         tracing::info_span!(
             "internal resolving",
@@ -1804,13 +1817,16 @@ async fn resolve_internal_inline(
                 _ => &[request.to_resolved().await?],
             };
             for &request in request_parts {
-                let result = import_map.await?.lookup(lookup_path, *request).await?;
+                let result = import_map
+                    .await?
+                    .lookup(lookup_path.clone(), *request)
+                    .await?;
                 if !matches!(result, ImportMapResult::NoEntry) {
                     has_alias = true;
                     let resolved_result = resolve_import_map_result(
                         &result,
-                        lookup_path,
-                        lookup_path,
+                        lookup_path.clone(),
+                        lookup_path.clone(),
                         *request,
                         options,
                         request.query().owned().await?,
@@ -1836,7 +1852,9 @@ async fn resolve_internal_inline(
             Request::Alternatives { requests } => {
                 let results = requests
                     .iter()
-                    .map(|req| async { resolve_internal_inline(lookup_path, **req, options).await })
+                    .map(|req| async {
+                        resolve_internal_inline(lookup_path.clone(), **req, options).await
+                    })
                     .try_join()
                     .await?;
 
@@ -1850,7 +1868,7 @@ async fn resolve_internal_inline(
             } => {
                 let mut results = Vec::new();
                 let matches = read_matches(
-                    lookup_path,
+                    lookup_path.clone(),
                     rcstr!(""),
                     *force_in_lookup_dir,
                     Pattern::new(path.clone()).resolve().await?,
@@ -1863,8 +1881,8 @@ async fn resolve_internal_inline(
                             results.push(
                                 resolved(
                                     RequestKey::new(matched_pattern.clone()),
-                                    **path,
-                                    lookup_path,
+                                    path.clone(),
+                                    lookup_path.clone(),
                                     request,
                                     options_value,
                                     options,
@@ -1876,7 +1894,7 @@ async fn resolve_internal_inline(
                         }
                         PatternMatch::Directory(matched_pattern, path) => {
                             results.push(
-                                resolve_into_folder(**path, options)
+                                resolve_into_folder(path.clone(), options)
                                     .with_request(matched_pattern.clone()),
                             );
                         }
@@ -1893,7 +1911,7 @@ async fn resolve_internal_inline(
             } => {
                 if !fragment.is_empty()
                     && let Ok(result) = resolve_relative_request(
-                        lookup_path,
+                        lookup_path.clone(),
                         request,
                         options,
                         options_value,
@@ -1908,7 +1926,7 @@ async fn resolve_internal_inline(
                 }
                 // Resolve without fragment
                 resolve_relative_request(
-                    lookup_path,
+                    lookup_path.clone(),
                     request,
                     options,
                     options_value,
@@ -1926,7 +1944,7 @@ async fn resolve_internal_inline(
                 fragment,
             } => {
                 resolve_module_request(
-                    lookup_path,
+                    lookup_path.clone(),
                     request,
                     options,
                     options_value,
@@ -1951,7 +1969,7 @@ async fn resolve_internal_inline(
                         severity: error_severity(options).await?,
                         request_type: "server relative import: not implemented yet".to_string(),
                         request: relative.to_resolved().await?,
-                        file_path: lookup_path.to_resolved().await?,
+                        file_path: lookup_path.clone(),
                         resolve_options: options.to_resolved().await?,
                         error_message: Some(
                             "server relative imports are not implemented yet. Please try an \
@@ -1965,7 +1983,7 @@ async fn resolve_internal_inline(
                 }
 
                 Box::pin(resolve_internal_inline(
-                    lookup_path.root(),
+                    lookup_path.root().await?.clone_value(),
                     relative,
                     options,
                 ))
@@ -1981,7 +1999,7 @@ async fn resolve_internal_inline(
                         severity: error_severity(options).await?,
                         request_type: "windows import: not implemented yet".to_string(),
                         request: request.to_resolved().await?,
-                        file_path: lookup_path.to_resolved().await?,
+                        file_path: lookup_path.clone(),
                         resolve_options: options.to_resolved().await?,
                         error_message: Some("windows imports are not implemented yet".to_string()),
                         source: None,
@@ -2007,7 +2025,7 @@ async fn resolve_internal_inline(
                     })
                     .unwrap_or_else(|| (Default::default(), ConditionValue::Unset));
                 resolve_package_internal_with_imports_field(
-                    lookup_path,
+                    lookup_path.clone(),
                     request,
                     options,
                     path,
@@ -2033,7 +2051,7 @@ async fn resolve_internal_inline(
                                 media_type.clone(),
                                 encoding.clone(),
                                 **data,
-                                lookup_path,
+                                lookup_path.clone(),
                             )
                             .to_resolved()
                             .await?,
@@ -2072,7 +2090,7 @@ async fn resolve_internal_inline(
                         severity: error_severity(options).await?,
                         request_type: format!("unknown import: `{path}`"),
                         request: request.to_resolved().await?,
-                        file_path: lookup_path.to_resolved().await?,
+                        file_path: lookup_path.clone(),
                         resolve_options: options.to_resolved().await?,
                         error_message: None,
                         source: None,
@@ -2088,11 +2106,14 @@ async fn resolve_internal_inline(
         if let Some(import_map) = &options_value.fallback_import_map
             && *result.is_unresolvable().await?
         {
-            let result = import_map.await?.lookup(lookup_path, request).await?;
+            let result = import_map
+                .await?
+                .lookup(lookup_path.clone(), request)
+                .await?;
             let resolved_result = resolve_import_map_result(
                 &result,
-                lookup_path,
-                lookup_path,
+                lookup_path.clone(),
+                lookup_path.clone(),
                 request,
                 options,
                 request.query().owned().await?,
@@ -2116,13 +2137,13 @@ async fn resolve_into_folder(
     package_path: FileSystemPath,
     options: Vc<ResolveOptions>,
 ) -> Result<Vc<ResolveResult>> {
-    let package_json_path = package_path.join(rcstr!("package.json"));
+    let package_json_path = package_path.join("package.json")?;
     let options_value = options.await?;
 
     for resolve_into_package in options_value.into_package.iter() {
         match resolve_into_package {
             ResolveIntoPackage::MainField { field: name } => {
-                if let Some(package_json) = &*read_package_json(package_json_path).await?
+                if let Some(package_json) = &*read_package_json(package_json_path.clone()).await?
                     && let Some(field_value) = package_json[name.as_str()].as_str()
                 {
                     let normalized_request: RcStr = normalize_request(field_value).into();
@@ -2140,7 +2161,7 @@ async fn resolve_into_folder(
                     } else {
                         options
                     };
-                    let result = &*resolve_internal_inline(*package_path, request, options)
+                    let result = &*resolve_internal_inline(package_path.clone(), request, options)
                         .await?
                         .await?;
                     // we are not that strict when a main field fails to resolve
@@ -2177,9 +2198,11 @@ async fn resolve_into_folder(
 
     let request = Request::parse(pattern);
 
-    Ok(resolve_internal_inline(*package_path, request, options)
-        .await?
-        .with_request(rcstr!(".")))
+    Ok(
+        resolve_internal_inline(package_path.clone(), request, options)
+            .await?
+            .with_request(rcstr!(".")),
+    )
 }
 
 #[tracing::instrument(level = Level::TRACE, skip_all)]
@@ -2194,14 +2217,14 @@ async fn resolve_relative_request(
     fragment: RcStr,
 ) -> Result<Vc<ResolveResult>> {
     // Check alias field for aliases first
-    let lookup_path_ref = &*lookup_path.await?;
+    let lookup_path_ref = lookup_path.clone();
     if let Some(result) = apply_in_package(
-        lookup_path,
+        lookup_path.clone(),
         options,
         options_value,
         |package_path| {
             let request = path_pattern.as_string()?;
-            let prefix_path = package_path.get_path_to(lookup_path_ref)?;
+            let prefix_path = package_path.get_path_to(&lookup_path_ref)?;
             let request = normalize_request(&format!("./{prefix_path}/{request}"));
             Some(request.into())
         },
@@ -2281,7 +2304,7 @@ async fn resolve_relative_request(
 
     let mut results = Vec::new();
     let matches = read_matches(
-        lookup_path,
+        lookup_path.clone(),
         rcstr!(""),
         force_in_lookup_dir,
         Pattern::new(new_path).resolve().await?,
@@ -2307,8 +2330,8 @@ async fn resolve_relative_request(
                             results.push(
                                 resolved(
                                     RequestKey::new(matched_pattern.into()),
-                                    **path,
-                                    lookup_path,
+                                    path.clone(),
+                                    lookup_path.clone(),
                                     request,
                                     options_value,
                                     options,
@@ -2324,8 +2347,8 @@ async fn resolve_relative_request(
                         results.push(
                             resolved(
                                 RequestKey::new(matched_pattern.into()),
-                                **path,
-                                lookup_path,
+                                path.clone(),
+                                lookup_path.clone(),
                                 request,
                                 options_value,
                                 options,
@@ -2344,8 +2367,8 @@ async fn resolve_relative_request(
                     results.push(
                         resolved(
                             RequestKey::new(matched_pattern.into()),
-                            **path,
-                            lookup_path,
+                            path.clone(),
+                            lookup_path.clone(),
                             request,
                             options_value,
                             options,
@@ -2362,8 +2385,8 @@ async fn resolve_relative_request(
                 results.push(
                     resolved(
                         RequestKey::new(matched_pattern.clone()),
-                        **path,
-                        lookup_path,
+                        path.clone(),
+                        lookup_path.clone(),
                         request,
                         options_value,
                         options,
@@ -2378,8 +2401,9 @@ async fn resolve_relative_request(
     // Directory matches must be resolved AFTER file matches
     for m in matches.iter() {
         if let PatternMatch::Directory(matched_pattern, path) = m {
-            results
-                .push(resolve_into_folder(**path, options).with_request(matched_pattern.clone()));
+            results.push(
+                resolve_into_folder(path.clone(), options).with_request(matched_pattern.clone()),
+            );
         }
     }
 
@@ -2405,12 +2429,12 @@ async fn apply_in_package(
         };
 
         let FindContextFileResult::Found(package_json_path, refs) =
-            &*find_context_file(lookup_path, package_json().resolve().await?).await?
+            &*find_context_file(lookup_path.clone(), package_json().resolve().await?).await?
         else {
             continue;
         };
 
-        let read = read_package_json(**package_json_path).await?;
+        let read = read_package_json(package_json_path.clone()).await?;
         let Some(package_json) = &*read else {
             continue;
         };
@@ -2419,9 +2443,9 @@ async fn apply_in_package(
             continue;
         };
 
-        let package_path = package_json_path.parent().resolve().await?;
+        let package_path = package_json_path.parent();
 
-        let Some(request) = get_request(&*package_path.await?) else {
+        let Some(request) = get_request(&package_path) else {
             continue;
         };
 
@@ -2467,7 +2491,7 @@ async fn apply_in_package(
 
         ResolvingIssue {
             severity: error_severity(options).await?,
-            file_path: *package_json_path,
+            file_path: package_json_path.clone(),
             request_type: format!("alias field ({field})"),
             request: Request::parse(Pattern::Constant(request))
                 .to_resolved()
@@ -2503,14 +2527,14 @@ async fn find_self_reference(
 ) -> Result<Vc<FindSelfReferencePackageResult>> {
     let package_json_context = find_context_file(lookup_path, package_json()).await?;
     if let FindContextFileResult::Found(package_json_path, _refs) = &*package_json_context {
-        let read = read_package_json(**package_json_path).await?;
+        let read = read_package_json(package_json_path.clone()).await?;
         if let Some(json) = &*read
             && json.get("exports").is_some()
             && let Some(name) = json["name"].as_str()
         {
             return Ok(FindSelfReferencePackageResult::Found {
                 name: name.to_string(),
-                package_path: package_json_path.parent().to_resolved().await?,
+                package_path: package_json_path.parent(),
             }
             .cell());
         }
@@ -2531,7 +2555,7 @@ async fn resolve_module_request(
 ) -> Result<Vc<ResolveResult>> {
     // Check alias field for module aliases first
     if let Some(result) = apply_in_package(
-        lookup_path,
+        lookup_path.clone(),
         options,
         options_value,
         |_| {
@@ -2550,12 +2574,12 @@ async fn resolve_module_request(
     // module. This should match only using the exports field and no other
     // fields/fallbacks.
     if let FindSelfReferencePackageResult::Found { name, package_path } =
-        &*find_self_reference(lookup_path).await?
+        &*find_self_reference(lookup_path.clone()).await?
         && name == module
     {
         let result = resolve_into_package(
             path.clone(),
-            **package_path,
+            package_path.clone(),
             query.clone(),
             fragment.clone(),
             options,
@@ -2566,7 +2590,7 @@ async fn resolve_module_request(
     }
 
     let result = find_package(
-        lookup_path,
+        lookup_path.clone(),
         module.into(),
         resolve_modules_options(options).resolve().await?,
     )
@@ -2586,11 +2610,11 @@ async fn resolve_module_request(
     // "[baseUrl]/foo/bar" or "[baseUrl]/node_modules/foo/bar", and we'll need to
     // try both.
     for item in &result.packages {
-        match *item {
+        match item {
             FindPackageItem::PackageDirectory(package_path) => {
                 results.push(resolve_into_package(
                     path.clone(),
-                    *package_path,
+                    package_path.clone(),
                     query.clone(),
                     fragment.clone(),
                     options,
@@ -2600,8 +2624,8 @@ async fn resolve_module_request(
                 if path.is_match("") {
                     let resolved = resolved(
                         RequestKey::new(rcstr!(".")),
-                        *package_path,
-                        lookup_path,
+                        package_path.clone(),
+                        lookup_path.clone(),
                         request,
                         options_value,
                         options,
@@ -2629,8 +2653,12 @@ async fn resolve_module_request(
         let relative = Request::relative(pattern, query, fragment, true)
             .to_resolved()
             .await?;
-        let relative_result =
-            Box::pin(resolve_internal_inline(lookup_path, *relative, options)).await?;
+        let relative_result = Box::pin(resolve_internal_inline(
+            lookup_path.clone(),
+            *relative,
+            options,
+        ))
+        .await?;
         let relative_result = relative_result
             .with_replaced_request_key(module_prefix, RequestKey::new(module.into()));
 
@@ -2662,9 +2690,9 @@ async fn resolve_into_package(
                 conditions,
                 unspecified_conditions,
             } => {
-                let package_json_path = package_path.join(rcstr!("package.json"));
+                let package_json_path = package_path.join("package.json")?;
                 let ExportsFieldResult::Some(exports_field) =
-                    &*exports_field(package_json_path).await?
+                    &*exports_field(package_json_path.clone()).await?
                 else {
                     continue;
                 };
@@ -2681,7 +2709,7 @@ async fn resolve_into_package(
 
                 results.push(
                     handle_exports_imports_field(
-                        *package_path,
+                        package_path.clone(),
                         package_json_path,
                         *options,
                         exports_field,
@@ -2703,7 +2731,7 @@ async fn resolve_into_package(
     // apply main field(s) or fallback to index.js if there's no subpath
     if is_root_match {
         results.push(resolve_into_folder(
-            *package_path,
+            package_path.clone(),
             options.with_fully_specified(false),
         ));
     }
@@ -2715,7 +2743,7 @@ async fn resolve_into_package(
         let relative = Request::relative(new_pat, query, fragment, true)
             .to_resolved()
             .await?;
-        results.push(resolve_internal_inline(*package_path, *relative, *options).await?);
+        results.push(resolve_internal_inline(package_path.clone(), *relative, *options).await?);
     }
 
     Ok(merge_results(results))
@@ -2735,7 +2763,7 @@ async fn resolve_import_map_result(
         ImportMapResult::Alias(request, alias_lookup_path) => {
             let request = **request;
             let lookup_path = match alias_lookup_path {
-                Some(path) => **path,
+                Some(path) => path.clone(),
                 None => lookup_path,
             };
             // We must avoid cycles during resolving
@@ -2766,21 +2794,21 @@ async fn resolve_import_map_result(
 
             // We must avoid cycles during resolving
             if request.resolve().await? == original_request
-                && **alias_lookup_path == original_lookup_path
+                && *alias_lookup_path == original_lookup_path
             {
                 None
             } else {
                 let is_external_resolvable = !resolve_internal(
-                    **alias_lookup_path,
+                    alias_lookup_path.clone(),
                     request,
                     match ty {
                         ExternalType::Url => options,
                         // TODO is that root correct?
                         ExternalType::CommonJs => {
-                            node_cjs_resolve_options(alias_lookup_path.root())
+                            node_cjs_resolve_options(alias_lookup_path.root().await?.clone_value())
                         }
                         ExternalType::EcmaScriptModule => {
-                            node_esm_resolve_options(alias_lookup_path.root())
+                            node_esm_resolve_options(alias_lookup_path.root().await?.clone_value())
                         }
                         ExternalType::Global => options,
                     },
@@ -2804,8 +2832,8 @@ async fn resolve_import_map_result(
                 .map(|result| {
                     Box::pin(resolve_import_map_result(
                         result,
-                        lookup_path,
-                        original_lookup_path,
+                        lookup_path.clone(),
+                        original_lookup_path.clone(),
                         original_request,
                         options,
                         query.clone(),
@@ -2833,13 +2861,13 @@ async fn resolved(
 ) -> Result<Vc<ResolveResult>> {
     let RealPathResult { path, symlinks } = &*fs_path.realpath_with_links().await?;
 
-    let path_ref = &*path.await?;
+    let path_ref = path.clone();
     // Check alias field for path aliases first
     if let Some(result) = apply_in_package(
-        path.parent().resolve().await?,
+        path.parent(),
         options,
         options_value,
-        |package_path| package_path.get_relative_path_to(path_ref),
+        |package_path| package_path.get_relative_path_to(&path_ref),
         query.clone(),
         fragment.clone(),
     )
@@ -2850,13 +2878,13 @@ async fn resolved(
 
     if let Some(resolved_map) = options_value.resolved_map {
         let result = resolved_map
-            .lookup(**path, original_context, original_request)
+            .lookup(path.clone(), original_context.clone(), original_request)
             .await?;
 
         let resolved_result = resolve_import_map_result(
             &result,
             path.parent(),
-            original_context,
+            original_context.clone(),
             original_request,
             options,
             query.clone(),
@@ -2871,7 +2899,7 @@ async fn resolved(
     Ok(*ResolveResult::source_with_affecting_sources(
         request_key,
         ResolvedVc::upcast(
-            FileSource::new_with_query_and_fragment(**path, query, fragment)
+            FileSource::new_with_query_and_fragment(path.clone(), query, fragment)
                 .to_resolved()
                 .await?,
         ),
@@ -2879,7 +2907,7 @@ async fn resolved(
             .iter()
             .map(|symlink| async move {
                 anyhow::Ok(ResolvedVc::upcast(
-                    FileSource::new(**symlink).to_resolved().await?,
+                    FileSource::new(symlink.clone()).to_resolved().await?,
                 ))
             })
             .try_join()
@@ -2928,8 +2956,12 @@ async fn handle_exports_imports_field(
             .to_resolved()
             .await?;
 
-            let resolve_result =
-                Box::pin(resolve_internal_inline(package_path, *request, options)).await?;
+            let resolve_result = Box::pin(resolve_internal_inline(
+                package_path.clone(),
+                *request,
+                options,
+            ))
+            .await?;
             if conditions.is_empty() {
                 resolved_results.push(resolve_result.with_request(path.into()));
             } else {
@@ -2968,7 +3000,7 @@ async fn resolve_package_internal_with_imports_field(
     if specifier == "#" || specifier.starts_with("#/") || specifier.ends_with('/') {
         ResolvingIssue {
             severity: error_severity(resolve_options).await?,
-            file_path: file_path.to_resolved().await?,
+            file_path: file_path.clone(),
             request_type: format!("package imports request: `{specifier}`"),
             request: request.to_resolved().await?,
             resolve_options: resolve_options.to_resolved().await?,
@@ -2982,13 +3014,13 @@ async fn resolve_package_internal_with_imports_field(
 
     let imports_result = imports_field(file_path).await?;
     let (imports, package_json_path) = match &*imports_result {
-        ImportsFieldResult::Some(i, p) => (i, *p),
+        ImportsFieldResult::Some(i, p) => (i, p.clone()),
         ImportsFieldResult::None => return Ok(*ResolveResult::unresolvable()),
     };
 
     handle_exports_imports_field(
         package_json_path.parent(),
-        *package_json_path,
+        package_json_path.clone(),
         resolve_options,
         imports,
         specifier,
@@ -3103,7 +3135,7 @@ async fn emit_resolve_error_issue(
     };
     ResolvingIssue {
         severity,
-        file_path: origin_path.to_resolved().await?,
+        file_path: origin_path.clone(),
         request_type: format!("{reference_type} request"),
         request: request.to_resolved().await?,
         resolve_options: resolve_options.to_resolved().await?,
@@ -3130,7 +3162,7 @@ async fn emit_unresolvable_issue(
     };
     ResolvingIssue {
         severity,
-        file_path: origin_path.to_resolved().await?,
+        file_path: origin_path.clone(),
         request_type: format!("{reference_type} request"),
         request: request.to_resolved().await?,
         resolve_options: resolve_options.to_resolved().await?,

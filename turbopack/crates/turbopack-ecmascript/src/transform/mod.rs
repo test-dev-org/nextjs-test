@@ -328,7 +328,7 @@ impl Issue for UnsupportedServerActionIssue {
 
     #[turbo_tasks::function]
     fn file_path(&self) -> Vc<FileSystemPath> {
-        *self.file_path
+        self.file_path.clone().cell()
     }
 
     #[turbo_tasks::function]
