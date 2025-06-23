@@ -11,6 +11,7 @@ import { CodeFrame } from '../../../code-frame/code-frame'
 import { CallStack } from '../../../call-stack/call-stack'
 import { NEXTJS_HYDRATION_ERROR_LINK } from '../../../../../shared/react-19-hydration-error'
 import { css } from '../../../../utils/css'
+import { ErrorContentSkeleton } from '../../../../container/runtime-error/error-content-skeleton'
 
 export function IssuesTabContent({
   notes,
@@ -62,8 +63,7 @@ export function IssuesTabContent({
           reactOutputComponentDiff={errorDetails.reactOutputComponentDiff || ''}
         />
       ) : null}
-      {/* TODO: Loading state */}
-      <Suspense fallback={<div data-nextjs-error-suspended />}>
+      <Suspense fallback={<ErrorContentSkeleton />}>
         <RuntimeError key={activeError.id.toString()} error={activeError} />
       </Suspense>
     </>
