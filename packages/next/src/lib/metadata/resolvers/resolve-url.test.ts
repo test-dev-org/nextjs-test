@@ -140,6 +140,7 @@ describe('getSocialImageFallbackMetadataBase', () => {
       delete process.env.VERCEL_ENV
       delete process.env.VERCEL_BRANCH_URL
       delete process.env.VERCEL_PROJECT_PRODUCTION_URL
+      delete process.env.__NEXT_EXPERIMENTAL_HTTPS
 
       process.env = originalEnv
     })
