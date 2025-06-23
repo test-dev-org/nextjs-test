@@ -236,7 +236,6 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     padding: 2px 6px;
     border-radius: 16px;
     font-size: var(--size-12);
-    line-height: 16px;
     font-weight: 500;
     user-select: none;
   }
