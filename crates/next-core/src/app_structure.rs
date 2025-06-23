@@ -563,11 +563,11 @@ impl Entrypoint {
             Entrypoint::AppMetadata { page, .. } => page,
         }
     }
-    pub fn root_params(&self) -> &ResolvedVc<RootParamVecOption> {
+    pub fn root_params(&self) -> ResolvedVc<RootParamVecOption> {
         match self {
-            Entrypoint::AppPage { root_params, .. } => root_params,
-            Entrypoint::AppRoute { root_params, .. } => root_params,
-            Entrypoint::AppMetadata { root_params, .. } => root_params,
+            Entrypoint::AppPage { root_params, .. } => *root_params,
+            Entrypoint::AppRoute { root_params, .. } => *root_params,
+            Entrypoint::AppMetadata { root_params, .. } => *root_params,
         }
     }
 }
