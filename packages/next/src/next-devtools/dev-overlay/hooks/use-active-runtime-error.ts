@@ -28,6 +28,8 @@ export function useActiveRuntimeError({
     getSquashedHydrationErrorDetails
   )
 
+  console.log({ isLoading, activeError })
+
   if (isLoading || !activeError) {
     return {
       isLoading,
