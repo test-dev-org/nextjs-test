@@ -11,7 +11,6 @@
 "use strict";
 "production" !== process.env.NODE_ENV &&
   (function () {
-    function noop() {}
     function getIteratorFn(maybeIterable) {
       if (null === maybeIterable || "object" !== typeof maybeIterable)
         return null;
@@ -81,7 +80,7 @@
           case REACT_PORTAL_TYPE:
             return "Portal";
           case REACT_CONTEXT_TYPE:
-            return type.displayName || "Context";
+            return (type.displayName || "Context") + ".Provider";
           case REACT_CONSUMER_TYPE:
             return (type._context.displayName || "Context") + ".Consumer";
           case REACT_FORWARD_REF_TYPE:
@@ -251,6 +250,7 @@
         ? (checkKeyStringCoercion(element.key), escape("" + element.key))
         : index.toString(36);
     }
+    function noop$1() {}
     function resolveThenable(thenable) {
       switch (thenable.status) {
         case "fulfilled":
@@ -260,7 +260,7 @@
         default:
           switch (
             ("string" === typeof thenable.status
-              ? thenable.then(noop, noop)
+              ? thenable.then(noop$1, noop$1)
               : ((thenable.status = "pending"),
                 thenable.then(
                   function (fulfilledValue) {
@@ -471,6 +471,7 @@
     function releaseAsyncTransition() {
       ReactSharedInternals.asyncTransitions--;
     }
+    function noop() {}
     function cleanup(entryValue) {
       var entry = TaintRegistryValues.get(entryValue);
       void 0 !== entry &&
@@ -499,8 +500,9 @@
       REACT_PORTAL_TYPE = Symbol.for("react.portal"),
       REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
       REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"),
-      REACT_PROFILER_TYPE = Symbol.for("react.profiler"),
-      REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
+      REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+    Symbol.for("react.provider");
+    var REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
       REACT_CONTEXT_TYPE = Symbol.for("react.context"),
       REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
       REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
@@ -656,10 +658,6 @@
           );
         }
       };
-    };
-    exports.cacheSignal = function () {
-      var dispatcher = ReactSharedInternals.A;
-      return dispatcher ? dispatcher.cacheSignal() : null;
     };
     exports.captureOwnerStack = function () {
       var getCurrentStack = ReactSharedInternals.getCurrentStack;
@@ -994,5 +992,5 @@
     exports.useMemo = function (create, deps) {
       return resolveDispatcher().useMemo(create, deps);
     };
-    exports.version = "19.2.0-experimental-06e89951-20250620";
+    exports.version = "19.2.0-experimental-197d6a04-20250424";
   })();

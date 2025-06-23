@@ -29,6 +29,12 @@ import { DEVTOOLS_PANEL_FOOTER_STYLES } from '../components/devtools-panel/devto
 import { DEVTOOLS_PANEL_VERSION_INFO_STYLES } from '../components/devtools-panel/devtools-panel-version-info'
 import { DEVTOOLS_PANEL_TAB_SETTINGS_STYLES } from '../components/devtools-panel/devtools-panel-tab/settings-tab'
 import { CALL_STACK_STYLES } from '../components/call-stack/call-stack'
+import { DEVTOOLS_PANEL_TAB_ISSUES_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab'
+import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar'
+import { DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-sidebar-frame-skeleton'
+import { DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-content'
+import { ISSUE_FEEDBACK_BUTTON_STYLES } from '../components/errors/error-overlay-toolbar/issue-feedback-button'
+import { ERROR_CONTENT_SKELETON_STYLES } from '../container/runtime-error/error-content-skeleton'
 
 export function ComponentStyles() {
   return (
@@ -64,6 +70,12 @@ export function ComponentStyles() {
         ${DEVTOOLS_PANEL_FOOTER_STYLES}
         ${DEVTOOLS_PANEL_VERSION_INFO_STYLES}
         ${DEVTOOLS_PANEL_TAB_SETTINGS_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES}
+        ${ISSUE_FEEDBACK_BUTTON_STYLES}
+        ${ERROR_CONTENT_SKELETON_STYLES}
       `}
     </style>
   )
