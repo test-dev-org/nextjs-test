@@ -618,6 +618,13 @@ export type ContinueStreamOptions = {
   getServerInsertedMetadata: () => Promise<string>
   validateRootLayout?: boolean
   /**
+   * Whether to allow streaming during static generation.
+   * When true, static generation will stream content and Suspense boundaries
+   * instead of waiting for all content to be ready. This is useful for
+   * force-static pages during runtime compilation to provide a better UX.
+   */
+  allowStreamingDuringStaticGeneration?: boolean
+  /**
    * Suffix to inject after the buffered data, but before the close tags.
    */
   suffix?: string | undefined
@@ -629,6 +636,7 @@ export async function continueFizzStream(
     suffix,
     inlinedDataStream,
     isStaticGeneration,
+    allowStreamingDuringStaticGeneration = false,
     getServerInsertedHTML,
     getServerInsertedMetadata,
     validateRootLayout,
@@ -639,7 +647,13 @@ export async function continueFizzStream(
 
   // If we're generating static HTML and there's an `allReady` promise on the
   // stream, we need to wait for it to resolve before continuing.
-  if (isStaticGeneration && 'allReady' in renderStream) {
+  // However, if allowStreamingDuringStaticGeneration is true, we should allow
+  // streaming even during static generation (useful for force-static pages).
+  if (
+    isStaticGeneration &&
+    !allowStreamingDuringStaticGeneration &&
+    'allReady' in renderStream
+  ) {
     await renderStream.allReady
   }
 
