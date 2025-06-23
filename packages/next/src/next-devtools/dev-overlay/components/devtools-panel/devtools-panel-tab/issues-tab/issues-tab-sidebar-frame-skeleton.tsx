@@ -43,8 +43,8 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES = css`
 
   /* Respect user's motion preferences */
   @media (prefers-reduced-motion: reduce) {
-    [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar="1"],
-    [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar="2"] {
+    [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar='1'],
+    [data-nextjs-devtools-panel-tab-issues-sidebar-frame-skeleton-bar='2'] {
       animation: none;
       background: var(--color-gray-200);
     }
