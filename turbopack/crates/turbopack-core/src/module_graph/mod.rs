@@ -353,7 +353,7 @@ impl SingleModuleGraph {
                     None => false,
                 }
             });
-            if *DISABLE_DUPLICATE_MODULES {
+            if !*DISABLE_DUPLICATE_MODULES {
                 let mut duplicates = Vec::new();
                 let mut set = FxHashSet::default();
                 for &module in modules.keys() {
