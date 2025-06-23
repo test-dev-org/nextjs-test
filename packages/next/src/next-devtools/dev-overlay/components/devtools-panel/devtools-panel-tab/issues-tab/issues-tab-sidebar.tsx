@@ -66,7 +66,7 @@ function IssuesTabSidebarFrame({
 
   if (!firstFrame?.originalStackFrame) {
     // TODO: Better handling
-    return <div>No frame</div>
+    return null
   }
 
   const frameSource = getFrameSource(firstFrame.originalStackFrame)
