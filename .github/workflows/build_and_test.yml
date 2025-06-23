@@ -56,18 +56,6 @@ jobs:
           contains(github.event.pull_request.labels.*.name, 'Rspack')
         }}
 
-  # TODO(PACK-4578): Remove this build once all tests are passing with asserts
-  build-native-no-asserts:
-    name: build-native
-    uses: ./.github/workflows/build_reusable.yml
-    needs: ['changes']
-    if: ${{ needs.changes.outputs.docs-only == 'false' }}
-    with:
-      skipInstallBuild: 'yes'
-      rustBuildProfile: 'release' # 'release-with-asserts' is the default
-      stepName: 'build-native'
-    secrets: inherit
-
   build-native:
     name: build-native
     uses: ./.github/workflows/build_reusable.yml
@@ -302,8 +290,7 @@ jobs:
 
   test-turbopack-production:
     name: test turbopack production
-    # TODO(PACK-4578): Switch back to `build-native` once existing debug assert failures are addressed.
-    needs: ['optimize-ci', 'changes', 'build-next', 'build-native-no-asserts']
+    needs: ['optimize-ci', 'changes', 'build-next', 'build-native']
     if: ${{ needs.optimize-ci.outputs.skip == 'false' && needs.changes.outputs.docs-only == 'false' }}
 
     strategy:
@@ -328,6 +315,8 @@ jobs:
         export TURBOPACK_BUILD=1
         export NEXT_TEST_MODE=start
         export NEXT_TEST_REACT_VERSION="${{ matrix.react }}"
+        # TODO(PACK-4578): Remove
+        export TURBOPACK_TEMP_DISABLE_DUPLICATE_MODULES_CHECK=1
 
         node run-tests.js --timings -g ${{ matrix.group }} --type production
       stepName: 'test-turbopack-production-react-${{ matrix.react }}-${{ matrix.group }}'

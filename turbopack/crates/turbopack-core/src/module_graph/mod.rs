@@ -344,16 +344,27 @@ impl SingleModuleGraph {
 
         #[cfg(debug_assertions)]
         {
-            let mut duplicates = Vec::new();
-            let mut set = FxHashSet::default();
-            for &module in modules.keys() {
-                let ident = module.ident().to_string().await?;
-                if !set.insert(ident.clone()) {
-                    duplicates.push(ident)
+            use once_cell::sync::Lazy;
+
+            // TODO(PACK-4578): This is temporary while the last issues are being addressed.
+            static DISABLE_DUPLICATE_MODULES: Lazy<bool> = Lazy::new(|| {
+                match std::env::var_os("TURBOPACK_TEMP_DISABLE_DUPLICATE_MODULES_CHECK") {
+                    Some(v) => v == "1" || v == "true",
+                    None => false,
                 }
-            }
-            if !duplicates.is_empty() {
-                panic!("Duplicate module idents in graph: {duplicates:#?}");
+            });
+            if *DISABLE_DUPLICATE_MODULES {
+                let mut duplicates = Vec::new();
+                let mut set = FxHashSet::default();
+                for &module in modules.keys() {
+                    let ident = module.ident().to_string().await?;
+                    if !set.insert(ident.clone()) {
+                        duplicates.push(ident)
+                    }
+                }
+                if !duplicates.is_empty() {
+                    panic!("Duplicate module idents in graph: {duplicates:#?}");
+                }
             }
         }
 
