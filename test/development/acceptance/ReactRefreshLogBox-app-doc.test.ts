@@ -109,10 +109,10 @@ describe('ReactRefreshLogBox _app _document', () => {
          "description": "Parsing ecmascript source code failed",
          "environmentLabel": null,
          "label": "Build Error",
-         "source": "./pages/_app.js (2:11)
+         "source": "./pages/_app.js (2:10)
        Parsing ecmascript source code failed
        > 2 |   return <<Component {...pageProps} />;
-           |           ^",
+           |          ^^",
          "stack": [],
        }
       `)
