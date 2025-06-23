@@ -32,20 +32,17 @@ pub struct Layer {
 
 impl Layer {
     pub fn new(name: RcStr) -> Self {
-        Self::new_impl(name, None)
-    }
-    pub fn with_user_friendly_name(self, user_friendly_name: RcStr) -> Self {
-        Self::new_impl(self.name, Some(user_friendly_name))
-    }
-
-    fn new_impl(name: RcStr, user_friendly_name: Option<RcStr>) -> Self {
         debug_assert!(!name.is_empty());
-        debug_assert!(
-            user_friendly_name.is_none() || !user_friendly_name.as_ref().unwrap().is_empty()
-        );
         Self {
             name,
-            user_friendly_name,
+            user_friendly_name: None,
+        }
+    }
+    pub fn with_user_friendly_name(self, user_friendly_name: RcStr) -> Self {
+        debug_assert!(!user_friendly_name.is_empty());
+        Self {
+            name: self.name,
+            user_friendly_name: Some(user_friendly_name),
         }
     }
 
