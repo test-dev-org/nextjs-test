@@ -390,6 +390,8 @@ async fn parse_file_content(
                 EcmascriptModuleAssetType::Typescript { .. }
                     | EcmascriptModuleAssetType::TypescriptDeclaration
             );
+
+            let helpers=Helpers::new(true);
             let span = tracing::trace_span!("swc_resolver").entered();
 
             parsed_program.visit_mut_with(&mut resolver(
@@ -414,7 +416,11 @@ async fn parse_file_content(
             parsed_program.mutate(swc_core::ecma::lints::rules::lint_pass(rules));
             drop(span);
 
-            parsed_program.mutate(swc_core::ecma::transforms::proposal::explicit_resource_management::explicit_resource_management());
+            HELPERS.set(&helpers, || {
+                parsed_program.mutate(
+                    swc_core::ecma::transforms::proposal::explicit_resource_management::explicit_resource_management(),
+                );
+            });
 
             let var_with_ts_declare = if is_typescript {
                 VarDeclWithTsDeclareCollector::collect(&parsed_program)
@@ -422,7 +428,7 @@ async fn parse_file_content(
                 FxHashSet::default()
             };
 
-            let mut helpers = Helpers::new(true).data();
+            let mut helpers = helpers.data();
             let transform_context = TransformContext {
                 comments: &comments,
                 source_map: &source_map,
