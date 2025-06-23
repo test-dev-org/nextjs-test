@@ -1426,6 +1426,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cow-replace"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6cab584c4b83b5b36f81a10bd15191fd77f70432d624787ee68ec64edd6d7ed"
+dependencies = [
+ "ascii",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2648,9 +2657,9 @@ dependencies = [
 
 [[package]]
 name = "hstr"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1210512c4d06880c08a940a378a102ca860735b628f88d5aef91892b941c9235"
+checksum = "2d1638d2018a21b9ff65d7fc28c2271c76a5af6ff4f621b204d032bc649763a4"
 dependencies = [
  "hashbrown 0.14.5",
  "new_debug_unreachable",
@@ -7081,9 +7090,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "29.0.3"
+version = "29.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d934ebba00b7dc9bb953de1803e7623363736f825a5200ddd8eadfac9d45794"
+checksum = "e5ea5991cb2874f57c0c7bff4cf8f66b6b49f2e17595efa9781fbabac63ca6ef"
 dependencies = [
  "binding_macros",
  "par-core",
@@ -7522,12 +7531,14 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_lexer"
-version = "17.0.2"
+version = "17.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc377700d6e293f2c357660769625b97f9318b057d90ebc11c5f1e6d3b22729"
+checksum = "b4c284f6251b5e475549491d7e2b473b83f746e3c3ea49a02e87d9862c46563a"
 dependencies = [
  "arrayvec 0.7.4",
+ "ascii",
  "bitflags 2.9.0",
+ "cow-replace",
  "either",
  "new_debug_unreachable",
  "num-bigint",
@@ -7629,9 +7640,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "17.0.1"
+version = "17.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ff5b5fbe4316b7d1272ac6f204a871f0d5785755d6a14ddf38e7fa8af73be30"
+checksum = "b3c0c2fc27655ed52958f39156af28407257c51c48551932d94a7e7bd973b2b1"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
@@ -8244,9 +8255,9 @@ dependencies = [
 
 [[package]]
 name = "swc_typescript"
-version = "17.0.0"
+version = "17.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e9722601356bcad3fd9ed4b081dc9bb8c4d8abe0675053ba9d896c7c7e5d289"
+checksum = "965205aa6b60a2edc9d59369bb5f984221fd7a0c612443f1a0892d56bcfe8889"
 dependencies = [
  "bitflags 2.9.0",
  "petgraph 0.7.1",
