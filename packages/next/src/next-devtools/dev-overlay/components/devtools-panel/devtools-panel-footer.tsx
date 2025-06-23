@@ -51,6 +51,17 @@ export const DEVTOOLS_PANEL_FOOTER_STYLES = css`
     align-items: center;
     border-top: 1px solid var(--color-gray-400);
     border-radius: 0 0 var(--rounded-xl) var(--rounded-xl);
+
+    /* For draggable */
+    cursor: move;
+    user-select: none;
+
+    /* Reset for children */
+    & * {
+      cursor: auto;
+      /* user-select: auto; seems to not restore properly */
+      user-select: text;
+    }
   }
 
   [data-nextjs-devtools-panel-footer-tab-group] {

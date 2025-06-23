@@ -17,6 +17,7 @@ export function Draggable({
   position: currentCorner,
   setPosition: setCurrentCorner,
   onDragStart,
+  dragHandleSelector,
   ...props
 }: {
   children: React.ReactElement
@@ -24,12 +25,14 @@ export function Draggable({
   padding: number
   setPosition: (position: Corners) => void
   onDragStart?: () => void
+  dragHandleSelector?: string
 }) {
   const { ref, animate, ...drag } = useDrag({
     threshold: 5,
     onDragStart,
     onDragEnd,
     onAnimationEnd,
+    dragHandleSelector,
   })
 
   function onDragEnd(translation: Point, velocity: Point) {
@@ -134,6 +137,7 @@ interface UseDragOptions {
   onDragEnd?: (translation: Point, velocity: Point) => void
   onAnimationEnd?: (corner: Corner) => void
   threshold: number // Minimum movement before drag starts
+  dragHandleSelector?: string
 }
 
 interface Velocity {
@@ -185,10 +189,31 @@ export function useDrag(options: UseDragOptions) {
     }
   }
 
+  function isValidDragHandle(target: EventTarget | null): boolean {
+    if (!options.dragHandleSelector || !ref.current || !target) {
+      return true // If no selector provided, entire element is draggable
+    }
+
+    const element = target as Element
+    if (!element.matches) {
+      return false
+    }
+
+    // Check if the target element directly matches the drag handle selector
+    // This excludes children elements, only allowing drag from the exact element
+    return element.matches(options.dragHandleSelector)
+  }
+
   function onPointerDown(e: React.PointerEvent) {
     if (e.button !== 0) {
       return // ignore right click
     }
+
+    // Check if the pointer down event is on a valid drag handle
+    if (!isValidDragHandle(e.target)) {
+      return
+    }
+
     origin.current = { x: e.clientX, y: e.clientY }
     state.current = 'press'
     window.addEventListener('pointermove', onPointerMove)
