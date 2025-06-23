@@ -64,7 +64,7 @@ jobs:
     if: ${{ needs.changes.outputs.docs-only == 'false' }}
     with:
       skipInstallBuild: 'yes'
-      rustBuildProfile: 'release'
+      rustBuildProfile: 'release' # 'release-with-asserts' is the default
       stepName: 'build-native'
     secrets: inherit
 
