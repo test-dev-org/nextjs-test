@@ -1078,7 +1078,7 @@ async function createBoundaryConventionElement({
   return wrappedElement
 }
 
-function normalizeConventionFilePath(
+export function normalizeConventionFilePath(
   projectDir: string,
   conventionPath: string | undefined
 ) {
