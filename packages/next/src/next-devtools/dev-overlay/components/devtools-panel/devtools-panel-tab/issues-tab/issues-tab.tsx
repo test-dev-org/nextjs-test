@@ -72,7 +72,7 @@ export function IssuesTab({
         activeIdx={activeIdx}
         setActiveIndex={setActiveIndex}
       />
-      <div data-nextjs-devtools-panel-tab-issues-content>
+      <div data-nextjs-devtools-panel-tab-issues-content-container>
         <div className="nextjs-container-errors-header">
           <div
             className="nextjs__container_errors__error_title"
@@ -117,12 +117,13 @@ export const DEVTOOLS_PANEL_TAB_ISSUES_STYLES = css`
     min-height: 0;
   }
 
-  [data-nextjs-devtools-panel-tab-issues-content] {
+  [data-nextjs-devtools-panel-tab-issues-content-container] {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     min-height: 0;
+    padding: 14px;
   }
 
   [data-nextjs-devtools-panel-tab-issues-empty] {

@@ -113,10 +113,4 @@ function RuntimeError({ error }: { error: ReadyRuntimeError }) {
   )
 }
 
-/* Shares the style with container/errors.tsx and errors/dialog/header.tsx */
-export const DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES = css`
-  [data-nextjs-devtools-panel-tab-issues-content] {
-    width: 100%;
-    padding: 14px;
-  }
-`
+export const DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES = css``
