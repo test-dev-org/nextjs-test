@@ -6838,9 +6838,9 @@ dependencies = [
 
 [[package]]
 name = "styled_jsx"
-version = "0.93.1"
+version = "0.93.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f410fb5118993cd1acd558939954edc558304f7fbf3ab54e65aa121cccd48d7"
+checksum = "61a00e432196d7f7779b5ba6e296680b8f3190d5885823d42bd1af528b9529f1"
 dependencies = [
  "anyhow",
  "lightningcss",
@@ -7090,9 +7090,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "29.1.2"
+version = "29.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5ea5991cb2874f57c0c7bff4cf8f66b6b49f2e17595efa9781fbabac63ca6ef"
+checksum = "29d946b5f2997c7aa2077f6af4badbe87cc5311ebe0df1434edf5a12303c150f"
 dependencies = [
  "binding_macros",
  "par-core",
@@ -7531,9 +7531,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_lexer"
-version = "17.0.3"
+version = "17.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c284f6251b5e475549491d7e2b473b83f746e3c3ea49a02e87d9862c46563a"
+checksum = "0a257fda06cb2aa3f6c0d0d13b534e3376d542d1d84b83c7eda95fbc0729844a"
 dependencies = [
  "arrayvec 0.7.4",
  "ascii",
@@ -7640,9 +7640,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "17.0.2"
+version = "17.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3c0c2fc27655ed52958f39156af28407257c51c48551932d94a7e7bd973b2b1"
+checksum = "e746147b3638778a3bc3665f933f62de2d2a5a7fb6b578cc2d6ef72c76bf0191"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
