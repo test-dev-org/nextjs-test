@@ -10329,11 +10329,11 @@
     "runtimeError": false
   },
   "test/integration/css-features/test/browserslist.test.js": {
-    "passed": [],
-    "failed": [
+    "passed": [
       "Browserslist: New production mode should've emitted a single CSS file",
       "Browserslist: Old production mode should've emitted a single CSS file"
     ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
