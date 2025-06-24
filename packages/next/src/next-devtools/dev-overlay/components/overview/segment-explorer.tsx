@@ -9,7 +9,7 @@ const isFileNode = (node: SegmentTrieNode) => {
   return !!node.value?.type && !!node.value?.pagePath
 }
 
-function PageSegmentTree({
+export function PageSegmentTree({
   tree,
   isAppRouter,
 }: {

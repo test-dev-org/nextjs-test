@@ -6,11 +6,13 @@ import type { HydrationErrorState } from '../../../../shared/hydration-error'
 
 import { SettingsTab } from './settings-tab'
 import { IssuesTab } from './issues-tab/issues-tab'
+import { SegmentsExplorerTab } from './segments-explorer-tab'
 
 export function DevToolsPanelTab({
   activeTab,
   devToolsPosition,
   scale,
+  routerType,
   handlePositionChange,
   handleScaleChange,
   debugInfo,
@@ -20,6 +22,7 @@ export function DevToolsPanelTab({
 }: {
   activeTab: DevToolsPanelTabType
   devToolsPosition: Corners
+  routerType: 'app' | 'pages'
   scale: number
   handlePositionChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
   handleScaleChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
@@ -39,7 +42,7 @@ export function DevToolsPanelTab({
         />
       )
     case 'route':
-      return <div>Route</div>
+      return <SegmentsExplorerTab routerType={routerType} />
     case 'issues':
       return (
         <IssuesTab
