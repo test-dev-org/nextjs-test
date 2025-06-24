@@ -43,9 +43,9 @@ export function DevToolsPanel({
   const [isFullscreen, setIsFullscreen] = useState(state.isErrorOverlayOpen)
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
-  useEffect(() => {
+  if (isFullscreen !== state.isErrorOverlayOpen) {
     setIsFullscreen(state.isErrorOverlayOpen)
-  }, [state.isErrorOverlayOpen])
+  }
 
   const onCloseDevToolsPanel = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })
