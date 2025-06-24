@@ -55,7 +55,10 @@ export function DevToolsIndicator({
           zIndex: 2147483647,
           [vertical]: `${INDICATOR_PADDING}px`,
           [horizontal]: `${INDICATOR_PADDING}px`,
-          visibility: state.isDevToolsPanelOpen ? 'hidden' : 'visible',
+          visibility:
+            state.isDevToolsPanelOpen || state.isErrorOverlayOpen
+              ? 'hidden'
+              : 'visible',
         } as CSSProperties
       }
     >

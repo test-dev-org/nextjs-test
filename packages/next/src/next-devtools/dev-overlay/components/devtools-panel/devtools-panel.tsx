@@ -2,7 +2,7 @@ import type { OverlayDispatch, OverlayState, Corners } from '../../shared'
 import type { ReadyRuntimeError } from '../../utils/get-error-by-type'
 import type { HydrationErrorState } from '../../../shared/hydration-error'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { DevToolsPanelFooter } from './devtools-panel-footer'
 import { DevToolsPanelTab } from './devtools-panel-tab/devtools-panel-tab'
@@ -40,12 +40,17 @@ export function DevToolsPanel({
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
   const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
-  const [isFullscreen, setIsFullscreen] = useState(state.isErrorOverlayOpen)
-  const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [prevIsErrorOverlayOpen, setPrevIsErrorOverlayOpen] = useState(false)
 
-  if (isFullscreen !== state.isErrorOverlayOpen) {
-    setIsFullscreen(state.isErrorOverlayOpen)
+  if (state.isErrorOverlayOpen !== prevIsErrorOverlayOpen) {
+    if (state.isErrorOverlayOpen) {
+      setIsFullscreen(true)
+    }
+    setPrevIsErrorOverlayOpen(state.isErrorOverlayOpen)
   }
+
+  const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const onCloseDevToolsPanel = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })

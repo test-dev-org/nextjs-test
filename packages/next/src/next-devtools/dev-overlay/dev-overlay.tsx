@@ -49,7 +49,8 @@ export function DevOverlay({
                       isBuildError={isBuildError}
                     />
 
-                    {state.isDevToolsPanelOpen && (
+                    {(state.isDevToolsPanelOpen ||
+                      state.isErrorOverlayOpen) && (
                       <DevToolsPanel
                         state={state}
                         dispatch={dispatch}
