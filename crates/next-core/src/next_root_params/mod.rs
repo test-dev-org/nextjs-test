@@ -1,6 +1,6 @@
 use std::iter;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use either::Either;
 use indoc::formatdoc;
 use itertools::Itertools;
@@ -92,7 +92,7 @@ impl NextRootParamsMapper {
         let this = self.await?;
         Ok({
             if !(*this.is_root_params_enabled.await?) {
-                self.invalid_import_map_result(
+                Self::invalid_import_map_result(
                     "'next/root-params' can only be imported when `experimental.rootParams` is \
                      enabled."
                         .into(),
@@ -101,7 +101,15 @@ impl NextRootParamsMapper {
                 match &this.context_type {
                     Either::Left(server_ty) => match &server_ty {
                         ServerContextType::AppRSC { .. } | ServerContextType::AppRoute { .. } => {
-                            self.valid_import_map_result()
+                            let collected_root_params =
+                                *this.collected_root_params.ok_or_else(|| {
+                                    anyhow!(
+                                        "Invariant: Root params should have been collected for \
+                                         context {:?}. This is a bug in Next.js.",
+                                        server_ty.clone()
+                                    )
+                                })?;
+                            Self::valid_import_map_result(collected_root_params)
                         }
                         ServerContextType::PagesData { .. }
                         | ServerContextType::PagesApi { .. }
@@ -110,7 +118,7 @@ impl NextRootParamsMapper {
                             // There's no sensible way to use root params outside of the app
                             // directory. TODO: make sure this error is
                             // consistent with webpack
-                            self.invalid_import_map_result(
+                            Self::invalid_import_map_result(
                                 "'next/root-params' can only be used inside the App Directory."
                                     .into(),
                             )
@@ -120,7 +128,7 @@ impl NextRootParamsMapper {
                             // from client modules, but it doesn't catch
                             // everything. If an import slips through
                             // our validation, make it error.
-                            self.invalid_import_map_result(
+                            Self::invalid_import_map_result(
                                 "'next/root-params' cannot be imported from a Client Component \
                                  module. It should only be used from a Server Component."
                                     .into(),
@@ -131,7 +139,7 @@ impl NextRootParamsMapper {
                         // In general, the compiler should prevent importing 'next/root-params' from
                         // client modules, but it doesn't catch everything. If an
                         // import slips through our validation, make it error.
-                        self.invalid_import_map_result(
+                        Self::invalid_import_map_result(
                             "'next/root-params' cannot be imported from a Client Component \
                              module. It should only be used from a Server Component."
                                 .into(),
@@ -143,18 +151,13 @@ impl NextRootParamsMapper {
     }
 
     #[turbo_tasks::function]
-    async fn valid_import_map_result(&self) -> Result<Vc<ImportMapResult>> {
-        // Generate a virtual 'next/root-params' module based on the root params we collected.
-        let module_content = {
-            let collected_root_params = self
-                .collected_root_params
-                .expect(&format!(
-                    "Invariant: Root params should have been collected for context {:?}. This is \
-                     a bug in Next.js.",
-                    self.context_type.clone()
-                ))
-                .await?;
+    async fn valid_import_map_result(
+        collected_root_params: ResolvedVc<CollectedRootParams>,
+    ) -> Result<Vc<ImportMapResult>> {
+        let collected_root_params = collected_root_params.await?;
 
+        // Generate a virtual 'next/root-params' module based on the root params we collected.
+        let module_content =
             // If there's no root params, export nothing.
             if collected_root_params.is_empty() {
                 "export {}".to_string()
@@ -175,8 +178,7 @@ impl NextRootParamsMapper {
                     )
                 }))
                 .join("\n")
-            }
-        };
+            };
 
         let virtual_source = VirtualSource::new(
             next_js_file_path("root-params.js".into()),
@@ -191,7 +193,7 @@ impl NextRootParamsMapper {
     }
 
     #[turbo_tasks::function]
-    async fn invalid_import_map_result(&self, message: RcStr) -> Result<Vc<ImportMapResult>> {
+    async fn invalid_import_map_result(message: RcStr) -> Result<Vc<ImportMapResult>> {
         let path = next_js_file_path("root-params.js".into());
 
         // error the compilation.
