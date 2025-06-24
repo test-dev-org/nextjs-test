@@ -91,9 +91,6 @@ importers:
       '@mdx-js/loader':
         specifier: 2.2.1
         version: 2.2.1(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
-      '@mdx-js/react':
-        specifier: 2.2.1
-        version: 2.2.1(react@19.2.0-canary-197d6a04-20250424)
       '@next/bundle-analyzer':
         specifier: workspace:*
         version: link:packages/next-bundle-analyzer
@@ -1652,9 +1649,6 @@ importers:
       '@mdx-js/loader':
         specifier: '>=0.15.0'
         version: 2.2.1(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
-      '@mdx-js/react':
-        specifier: '>=0.15.0'
-        version: 2.2.1(react@19.2.0-canary-c44e4a25-20250409)
       source-map:
         specifier: ^0.7.0
         version: 0.7.3
@@ -4314,11 +4308,6 @@ packages:
 
   '@mdx-js/mdx@2.2.1':
     resolution: {integrity: sha512-hZ3ex7exYLJn6FfReq8yTvA6TE53uW9UHJQM9IlSauOuS55J9y8RtA7W+dzp6Yrzr00/U1sd7q+Wf61q6SfiTQ==}
-
-  '@mdx-js/react@2.2.1':
-    resolution: {integrity: sha512-YdXcMcEnqZhzql98RNrqYo9cEhTTesBiCclEtoiQUbJwx87q9453GTapYU6kJ8ZZ2ek1Vp25SiAXEFy5O/eAPw==}
-    peerDependencies:
-      react: 19.2.0-canary-197d6a04-20250424
 
   '@mdx-js/react@3.1.0':
     resolution: {integrity: sha512-QjHtSaoameoalGnKDT3FoIl4+9RwyTmo9ZJGBdLOks/YOiWHoRDI3PUwEzOE7kEmGcV3AFcp9K6dYu9rEuKLAQ==}
@@ -19864,18 +19853,6 @@ snapshots:
       vfile: 5.3.6
     transitivePeerDependencies:
       - supports-color
-
-  '@mdx-js/react@2.2.1(react@19.2.0-canary-197d6a04-20250424)':
-    dependencies:
-      '@types/mdx': 2.0.3
-      '@types/react': 19.1.1
-      react: 19.2.0-canary-197d6a04-20250424
-
-  '@mdx-js/react@2.2.1(react@19.2.0-canary-c44e4a25-20250409)':
-    dependencies:
-      '@types/mdx': 2.0.3
-      '@types/react': 19.1.1
-      react: 19.2.0-canary-c44e4a25-20250409
 
   '@mdx-js/react@3.1.0(@types/react@19.1.1)(react@19.2.0-canary-197d6a04-20250424)':
     dependencies:
