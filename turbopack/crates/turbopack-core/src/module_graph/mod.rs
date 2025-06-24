@@ -32,6 +32,7 @@ use crate::{
     module_graph::{
         async_module_info::{AsyncModulesInfo, compute_async_module_info},
         chunk_group_info::{ChunkGroupEntry, ChunkGroupInfo, compute_chunk_group_info},
+        merged_modules::{MergedModuleInfo, compute_merged_modules},
         module_batches::{ModuleBatchesGraph, compute_module_batches},
         style_groups::{StyleGroups, StyleGroupsConfig, compute_style_groups},
         traced_di_graph::{TracedDiGraph, iter_neighbors_rev},
@@ -42,6 +43,7 @@ use crate::{
 
 pub mod async_module_info;
 pub mod chunk_group_info;
+pub mod merged_modules;
 pub mod module_batch;
 pub(crate) mod module_batches;
 pub(crate) mod style_groups;
@@ -344,16 +346,27 @@ impl SingleModuleGraph {
 
         #[cfg(debug_assertions)]
         {
-            let mut duplicates = Vec::new();
-            let mut set = FxHashSet::default();
-            for &module in modules.keys() {
-                let ident = module.ident().to_string().await?;
-                if !set.insert(ident.clone()) {
-                    duplicates.push(ident)
+            use once_cell::sync::Lazy;
+
+            // TODO(PACK-4578): This is temporary while the last issues are being addressed.
+            static CHECK_FOR_DUPLICATE_MODULES: Lazy<bool> = Lazy::new(|| {
+                match std::env::var_os("TURBOPACK_TEMP_DISABLE_DUPLICATE_MODULES_CHECK") {
+                    Some(v) => v != "1" && v != "true",
+                    None => true,
                 }
-            }
-            if !duplicates.is_empty() {
-                panic!("Duplicate module idents in graph: {duplicates:#?}");
+            });
+            if *CHECK_FOR_DUPLICATE_MODULES {
+                let mut duplicates = Vec::new();
+                let mut set = FxHashSet::default();
+                for &module in modules.keys() {
+                    let ident = module.ident().to_string().await?;
+                    if !set.insert(ident.clone()) {
+                        duplicates.push(ident)
+                    }
+                }
+                if !duplicates.is_empty() {
+                    panic!("Duplicate module idents in graph: {duplicates:#?}");
+                }
             }
         }
 
@@ -979,6 +992,11 @@ impl ModuleGraph {
     #[turbo_tasks::function]
     pub async fn chunk_group_info(&self) -> Result<Vc<ChunkGroupInfo>> {
         compute_chunk_group_info(self).await
+    }
+
+    #[turbo_tasks::function]
+    pub async fn merged_modules(self: Vc<Self>) -> Result<Vc<MergedModuleInfo>> {
+        compute_merged_modules(self).await
     }
 
     #[turbo_tasks::function]

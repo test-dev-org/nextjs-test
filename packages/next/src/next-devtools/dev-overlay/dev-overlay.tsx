@@ -12,6 +12,7 @@ import { DarkTheme } from './styles/dark-theme'
 import { useDevToolsScale } from './components/errors/dev-tools-indicator/dev-tools-info/preferences'
 import type { HydrationErrorState } from '../shared/hydration-error'
 import { DevToolsIndicator as DevToolsIndicatorNew } from './components/devtools-indicator/devtools-indicator'
+import { DevToolsPanel } from './components/devtools-panel/devtools-panel'
 
 export function DevOverlay({
   state,
@@ -26,7 +27,9 @@ export function DevOverlay({
   return (
     <ShadowPortal>
       <CssReset />
-      <Base scale={scale} />
+      <Base
+        scale={process.env.__NEXT_DEVTOOL_NEW_PANEL_UI ? state.scale : scale}
+      />
       <Colors />
       <ComponentStyles />
       <DarkTheme />
@@ -38,13 +41,26 @@ export function DevOverlay({
             <>
               {state.showIndicator &&
                 (process.env.__NEXT_DEVTOOL_NEW_PANEL_UI ? (
-                  <DevToolsIndicatorNew
-                    scale={scale}
-                    state={state}
-                    dispatch={dispatch}
-                    errorCount={totalErrorCount}
-                    isBuildError={isBuildError}
-                  />
+                  <>
+                    <DevToolsIndicatorNew
+                      state={state}
+                      dispatch={dispatch}
+                      errorCount={totalErrorCount}
+                      isBuildError={isBuildError}
+                    />
+
+                    {state.isDevToolsPanelOpen && (
+                      <DevToolsPanel
+                        state={state}
+                        dispatch={dispatch}
+                        issueCount={totalErrorCount}
+                        runtimeErrors={runtimeErrors}
+                        getSquashedHydrationErrorDetails={
+                          getSquashedHydrationErrorDetails
+                        }
+                      />
+                    )}
+                  </>
                 ) : (
                   <DevToolsIndicator
                     scale={scale}

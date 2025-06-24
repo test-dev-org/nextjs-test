@@ -242,6 +242,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::NodeJs,
             self.project().encryption_key(),
+            self.project().server_compile_time_info().environment(),
         ))
     }
 
@@ -255,6 +256,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::Edge,
             self.project().encryption_key(),
+            self.project().edge_compile_time_info().environment(),
         ))
     }
 
@@ -268,6 +270,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::NodeJs,
             self.project().encryption_key(),
+            self.project().server_compile_time_info().environment(),
         ))
     }
 
@@ -281,6 +284,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::Edge,
             self.project().encryption_key(),
+            self.project().edge_compile_time_info().environment(),
         ))
     }
 
@@ -592,6 +596,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::NodeJs,
             self.project().encryption_key(),
+            self.project().server_compile_time_info().environment(),
         ))
     }
 
@@ -605,6 +610,7 @@ impl AppProject {
             self.project().next_config(),
             NextRuntime::Edge,
             self.project().encryption_key(),
+            self.project().edge_compile_time_info().environment(),
         ))
     }
 
