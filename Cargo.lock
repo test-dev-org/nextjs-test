@@ -6838,9 +6838,9 @@ dependencies = [
 
 [[package]]
 name = "styled_jsx"
-version = "0.93.0"
+version = "0.93.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c237ae48a09c98ea27451e4cd9578c8e89985971617e2a4c0c9d15960b878db"
+checksum = "8f410fb5118993cd1acd558939954edc558304f7fbf3ab54e65aa121cccd48d7"
 dependencies = [
  "anyhow",
  "lightningcss",
