@@ -3033,11 +3033,10 @@
   },
   "test/e2e/app-dir/metadata-edge/index.test.ts": {
     "passed": [
-      "app dir - Metadata API on the Edge runtime should render OpenGraph image meta tag correctly"
-    ],
-    "failed": [
+      "app dir - Metadata API on the Edge runtime should render OpenGraph image meta tag correctly",
       "app dir - Metadata API on the Edge runtime OG image route should not bundle `ImageResponse` into the page worker"
     ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
