@@ -117,8 +117,6 @@ var PROMISE_PROTOTYPE = Promise.prototype,
           return;
         case "defaultProps":
           return;
-        case "_debugInfo":
-          return;
         case "toJSON":
           return;
         case Symbol.toPrimitive:
@@ -155,8 +153,6 @@ function getReference(target, name) {
     case "name":
       return target.name;
     case "defaultProps":
-      return;
-    case "_debugInfo":
       return;
     case "toJSON":
       return;
@@ -391,8 +387,6 @@ var TEMPORARY_REFERENCE_TAG = Symbol.for("react.temporary.reference"),
           return;
         case "defaultProps":
           return;
-        case "_debugInfo":
-          return;
         case "toJSON":
           return;
         case Symbol.toPrimitive:
@@ -448,16 +442,16 @@ function getIteratorFn(maybeIterable) {
     maybeIterable["@@iterator"];
   return "function" === typeof maybeIterable ? maybeIterable : null;
 }
-var ASYNC_ITERATOR = Symbol.asyncIterator;
-function noop() {}
-var SuspenseException = Error(
-  "Suspense Exception: This is not a real error! It's an implementation detail of `use` to interrupt the current render. You must either rethrow it immediately, or move the `use` call outside of the `try/catch` block. Capturing without rethrowing will lead to unexpected behavior.\n\nTo handle async errors, wrap your component in an error boundary, or call the promise's `.catch` method and pass the result to `use`."
-);
+var ASYNC_ITERATOR = Symbol.asyncIterator,
+  SuspenseException = Error(
+    "Suspense Exception: This is not a real error! It's an implementation detail of `use` to interrupt the current render. You must either rethrow it immediately, or move the `use` call outside of the `try/catch` block. Capturing without rethrowing will lead to unexpected behavior.\n\nTo handle async errors, wrap your component in an error boundary, or call the promise's `.catch` method and pass the result to `use`."
+  );
+function noop$1() {}
 function trackUsedThenable(thenableState, thenable, index) {
   index = thenableState[index];
   void 0 === index
     ? thenableState.push(thenable)
-    : index !== thenable && (thenable.then(noop, noop), (thenable = index));
+    : index !== thenable && (thenable.then(noop$1, noop$1), (thenable = index));
   switch (thenable.status) {
     case "fulfilled":
       return thenable.value;
@@ -465,7 +459,7 @@ function trackUsedThenable(thenableState, thenable, index) {
       throw thenable.reason;
     default:
       "string" === typeof thenable.status
-        ? thenable.then(noop, noop)
+        ? thenable.then(noop$1, noop$1)
         : ((thenableState = thenable),
           (thenableState.status = "pending"),
           thenableState.then(
@@ -560,7 +554,7 @@ function useId() {
   if (null === currentRequest$1)
     throw Error("useId can only be used while React is rendering");
   var id = currentRequest$1.identifierCount++;
-  return "_" + currentRequest$1.identifierPrefix + "S_" + id.toString(32) + "_";
+  return ":" + currentRequest$1.identifierPrefix + "S" + id.toString(32) + ":";
 }
 function use(usable) {
   if (
@@ -594,10 +588,6 @@ var DefaultAsyncDispatcher = {
         ((entry = resourceType()),
         JSCompiler_inline_result.set(resourceType, entry));
       return entry;
-    },
-    cacheSignal: function () {
-      var request = currentRequest ? currentRequest : null;
-      return request ? request.cacheController.signal : null;
     }
   },
   ReactSharedInternalsServer =
@@ -722,6 +712,7 @@ var ObjectPrototype = Object.prototype,
 function defaultErrorHandler(error) {
   console.error(error);
 }
+function defaultPostponeHandler() {}
 function RequestInstance(
   type,
   model,
@@ -750,7 +741,6 @@ function RequestInstance(
   this.destination = this.fatalError = null;
   this.bundlerConfig = bundlerConfig;
   this.cache = new Map();
-  this.cacheController = new AbortController();
   this.pendingChunks = this.nextChunkId = 0;
   this.hints = hints;
   this.abortListeners = new Set();
@@ -769,12 +759,13 @@ function RequestInstance(
   this.identifierCount = 1;
   this.taintCleanupQueue = [];
   this.onError = void 0 === onError ? defaultErrorHandler : onError;
-  this.onPostpone = void 0 === onPostpone ? noop : onPostpone;
+  this.onPostpone = void 0 === onPostpone ? defaultPostponeHandler : onPostpone;
   this.onAllReady = onAllReady;
   this.onFatalError = onFatalError;
   type = createTask(this, model, null, !1, filterStackFrame);
   environmentName.push(type);
 }
+function noop() {}
 var currentRequest = null;
 function serializeThenable(request, task, thenable) {
   var newTask = createTask(
@@ -840,11 +831,11 @@ function serializeReadableStream(request, task, stream) {
         try {
           (streamTask.model = entry.value),
             request.pendingChunks++,
-            tryStreamTask(request, streamTask),
+            emitChunk(request, streamTask, streamTask.model),
             enqueueFlush(request),
             reader.read().then(progress, error);
-        } catch (x$9) {
-          error(x$9);
+        } catch (x$7) {
+          error(x$7);
         }
   }
   function error(reason) {
@@ -914,11 +905,11 @@ function serializeAsyncIterable(request, task, iterable, iterator) {
         try {
           (streamTask.model = entry.value),
             request.pendingChunks++,
-            tryStreamTask(request, streamTask),
+            emitChunk(request, streamTask, streamTask.model),
             enqueueFlush(request),
             iterator.next().then(progress, error);
-        } catch (x$10) {
-          error(x$10);
+        } catch (x$8) {
+          error(x$8);
         }
   }
   function error(reason) {
@@ -967,10 +958,9 @@ function readThenable(thenable) {
   if ("rejected" === thenable.status) throw thenable.reason;
   throw thenable;
 }
-function createLazyWrapperAroundWakeable(request, task, wakeable) {
+function createLazyWrapperAroundWakeable(wakeable) {
   switch (wakeable.status) {
     case "fulfilled":
-      return wakeable.value;
     case "rejected":
       break;
     default:
@@ -999,7 +989,9 @@ function processServerComponentReturnValue(request, task, Component, result) {
   )
     return result;
   if ("function" === typeof result.then)
-    return createLazyWrapperAroundWakeable(request, task, result);
+    return "fulfilled" === result.status
+      ? result.value
+      : createLazyWrapperAroundWakeable(result);
   var iteratorFn = getIteratorFn(result);
   return iteratorFn
     ? ((request = {}),
@@ -1053,18 +1045,6 @@ function renderFragment(request, task, children) {
       ]),
       task.implicitSlot ? [request] : request)
     : children;
-}
-var serializedSize = 0;
-function deferTask(request, task) {
-  task = createTask(
-    request,
-    task.model,
-    task.keyPath,
-    task.implicitSlot,
-    request.abortableTasks
-  );
-  pingTask(request, task);
-  return "$L" + task.id.toString(16);
 }
 function renderElement(request, task, type, key, ref, props) {
   if (null !== ref && void 0 !== ref)
@@ -1147,7 +1127,6 @@ function createTask(request, model, keyPath, implicitSlot, abortSet) {
       return pingTask(request, task);
     },
     toJSON: function (parentPropertyName, value) {
-      serializedSize += parentPropertyName.length;
       var prevKeyPath = task.keyPath,
         prevImplicitSlot = task.implicitSlot;
       try {
@@ -1362,7 +1341,6 @@ function renderModelDestructive(
                 ((elementReference = parent + ":" + parentPropertyName),
                 writtenObjects.set(value, elementReference)));
         }
-        if (3200 < serializedSize) return deferTask(request, task);
         parentPropertyName = value.props;
         parent = parentPropertyName.ref;
         request = renderElement(
@@ -1380,7 +1358,6 @@ function renderModelDestructive(
             writtenObjects.set(request, elementReference));
         return request;
       case REACT_LAZY_TYPE:
-        if (3200 < serializedSize) return deferTask(request, task);
         task.thenableState = null;
         parentPropertyName = value._init;
         value = parentPropertyName(value._payload);
@@ -1530,7 +1507,6 @@ function renderModelDestructive(
     return value;
   }
   if ("string" === typeof value) {
-    serializedSize += value.length;
     if (
       "Z" === value[value.length - 1] &&
       parent[parentPropertyName] instanceof Date
@@ -1659,9 +1635,6 @@ function fatalError(request, error) {
   null !== request.destination
     ? ((request.status = 14), closeWithError(request.destination, error))
     : ((request.status = 13), (request.fatalError = error));
-  request.cacheController.abort(
-    Error("The render was aborted due to a fatal error.", { cause: error })
-  );
 }
 function emitErrorChunk(request, id, digest) {
   digest = { digest: digest };
@@ -1743,7 +1716,6 @@ var emptyRoot = {};
 function retryTask(request, task) {
   if (0 === task.status) {
     task.status = 5;
-    var parentSerializedSize = serializedSize;
     try {
       modelRoot = task.model;
       var resolvedModel = renderModelDestructive(
@@ -1789,16 +1761,7 @@ function retryTask(request, task) {
         } else erroredTask(request, task, x);
       }
     } finally {
-      serializedSize = parentSerializedSize;
     }
-  }
-}
-function tryStreamTask(request, task) {
-  var parentSerializedSize = serializedSize;
-  try {
-    emitChunk(request, task, task.model);
-  } finally {
-    serializedSize = parentSerializedSize;
   }
 }
 function performWork(request) {
@@ -1857,15 +1820,7 @@ function flushCompletedChunks(request, destination) {
         (writtenBytes = 0));
   }
   0 === request.pendingChunks &&
-    (12 > request.status &&
-      request.cacheController.abort(
-        Error(
-          "This render completed successfully. All cacheSignals are now aborted to allow clean up of any unused resources."
-        )
-      ),
-    (request.status = 14),
-    destination.close(),
-    (request.destination = null));
+    ((request.status = 14), destination.close(), (request.destination = null));
 }
 function startWork(request) {
   request.flushScheduled = null !== request.destination;
@@ -1905,8 +1860,7 @@ function startFlowing(request, destination) {
 }
 function abort(request, reason) {
   try {
-    11 >= request.status &&
-      ((request.status = 12), request.cacheController.abort(reason));
+    11 >= request.status && (request.status = 12);
     var abortableTasks = request.abortableTasks;
     if (0 < abortableTasks.size) {
       var error =
@@ -1935,7 +1889,7 @@ function abort(request, reason) {
     }
     var abortListeners = request.abortListeners;
     if (0 < abortListeners.size) {
-      var error$24 =
+      var error$22 =
         void 0 === reason
           ? Error("The render was aborted by the server without a reason.")
           : "object" === typeof reason &&
@@ -1944,15 +1898,15 @@ function abort(request, reason) {
             ? Error("The render was aborted by the server with a promise.")
             : reason;
       abortListeners.forEach(function (callback) {
-        return callback(error$24);
+        return callback(error$22);
       });
       abortListeners.clear();
       callOnAllReadyIfReady(request);
     }
     null !== request.destination &&
       flushCompletedChunks(request, request.destination);
-  } catch (error$25) {
-    logRecoverableError(request, error$25, null), fatalError(request, error$25);
+  } catch (error$23) {
+    logRecoverableError(request, error$23, null), fatalError(request, error$23);
   }
 }
 function resolveServerReference(bundlerConfig, id) {
@@ -2410,8 +2364,8 @@ function parseReadableStream(response, reference, type) {
             (previousBlockedChunk = chunk));
       } else {
         chunk = previousBlockedChunk;
-        var chunk$28 = createPendingChunk(response);
-        chunk$28.then(
+        var chunk$26 = createPendingChunk(response);
+        chunk$26.then(
           function (v) {
             return controller.enqueue(v);
           },
@@ -2419,10 +2373,10 @@ function parseReadableStream(response, reference, type) {
             return controller.error(e);
           }
         );
-        previousBlockedChunk = chunk$28;
+        previousBlockedChunk = chunk$26;
         chunk.then(function () {
-          previousBlockedChunk === chunk$28 && (previousBlockedChunk = null);
-          resolveModelChunk(chunk$28, json, -1);
+          previousBlockedChunk === chunk$26 && (previousBlockedChunk = null);
+          resolveModelChunk(chunk$26, json, -1);
         });
       }
     },

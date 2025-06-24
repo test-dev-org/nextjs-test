@@ -343,6 +343,7 @@ function DevToolsPopover({
           close={closeToRootMenu}
           triggerRef={triggerRef}
           style={popover}
+          routerType={routerType}
         />
       ) : null}
 

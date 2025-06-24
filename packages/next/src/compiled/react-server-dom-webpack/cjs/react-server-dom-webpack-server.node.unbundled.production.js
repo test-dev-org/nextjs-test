@@ -15,26 +15,6 @@ require("crypto");
 var async_hooks = require("async_hooks"),
   ReactDOM = require("react-dom"),
   React = require("react"),
-  REACT_LEGACY_ELEMENT_TYPE = Symbol.for("react.element"),
-  REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
-  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
-  REACT_CONTEXT_TYPE = Symbol.for("react.context"),
-  REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
-  REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
-  REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"),
-  REACT_MEMO_TYPE = Symbol.for("react.memo"),
-  REACT_LAZY_TYPE = Symbol.for("react.lazy"),
-  REACT_MEMO_CACHE_SENTINEL = Symbol.for("react.memo_cache_sentinel");
-Symbol.for("react.postpone");
-var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
-function getIteratorFn(maybeIterable) {
-  if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
-  maybeIterable =
-    (MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL]) ||
-    maybeIterable["@@iterator"];
-  return "function" === typeof maybeIterable ? maybeIterable : null;
-}
-var ASYNC_ITERATOR = Symbol.asyncIterator,
   scheduleMicrotask = queueMicrotask,
   currentView = null,
   writtenBytes = 0,
@@ -154,8 +134,6 @@ var PROMISE_PROTOTYPE = Promise.prototype,
           return;
         case "defaultProps":
           return;
-        case "_debugInfo":
-          return;
         case "toJSON":
           return;
         case Symbol.toPrimitive:
@@ -192,8 +170,6 @@ function getReference(target, name) {
     case "name":
       return target.name;
     case "defaultProps":
-      return;
-    case "_debugInfo":
       return;
     case "toJSON":
       return;
@@ -429,8 +405,6 @@ var requestStorage = new async_hooks.AsyncLocalStorage(),
           return;
         case "defaultProps":
           return;
-        case "_debugInfo":
-          return;
         case "toJSON":
           return;
         case Symbol.toPrimitive:
@@ -467,15 +441,35 @@ function createTemporaryReference(temporaryReferences, id) {
   temporaryReferences.set(reference, id);
   return reference;
 }
-function noop() {}
-var SuspenseException = Error(
-  "Suspense Exception: This is not a real error! It's an implementation detail of `use` to interrupt the current render. You must either rethrow it immediately, or move the `use` call outside of the `try/catch` block. Capturing without rethrowing will lead to unexpected behavior.\n\nTo handle async errors, wrap your component in an error boundary, or call the promise's `.catch` method and pass the result to `use`."
-);
+var REACT_LEGACY_ELEMENT_TYPE = Symbol.for("react.element"),
+  REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
+  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
+  REACT_CONTEXT_TYPE = Symbol.for("react.context"),
+  REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
+  REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
+  REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"),
+  REACT_MEMO_TYPE = Symbol.for("react.memo"),
+  REACT_LAZY_TYPE = Symbol.for("react.lazy"),
+  REACT_MEMO_CACHE_SENTINEL = Symbol.for("react.memo_cache_sentinel");
+Symbol.for("react.postpone");
+var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+function getIteratorFn(maybeIterable) {
+  if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
+  maybeIterable =
+    (MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL]) ||
+    maybeIterable["@@iterator"];
+  return "function" === typeof maybeIterable ? maybeIterable : null;
+}
+var ASYNC_ITERATOR = Symbol.asyncIterator,
+  SuspenseException = Error(
+    "Suspense Exception: This is not a real error! It's an implementation detail of `use` to interrupt the current render. You must either rethrow it immediately, or move the `use` call outside of the `try/catch` block. Capturing without rethrowing will lead to unexpected behavior.\n\nTo handle async errors, wrap your component in an error boundary, or call the promise's `.catch` method and pass the result to `use`."
+  );
+function noop$1() {}
 function trackUsedThenable(thenableState, thenable, index) {
   index = thenableState[index];
   void 0 === index
     ? thenableState.push(thenable)
-    : index !== thenable && (thenable.then(noop, noop), (thenable = index));
+    : index !== thenable && (thenable.then(noop$1, noop$1), (thenable = index));
   switch (thenable.status) {
     case "fulfilled":
       return thenable.value;
@@ -483,7 +477,7 @@ function trackUsedThenable(thenableState, thenable, index) {
       throw thenable.reason;
     default:
       "string" === typeof thenable.status
-        ? thenable.then(noop, noop)
+        ? thenable.then(noop$1, noop$1)
         : ((thenableState = thenable),
           (thenableState.status = "pending"),
           thenableState.then(
@@ -578,7 +572,7 @@ function useId() {
   if (null === currentRequest$1)
     throw Error("useId can only be used while React is rendering");
   var id = currentRequest$1.identifierCount++;
-  return "_" + currentRequest$1.identifierPrefix + "S_" + id.toString(32) + "_";
+  return ":" + currentRequest$1.identifierPrefix + "S" + id.toString(32) + ":";
 }
 function use(usable) {
   if (
@@ -611,10 +605,6 @@ var DefaultAsyncDispatcher = {
         ((entry = resourceType()),
         JSCompiler_inline_result.set(resourceType, entry));
       return entry;
-    },
-    cacheSignal: function () {
-      var request = resolveRequest();
-      return request ? request.cacheController.signal : null;
     }
   },
   ReactSharedInternalsServer =
@@ -739,6 +729,7 @@ var ObjectPrototype = Object.prototype,
 function defaultErrorHandler(error) {
   console.error(error);
 }
+function defaultPostponeHandler() {}
 function RequestInstance(
   type,
   model,
@@ -767,7 +758,6 @@ function RequestInstance(
   this.destination = this.fatalError = null;
   this.bundlerConfig = bundlerConfig;
   this.cache = new Map();
-  this.cacheController = new AbortController();
   this.pendingChunks = this.nextChunkId = 0;
   this.hints = hints;
   this.abortListeners = new Set();
@@ -786,12 +776,13 @@ function RequestInstance(
   this.identifierCount = 1;
   this.taintCleanupQueue = [];
   this.onError = void 0 === onError ? defaultErrorHandler : onError;
-  this.onPostpone = void 0 === onPostpone ? noop : onPostpone;
+  this.onPostpone = void 0 === onPostpone ? defaultPostponeHandler : onPostpone;
   this.onAllReady = onAllReady;
   this.onFatalError = onFatalError;
   type = createTask(this, model, null, !1, filterStackFrame);
   environmentName.push(type);
 }
+function noop() {}
 var currentRequest = null;
 function resolveRequest() {
   if (currentRequest) return currentRequest;
@@ -862,11 +853,11 @@ function serializeReadableStream(request, task, stream) {
         try {
           (streamTask.model = entry.value),
             request.pendingChunks++,
-            tryStreamTask(request, streamTask),
+            emitChunk(request, streamTask, streamTask.model),
             enqueueFlush(request),
             reader.read().then(progress, error);
-        } catch (x$9) {
-          error(x$9);
+        } catch (x$7) {
+          error(x$7);
         }
   }
   function error(reason) {
@@ -936,11 +927,11 @@ function serializeAsyncIterable(request, task, iterable, iterator) {
         try {
           (streamTask.model = entry.value),
             request.pendingChunks++,
-            tryStreamTask(request, streamTask),
+            emitChunk(request, streamTask, streamTask.model),
             enqueueFlush(request),
             iterator.next().then(progress, error);
-        } catch (x$10) {
-          error(x$10);
+        } catch (x$8) {
+          error(x$8);
         }
   }
   function error(reason) {
@@ -988,10 +979,9 @@ function readThenable(thenable) {
   if ("rejected" === thenable.status) throw thenable.reason;
   throw thenable;
 }
-function createLazyWrapperAroundWakeable(request, task, wakeable) {
+function createLazyWrapperAroundWakeable(wakeable) {
   switch (wakeable.status) {
     case "fulfilled":
-      return wakeable.value;
     case "rejected":
       break;
     default:
@@ -1020,7 +1010,9 @@ function processServerComponentReturnValue(request, task, Component, result) {
   )
     return result;
   if ("function" === typeof result.then)
-    return createLazyWrapperAroundWakeable(request, task, result);
+    return "fulfilled" === result.status
+      ? result.value
+      : createLazyWrapperAroundWakeable(result);
   var iteratorFn = getIteratorFn(result);
   return iteratorFn
     ? ((request = {}),
@@ -1074,18 +1066,6 @@ function renderFragment(request, task, children) {
       ]),
       task.implicitSlot ? [request] : request)
     : children;
-}
-var serializedSize = 0;
-function deferTask(request, task) {
-  task = createTask(
-    request,
-    task.model,
-    task.keyPath,
-    task.implicitSlot,
-    request.abortableTasks
-  );
-  pingTask(request, task);
-  return "$L" + task.id.toString(16);
 }
 function renderElement(request, task, type, key, ref, props) {
   if (null !== ref && void 0 !== ref)
@@ -1168,7 +1148,6 @@ function createTask(request, model, keyPath, implicitSlot, abortSet) {
       return pingTask(request, task);
     },
     toJSON: function (parentPropertyName, value) {
-      serializedSize += parentPropertyName.length;
       var prevKeyPath = task.keyPath,
         prevImplicitSlot = task.implicitSlot;
       try {
@@ -1381,7 +1360,6 @@ function renderModelDestructive(
                 ((elementReference = parent + ":" + parentPropertyName),
                 writtenObjects.set(value, elementReference)));
         }
-        if (3200 < serializedSize) return deferTask(request, task);
         parentPropertyName = value.props;
         parent = parentPropertyName.ref;
         request = renderElement(
@@ -1399,7 +1377,6 @@ function renderModelDestructive(
             writtenObjects.set(request, elementReference));
         return request;
       case REACT_LAZY_TYPE:
-        if (3200 < serializedSize) return deferTask(request, task);
         task.thenableState = null;
         parentPropertyName = value._init;
         value = parentPropertyName(value._payload);
@@ -1549,7 +1526,6 @@ function renderModelDestructive(
     return value;
   }
   if ("string" === typeof value) {
-    serializedSize += value.length;
     if (
       "Z" === value[value.length - 1] &&
       parent[parentPropertyName] instanceof Date
@@ -1677,9 +1653,6 @@ function fatalError(request, error) {
   null !== request.destination
     ? ((request.status = 14), request.destination.destroy(error))
     : ((request.status = 13), (request.fatalError = error));
-  request.cacheController.abort(
-    Error("The render was aborted due to a fatal error.", { cause: error })
-  );
 }
 function emitErrorChunk(request, id, digest) {
   digest = { digest: digest };
@@ -1755,7 +1728,6 @@ var emptyRoot = {};
 function retryTask(request, task) {
   if (0 === task.status) {
     task.status = 5;
-    var parentSerializedSize = serializedSize;
     try {
       modelRoot = task.model;
       var resolvedModel = renderModelDestructive(
@@ -1801,16 +1773,7 @@ function retryTask(request, task) {
         } else erroredTask(request, task, x);
       }
     } finally {
-      serializedSize = parentSerializedSize;
     }
-  }
-}
-function tryStreamTask(request, task) {
-  var parentSerializedSize = serializedSize;
-  try {
-    emitChunk(request, task, task.model);
-  } finally {
-    serializedSize = parentSerializedSize;
   }
 }
 function performWork(request) {
@@ -1893,15 +1856,7 @@ function flushCompletedChunks(request, destination) {
   }
   "function" === typeof destination.flush && destination.flush();
   0 === request.pendingChunks &&
-    (12 > request.status &&
-      request.cacheController.abort(
-        Error(
-          "This render completed successfully. All cacheSignals are now aborted to allow clean up of any unused resources."
-        )
-      ),
-    (request.status = 14),
-    destination.end(),
-    (request.destination = null));
+    ((request.status = 14), destination.end(), (request.destination = null));
 }
 function startWork(request) {
   request.flushScheduled = null !== request.destination;
@@ -1941,8 +1896,7 @@ function startFlowing(request, destination) {
 }
 function abort(request, reason) {
   try {
-    11 >= request.status &&
-      ((request.status = 12), request.cacheController.abort(reason));
+    11 >= request.status && (request.status = 12);
     var abortableTasks = request.abortableTasks;
     if (0 < abortableTasks.size) {
       var error =
@@ -1971,7 +1925,7 @@ function abort(request, reason) {
     }
     var abortListeners = request.abortListeners;
     if (0 < abortListeners.size) {
-      var error$24 =
+      var error$22 =
         void 0 === reason
           ? Error("The render was aborted by the server without a reason.")
           : "object" === typeof reason &&
@@ -1980,15 +1934,15 @@ function abort(request, reason) {
             ? Error("The render was aborted by the server with a promise.")
             : reason;
       abortListeners.forEach(function (callback) {
-        return callback(error$24);
+        return callback(error$22);
       });
       abortListeners.clear();
       callOnAllReadyIfReady(request);
     }
     null !== request.destination &&
       flushCompletedChunks(request, request.destination);
-  } catch (error$25) {
-    logRecoverableError(request, error$25, null), fatalError(request, error$25);
+  } catch (error$23) {
+    logRecoverableError(request, error$23, null), fatalError(request, error$23);
   }
 }
 function resolveServerReference(bundlerConfig, id) {
@@ -2403,8 +2357,8 @@ function parseReadableStream(response, reference, type) {
             (previousBlockedChunk = chunk));
       } else {
         chunk = previousBlockedChunk;
-        var chunk$28 = createPendingChunk(response);
-        chunk$28.then(
+        var chunk$26 = createPendingChunk(response);
+        chunk$26.then(
           function (v) {
             return controller.enqueue(v);
           },
@@ -2412,10 +2366,10 @@ function parseReadableStream(response, reference, type) {
             return controller.error(e);
           }
         );
-        previousBlockedChunk = chunk$28;
+        previousBlockedChunk = chunk$26;
         chunk.then(function () {
-          previousBlockedChunk === chunk$28 && (previousBlockedChunk = null);
-          resolveModelChunk(chunk$28, json, -1);
+          previousBlockedChunk === chunk$26 && (previousBlockedChunk = null);
+          resolveModelChunk(chunk$26, json, -1);
         });
       }
     },
@@ -2694,24 +2648,7 @@ function createCancelHandler(request, reason) {
     abort(request, Error(reason));
   };
 }
-function createFakeWritableFromReadableStreamController(controller) {
-  return {
-    write: function (chunk) {
-      "string" === typeof chunk && (chunk = textEncoder.encode(chunk));
-      controller.enqueue(chunk);
-      return !0;
-    },
-    end: function () {
-      controller.close();
-    },
-    destroy: function (error) {
-      "function" === typeof controller.error
-        ? controller.error(error)
-        : controller.close();
-    }
-  };
-}
-function createFakeWritableFromNodeReadable(readable) {
+function createFakeWritable(readable) {
   return {
     write: function (chunk) {
       return readable.push(chunk);
@@ -2784,37 +2721,6 @@ exports.decodeReply = function (body, webpackMap, options) {
   close(body);
   return webpackMap;
 };
-exports.decodeReplyFromAsyncIterable = function (
-  iterable,
-  webpackMap,
-  options
-) {
-  function progress(entry) {
-    if (entry.done) close(response);
-    else {
-      var _entry$value = entry.value;
-      entry = _entry$value[0];
-      _entry$value = _entry$value[1];
-      "string" === typeof _entry$value
-        ? resolveField(response, entry, _entry$value)
-        : response._formData.append(entry, _entry$value);
-      iterator.next().then(progress, error);
-    }
-  }
-  function error(reason) {
-    reportGlobalError(response, reason);
-    "function" === typeof iterator.throw &&
-      iterator.throw(reason).then(error, error);
-  }
-  var iterator = iterable[ASYNC_ITERATOR](),
-    response = createResponse(
-      webpackMap,
-      "",
-      options ? options.temporaryReferences : void 0
-    );
-  iterator.next().then(progress, error);
-  return getChunk(response, 0);
-};
 exports.decodeReplyFromBusboy = function (busboyStream, webpackMap, options) {
   var response = createResponse(
       webpackMap,
@@ -2836,12 +2742,12 @@ exports.decodeReplyFromBusboy = function (busboyStream, webpackMap, options) {
         "React doesn't accept base64 encoded file uploads because we don't expect form data passed from a browser to ever encode data that way. If that's the wrong assumption, we can easily fix it."
       );
     pendingFiles++;
-    var JSCompiler_object_inline_chunks_252 = [];
+    var JSCompiler_object_inline_chunks_227 = [];
     value.on("data", function (chunk) {
-      JSCompiler_object_inline_chunks_252.push(chunk);
+      JSCompiler_object_inline_chunks_227.push(chunk);
     });
     value.on("end", function () {
-      var blob = new Blob(JSCompiler_object_inline_chunks_252, {
+      var blob = new Blob(JSCompiler_object_inline_chunks_227, {
         type: mimeType
       });
       response._formData.append(name, blob, filename);
@@ -2926,99 +2832,6 @@ exports.renderToPipeableStream = function (model, webpackMap, options) {
     }
   };
 };
-exports.renderToReadableStream = function (model, webpackMap, options) {
-  var request = new RequestInstance(
-    20,
-    model,
-    webpackMap,
-    options ? options.onError : void 0,
-    options ? options.identifierPrefix : void 0,
-    options ? options.onPostpone : void 0,
-    options ? options.temporaryReferences : void 0,
-    void 0,
-    void 0,
-    noop,
-    noop
-  );
-  if (options && options.signal) {
-    var signal = options.signal;
-    if (signal.aborted) abort(request, signal.reason);
-    else {
-      var listener = function () {
-        abort(request, signal.reason);
-        signal.removeEventListener("abort", listener);
-      };
-      signal.addEventListener("abort", listener);
-    }
-  }
-  var writable;
-  return new ReadableStream(
-    {
-      type: "bytes",
-      start: function (controller) {
-        writable = createFakeWritableFromReadableStreamController(controller);
-        startWork(request);
-      },
-      pull: function () {
-        startFlowing(request, writable);
-      },
-      cancel: function (reason) {
-        request.destination = null;
-        abort(request, reason);
-      }
-    },
-    { highWaterMark: 0 }
-  );
-};
-exports.unstable_prerender = function (model, webpackMap, options) {
-  return new Promise(function (resolve, reject) {
-    var request = new RequestInstance(
-      21,
-      model,
-      webpackMap,
-      options ? options.onError : void 0,
-      options ? options.identifierPrefix : void 0,
-      options ? options.onPostpone : void 0,
-      options ? options.temporaryReferences : void 0,
-      void 0,
-      void 0,
-      function () {
-        var writable,
-          stream = new ReadableStream(
-            {
-              type: "bytes",
-              start: function (controller) {
-                writable =
-                  createFakeWritableFromReadableStreamController(controller);
-              },
-              pull: function () {
-                startFlowing(request, writable);
-              },
-              cancel: function (reason) {
-                request.destination = null;
-                abort(request, reason);
-              }
-            },
-            { highWaterMark: 0 }
-          );
-        resolve({ prelude: stream });
-      },
-      reject
-    );
-    if (options && options.signal) {
-      var signal = options.signal;
-      if (signal.aborted) abort(request, signal.reason);
-      else {
-        var listener = function () {
-          abort(request, signal.reason);
-          signal.removeEventListener("abort", listener);
-        };
-        signal.addEventListener("abort", listener);
-      }
-    }
-    startWork(request);
-  });
-};
 exports.unstable_prerenderToNodeStream = function (model, webpackMap, options) {
   return new Promise(function (resolve, reject) {
     var request = new RequestInstance(
@@ -3037,7 +2850,7 @@ exports.unstable_prerenderToNodeStream = function (model, webpackMap, options) {
               startFlowing(request, writable);
             }
           }),
-          writable = createFakeWritableFromNodeReadable(readable);
+          writable = createFakeWritable(readable);
         resolve({ prelude: readable });
       },
       reject

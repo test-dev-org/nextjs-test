@@ -9,7 +9,6 @@ import { isDynamicServerError } from '../../client/components/hooks-server-conte
 import { isNextRouterError } from '../../client/components/is-next-router-error'
 import { getProperError } from '../../lib/is-error'
 import { createDigestWithErrorCode } from '../../lib/error-telemetry-utils'
-import { isReactLargeShellError } from './react-large-shell-error'
 
 declare global {
   var __next_log_error__: undefined | ((err: unknown) => void)
@@ -63,12 +62,6 @@ export function createFlightReactServerErrorHandler(
       return digest
     }
 
-    if (isReactLargeShellError(thrownValue)) {
-      // TODO: Aggregate
-      console.error(thrownValue)
-      return undefined
-    }
-
     const err = getProperError(thrownValue) as DigestedError
 
     // If the error already has a digest, respect the original digest,
@@ -119,12 +112,6 @@ export function createHTMLReactServerErrorHandler(
 
     if (digest) {
       return digest
-    }
-
-    if (isReactLargeShellError(thrownValue)) {
-      // TODO: Aggregate
-      console.error(thrownValue)
-      return undefined
     }
 
     const err = getProperError(thrownValue) as DigestedError
@@ -184,12 +171,6 @@ export function createHTMLErrorHandler(
   onHTMLRenderSSRError: (err: DigestedError, errorInfo?: ErrorInfo) => void
 ): SSRErrorHandler {
   return (thrownValue: unknown, errorInfo?: ErrorInfo) => {
-    if (isReactLargeShellError(thrownValue)) {
-      // TODO: Aggregate
-      console.error(thrownValue)
-      return undefined
-    }
-
     let isSSRError = true
 
     allCapturedErrors.push(thrownValue)

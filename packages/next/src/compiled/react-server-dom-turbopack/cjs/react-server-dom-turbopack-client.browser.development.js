@@ -903,7 +903,7 @@
           case REACT_PORTAL_TYPE:
             return "Portal";
           case REACT_CONTEXT_TYPE:
-            return type.displayName || "Context";
+            return (type.displayName || "Context") + ".Provider";
           case REACT_CONSUMER_TYPE:
             return (type._context.displayName || "Context") + ".Consumer";
           case REACT_FORWARD_REF_TYPE:
@@ -1848,7 +1848,6 @@
         response,
         errorInfo.stack,
         env,
-        !1,
         Error.bind(
           null,
           errorInfo.message ||
@@ -1911,90 +1910,41 @@
       sourceMap,
       line,
       col,
-      enclosingLine,
-      enclosingCol,
       environmentName
     ) {
       name || (name = "<anonymous>");
       var encodedName = JSON.stringify(name);
-      1 > enclosingLine ? (enclosingLine = 0) : enclosingLine--;
-      1 > enclosingCol ? (enclosingCol = 0) : enclosingCol--;
-      1 > line ? (line = 0) : line--;
-      1 > col ? (col = 0) : col--;
-      if (
-        line < enclosingLine ||
-        (line === enclosingLine && col < enclosingCol)
-      )
-        enclosingCol = enclosingLine = 0;
-      1 > line
-        ? ((line = encodedName.length + 3),
-          (enclosingCol -= line),
-          0 > enclosingCol && (enclosingCol = 0),
-          (col = col - enclosingCol - line - 3),
-          0 > col && (col = 0),
-          (encodedName =
+      1 >= line
+        ? ((line = encodedName.length + 7),
+          (col =
             "({" +
             encodedName +
-            ":" +
-            " ".repeat(enclosingCol) +
-            "_=>" +
-            " ".repeat(col) +
-            "_()})"))
-        : 1 > enclosingLine
-          ? ((enclosingCol -= encodedName.length + 3),
-            0 > enclosingCol && (enclosingCol = 0),
-            (encodedName =
-              "({" +
-              encodedName +
-              ":" +
-              " ".repeat(enclosingCol) +
-              "_=>" +
-              "\n".repeat(line - enclosingLine) +
-              " ".repeat(col) +
-              "_()})"))
-          : enclosingLine === line
-            ? ((col = col - enclosingCol - 3),
-              0 > col && (col = 0),
-              (encodedName =
-                "\n".repeat(enclosingLine - 1) +
-                "({" +
-                encodedName +
-                ":\n" +
-                " ".repeat(enclosingCol) +
-                "_=>" +
-                " ".repeat(col) +
-                "_()})"))
-            : (encodedName =
-                "\n".repeat(enclosingLine - 1) +
-                "({" +
-                encodedName +
-                ":\n" +
-                " ".repeat(enclosingCol) +
-                "_=>" +
-                "\n".repeat(line - enclosingLine) +
-                " ".repeat(col) +
-                "_()})");
-      encodedName =
-        1 > enclosingLine
-          ? encodedName +
-            "\n/* This module was rendered by a Server Component. Turn on Source Maps to see the server source. */"
-          : "/* This module was rendered by a Server Component. Turn on Source Maps to see the server source. */" +
-            encodedName;
+            ":_=>" +
+            " ".repeat(col < line ? 0 : col - line) +
+            "_()})\n/* This module was rendered by a Server Component. Turn on Source Maps to see the server source. */"))
+        : (col =
+            "/* This module was rendered by a Server Component. Turn on Source Maps to see the server source. */" +
+            "\n".repeat(line - 2) +
+            "({" +
+            encodedName +
+            ":_=>\n" +
+            " ".repeat(1 > col ? 0 : col - 1) +
+            "_()})");
       filename.startsWith("/") && (filename = "file://" + filename);
       sourceMap
-        ? ((encodedName +=
+        ? ((col +=
             "\n//# sourceURL=rsc://React/" +
             encodeURIComponent(environmentName) +
             "/" +
             encodeURI(filename) +
             "?" +
             fakeFunctionIdx++),
-          (encodedName += "\n//# sourceMappingURL=" + sourceMap))
-        : (encodedName = filename
-            ? encodedName + ("\n//# sourceURL=" + encodeURI(filename))
-            : encodedName + "\n//# sourceURL=<anonymous>");
+          (col += "\n//# sourceMappingURL=" + sourceMap))
+        : (col = filename
+            ? col + ("\n//# sourceURL=" + encodeURI(filename))
+            : col + "\n//# sourceURL=<anonymous>");
       try {
-        var fn = (0, eval)(encodedName)[name];
+        var fn = (0, eval)(col)[name];
       } catch (x) {
         fn = function (_) {
           return _();
@@ -2002,28 +1952,16 @@
       }
       return fn;
     }
-    function buildFakeCallStack(
-      response,
-      stack,
-      environmentName,
-      useEnclosingLine,
-      innerCall
-    ) {
+    function buildFakeCallStack(response, stack, environmentName, innerCall) {
       for (var i = 0; i < stack.length; i++) {
         var frame = stack[i],
-          frameKey =
-            frame.join("-") +
-            "-" +
-            environmentName +
-            (useEnclosingLine ? "-e" : "-n"),
+          frameKey = frame.join("-") + "-" + environmentName,
           fn = fakeFunctionCache.get(frameKey);
         if (void 0 === fn) {
           fn = frame[0];
           var filename = frame[1],
-            line = frame[2],
-            col = frame[3],
-            enclosingLine = frame[4];
-          frame = frame[5];
+            line = frame[2];
+          frame = frame[3];
           var findSourceMapURL = response._debugFindSourceMapURL;
           findSourceMapURL = findSourceMapURL
             ? findSourceMapURL(filename, environmentName)
@@ -2033,9 +1971,7 @@
             filename,
             findSourceMapURL,
             line,
-            col,
-            useEnclosingLine ? line : enclosingLine,
-            useEnclosingLine ? col : frame,
+            frame,
             environmentName
           );
           fakeFunctionCache.set(frameKey, fn);
@@ -2056,46 +1992,46 @@
           : rootTask
         : null;
     }
-    function initializeFakeTask(response, debugInfo) {
+    function initializeFakeTask(response, debugInfo, childEnvironmentName) {
       if (!supportsCreateTask || null == debugInfo.stack) return null;
-      var cachedEntry = debugInfo.debugTask;
-      if (void 0 !== cachedEntry) return cachedEntry;
-      var useEnclosingLine = void 0 === debugInfo.key,
-        stack = debugInfo.stack,
+      var stack = debugInfo.stack,
         env =
           null == debugInfo.env ? response._rootEnvironmentName : debugInfo.env;
-      cachedEntry =
-        null == debugInfo.owner || null == debugInfo.owner.env
-          ? response._rootEnvironmentName
-          : debugInfo.owner.env;
-      var ownerTask =
+      if (env !== childEnvironmentName)
+        return (
+          (debugInfo =
+            null == debugInfo.owner
+              ? null
+              : initializeFakeTask(response, debugInfo.owner, env)),
+          buildFakeTask(
+            response,
+            debugInfo,
+            stack,
+            '"use ' + childEnvironmentName.toLowerCase() + '"',
+            env
+          )
+        );
+      childEnvironmentName = debugInfo.debugTask;
+      if (void 0 !== childEnvironmentName) return childEnvironmentName;
+      childEnvironmentName =
         null == debugInfo.owner
           ? null
-          : initializeFakeTask(response, debugInfo.owner);
-      env =
-        env !== cachedEntry
-          ? '"use ' + env.toLowerCase() + '"'
-          : void 0 !== debugInfo.key
-            ? "<" + (debugInfo.name || "...") + ">"
-            : void 0 !== debugInfo.name
-              ? debugInfo.name || "unknown"
-              : "await " + (debugInfo.awaited.name || "unknown");
-      env = console.createTask.bind(console, env);
-      useEnclosingLine = buildFakeCallStack(
+          : initializeFakeTask(response, debugInfo.owner, env);
+      return (debugInfo.debugTask = buildFakeTask(
         response,
+        childEnvironmentName,
         stack,
-        cachedEntry,
-        useEnclosingLine,
+        "<" + (debugInfo.name || "...") + ">",
         env
-      );
-      null === ownerTask
-        ? ((response = getRootTask(response, cachedEntry)),
-          (response =
-            null != response
-              ? response.run(useEnclosingLine)
-              : useEnclosingLine()))
-        : (response = ownerTask.run(useEnclosingLine));
-      return (debugInfo.debugTask = response);
+      ));
+    }
+    function buildFakeTask(response, ownerTask, stack, taskName, env) {
+      taskName = console.createTask.bind(console, taskName);
+      stack = buildFakeCallStack(response, stack, env, taskName);
+      return null === ownerTask
+        ? ((response = getRootTask(response, env)),
+          null != response ? response.run(stack) : stack())
+        : ownerTask.run(stack);
     }
     function fakeJSXCallSite() {
       return Error("react-stack-top-frame");
@@ -2112,12 +2048,15 @@
           initializeFakeStack(response, debugInfo.owner));
     }
     function resolveDebugInfo(response, id, debugInfo) {
-      void 0 !== debugInfo.stack && initializeFakeTask(response, debugInfo);
-      null == debugInfo.owner && null != response._debugRootOwner
+      var env =
+        void 0 === debugInfo.env
+          ? response._rootEnvironmentName
+          : debugInfo.env;
+      void 0 !== debugInfo.stack &&
+        initializeFakeTask(response, debugInfo, env);
+      null === debugInfo.owner && null != response._debugRootOwner
         ? ((debugInfo.owner = response._debugRootOwner),
-          (debugInfo.stack = null),
-          (debugInfo.debugStack = response._debugRootStack),
-          (debugInfo.debugTask = response._debugRootTask))
+          (debugInfo.debugStack = response._debugRootStack))
         : void 0 !== debugInfo.stack &&
           initializeFakeStack(response, debugInfo);
       response = getChunk(response, id);
@@ -2320,7 +2259,6 @@
                 function () {}
               );
           break;
-        case 74:
         case 87:
           resolveConsoleEntry(response, row);
           break;
@@ -2398,14 +2336,11 @@
             supportsCreateTask &&
               null !== stack &&
               ((type = console.createTask.bind(console, getTaskName(type))),
-              (stack = buildFakeCallStack(
-                response,
-                stack,
-                validated,
-                !1,
-                type
-              )),
-              (type = null === key ? null : initializeFakeTask(response, key)),
+              (stack = buildFakeCallStack(response, stack, validated, type)),
+              (type =
+                null === key
+                  ? null
+                  : initializeFakeTask(response, key, validated)),
               null === type
                 ? ((type = response._debugRootTask),
                   (normalizedStackTrace =
@@ -2574,8 +2509,9 @@
       REACT_PORTAL_TYPE = Symbol.for("react.portal"),
       REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
       REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"),
-      REACT_PROFILER_TYPE = Symbol.for("react.profiler"),
-      REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
+      REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+    Symbol.for("react.provider");
+    var REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
       REACT_CONTEXT_TYPE = Symbol.for("react.context"),
       REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
       REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
@@ -2645,7 +2581,6 @@
             response,
             stack,
             environmentName,
-            !1,
             fakeJSXCallSite
           )();
         }
@@ -2710,11 +2645,10 @@
               response,
               stackTrace,
               env,
-              !1,
               JSCompiler_inline_result
             );
             if (null != owner) {
-              var task = initializeFakeTask(response, owner);
+              var task = initializeFakeTask(response, owner, env);
               initializeFakeStack(response, owner);
               if (null !== task) {
                 task.run(callStack);
@@ -2744,10 +2678,10 @@
       return hook.checkDCE ? !0 : !1;
     })({
       bundleType: 1,
-      version: "19.2.0-canary-06e89951-20250620",
+      version: "19.2.0-canary-197d6a04-20250424",
       rendererPackageName: "react-server-dom-turbopack",
       currentDispatcherRef: ReactSharedInternals,
-      reconcilerVersion: "19.2.0-canary-06e89951-20250620",
+      reconcilerVersion: "19.2.0-canary-197d6a04-20250424",
       getCurrentComponentInfo: function () {
         return currentOwnerInDEV;
       }

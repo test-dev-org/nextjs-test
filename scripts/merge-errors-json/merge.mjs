@@ -44,7 +44,7 @@ function main() {
     writeJsonSync(currentPath, merged)
 
     const addedCount = Object.keys(merged).length - Object.keys(current).length
-    console.log(
+    console.error(
       `merge-errors-json: added ${addedCount === 1 ? '1 new message' : `${addedCount} new messages`} to errors.json`
     )
     process.exit(0)
