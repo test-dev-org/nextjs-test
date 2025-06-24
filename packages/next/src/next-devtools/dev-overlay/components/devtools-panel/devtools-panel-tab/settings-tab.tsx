@@ -184,6 +184,7 @@ export function SettingsTab({
               restartServerAction({ invalidatePersistentCache: false })
             }
           >
+            {/* TODO: Add loading spinner. */}
             <span>{isPending ? 'Restarting...' : 'Restart'}</span>
           </button>
         </div>
@@ -210,6 +211,7 @@ export function SettingsTab({
                 restartServerAction({ invalidatePersistentCache: true })
               }
             >
+              {/* TODO: Add loading spinner. */}
               <span>{isPending ? 'Resetting...' : 'Reset Cache'}</span>
             </button>
           </div>
