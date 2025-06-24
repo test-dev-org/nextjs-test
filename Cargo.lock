@@ -624,6 +624,9 @@ name = "bitflags"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitreader"
@@ -3605,8 +3608,9 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.66"
-source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
+version = "1.0.0-alpha.67"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "798fba4e1205eed356b8ed7754cc3f7f04914e27855ca641409f4a532e992149"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.9.0",
@@ -3634,7 +3638,8 @@ dependencies = [
 [[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84c12744d1279367caed41739ef094c325d53fb0ffcd4f9b84a368796f870252"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -4800,7 +4805,8 @@ dependencies = [
 [[package]]
 name = "parcel_selectors"
 version = "0.28.2"
-source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54fd03f1ad26cb6b3ec1b7414fa78a3bd639e7dbb421b1a60513c96ce886a196"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6766,7 +6772,8 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6635404b73efc136af3a7956e53c53d4f34b2f16c95a15c438929add0f69412"
 dependencies = [
  "indexmap 2.7.1",
  "smallvec",
@@ -6776,7 +6783,8 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5268c96d4b907c558a9a52d8492522d6c7b559651a5e1d8f2d551e461b9425d5"
 dependencies = [
  "proc-macro2",
  "quote",
