@@ -23,7 +23,7 @@ describe('experimental-https-server OpenGraph image', () => {
   })
 
   it('should generate https:// URLs for OpenGraph images when experimental HTTPS is enabled', async () => {
-    expect(next.url).toInclude('https://')
+    expect(next.url).toContain('https://')
     const html = await renderViaHTTP(next.url, '/1', undefined, { agent })
     expect(html).toContain('Hello from App')
     expect(html).toMatch(/<meta property="og:image" content="https:\/\//)
