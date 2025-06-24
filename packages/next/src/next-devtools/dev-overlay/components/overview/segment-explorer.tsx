@@ -1,21 +1,13 @@
-import type { HTMLProps } from 'react'
-import { css } from '../../utils/css'
-import type { DevToolsInfoPropsCore } from '../errors/dev-tools-indicator/dev-tools-info/dev-tools-info'
-import { DevToolsInfo } from '../errors/dev-tools-indicator/dev-tools-info/dev-tools-info'
 import { useSegmentTree, type SegmentTrieNode } from '../../segment-explorer'
+import { css } from '../../utils/css'
 import { cx } from '../../utils/cx'
 
 const isFileNode = (node: SegmentTrieNode) => {
   return !!node.value?.type && !!node.value?.pagePath
 }
 
-export function PageSegmentTree({
-  tree,
-  isAppRouter,
-}: {
-  tree: SegmentTrieNode
-  isAppRouter: boolean
-}) {
+export function PageSegmentTree({ isAppRouter }: { isAppRouter: boolean }) {
+  const tree = useSegmentTree()
   return (
     <div
       className="segment-explorer-content"
@@ -167,26 +159,9 @@ function PageSegmentTreeLayerPresentation({
   )
 }
 
-export function SegmentsExplorer({
-  routerType,
-  ...props
-}: DevToolsInfoPropsCore &
-  HTMLProps<HTMLDivElement> & {
-    routerType: 'app' | 'pages'
-  }) {
-  const tree = useSegmentTree()
-  const isAppRouter = routerType === 'app'
-  return (
-    <DevToolsInfo title="Route Info" {...props}>
-      <PageSegmentTree tree={tree} isAppRouter={isAppRouter} />
-    </DevToolsInfo>
-  )
-}
-
 export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
   .segment-explorer-content {
     font-size: var(--size-14);
-    margin: -12px -8px;
   }
 
   .segment-explorer-item {
@@ -194,7 +169,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     border-radius: 6px;
   }
 
-  .segment-explorer-item:nth-child(odd) {
+  .segment-explorer-item:nth-child(even) {
     background-color: var(--color-background-200);
   }
 
