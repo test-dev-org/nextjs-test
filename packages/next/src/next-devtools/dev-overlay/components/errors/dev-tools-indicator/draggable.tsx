@@ -18,6 +18,7 @@ export function Draggable({
   setPosition: setCurrentCorner,
   onDragStart,
   dragHandleSelector,
+  disableDrag,
   ...props
 }: {
   children: React.ReactElement
@@ -26,6 +27,7 @@ export function Draggable({
   setPosition: (position: Corners) => void
   onDragStart?: () => void
   dragHandleSelector?: string
+  disableDrag?: boolean
 }) {
   const { ref, animate, ...drag } = useDrag({
     threshold: 5,
@@ -34,6 +36,10 @@ export function Draggable({
     onAnimationEnd,
     dragHandleSelector,
   })
+
+  if (disableDrag) {
+    return children
+  }
 
   function onDragEnd(translation: Point, velocity: Point) {
     const projectedPosition = {
