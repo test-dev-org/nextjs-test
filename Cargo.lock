@@ -3606,11 +3606,11 @@ dependencies = [
 [[package]]
 name = "lightningcss"
 version = "1.0.0-alpha.66"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a73ffa17de66534e4b527232f44aa0a89fad22c4f4e0735f9be35494f058e54"
+source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.9.0",
+ "browserslist-rs",
  "const-str",
  "cssparser",
  "cssparser-color",
@@ -3634,8 +3634,7 @@ dependencies = [
 [[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c12744d1279367caed41739ef094c325d53fb0ffcd4f9b84a368796f870252"
+source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -4801,8 +4800,7 @@ dependencies = [
 [[package]]
 name = "parcel_selectors"
 version = "0.28.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54fd03f1ad26cb6b3ec1b7414fa78a3bd639e7dbb421b1a60513c96ce886a196"
+source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6768,8 +6766,7 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6635404b73efc136af3a7956e53c53d4f34b2f16c95a15c438929add0f69412"
+source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
 dependencies = [
  "indexmap 2.7.1",
  "smallvec",
@@ -6779,8 +6776,7 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5268c96d4b907c558a9a52d8492522d6c7b559651a5e1d8f2d551e461b9425d5"
+source = "git+https://github.com/timneutkens/lightningcss?branch=add%2Fbrowserslist-options#4e73e2321bd50d254aa81556f7ff2c4f7ac95da8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8202,9 +8198,9 @@ dependencies = [
 
 [[package]]
 name = "swc_sourcemap"
-version = "9.3.1"
+version = "9.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604e837ad12213d381dea886a184e06b4e09fd502e5d1a4db9d4b7341eb85105"
+checksum = "9755c673c6a83c461e98fa018f681adb8394a3f44f89a06f27e80fd4fe4fa1e4"
 dependencies = [
  "base64-simd 0.8.0",
  "bitvec",
@@ -9678,6 +9674,7 @@ dependencies = [
  "either",
  "indexmap 2.7.1",
  "indoc",
+ "itertools 0.10.5",
  "num-bigint",
  "num-traits",
  "once_cell",

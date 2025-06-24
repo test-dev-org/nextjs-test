@@ -10329,11 +10329,11 @@
     "runtimeError": false
   },
   "test/integration/css-features/test/browserslist.test.js": {
-    "passed": [],
-    "failed": [
+    "passed": [
       "Browserslist: New production mode should've emitted a single CSS file",
       "Browserslist: Old production mode should've emitted a single CSS file"
     ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
@@ -19040,10 +19040,10 @@
     "runtimeError": false
   },
   "test/production/edge-config-validations/index.test.ts": {
-    "passed": [],
-    "failed": [
+    "passed": [
       "Edge config validations fails to build when unstable_allowDynamic is not a string"
     ],
+    "failed": [],
     "pending": [],
     "flakey": [],
     "runtimeError": false
