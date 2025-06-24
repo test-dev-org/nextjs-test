@@ -1,40 +1,32 @@
 import type { DebugInfo } from '../../../../../shared/types'
-import type { ReadyRuntimeError } from '../../../../utils/get-error-by-type'
 import type { ErrorType } from '../../../errors/error-type-label/error-type-label'
 
-import {
-  GenericErrorDescription,
-  HydrationErrorDescription,
-} from '../../../../container/errors'
-import { EnvironmentNameLabel } from '../../../errors/environment-name-label/environment-name-label'
 import { ErrorMessage } from '../../../errors/error-message/error-message'
 import { ErrorOverlayToolbar } from '../../../errors/error-overlay-toolbar/error-overlay-toolbar'
 import { ErrorTypeLabel } from '../../../errors/error-type-label/error-type-label'
+import { EnvironmentNameLabel } from '../../../errors/environment-name-label/environment-name-label'
 import { IssueFeedbackButton } from '../../../errors/error-overlay-toolbar/issue-feedback-button'
 import { css } from '../../../../utils/css'
 
 // This behaves like the ErrorOverlayLayout.
 export function IssuesTabContentLayout({
-  hydrationWarning,
-  activeError,
-  errorCode,
+  error,
   errorType,
+  message,
   debugInfo,
   children,
+  errorCode,
+  environmentName,
 }: {
-  hydrationWarning: string | null
-  activeError: ReadyRuntimeError
-  errorCode: string | undefined
+  error: Error & { environmentName?: string }
   errorType: ErrorType
+  message: string
   debugInfo: DebugInfo
   children: React.ReactNode
-}) {
-  const errorMessage = hydrationWarning ? (
-    <HydrationErrorDescription message={hydrationWarning} />
-  ) : (
-    <GenericErrorDescription error={activeError.error} />
-  )
 
+  errorCode?: string
+  environmentName?: string
+}) {
   return (
     <div data-nextjs-devtools-panel-tab-issues-content-layout>
       <div className="nextjs-container-errors-header">
@@ -45,14 +37,12 @@ export function IssuesTabContentLayout({
         >
           <span data-nextjs-error-label-group>
             <ErrorTypeLabel errorType={errorType} />
-            {activeError.error.environmentName && (
-              <EnvironmentNameLabel
-                environmentName={activeError.error.environmentName}
-              />
+            {environmentName && (
+              <EnvironmentNameLabel environmentName={environmentName} />
             )}
           </span>
           <ErrorOverlayToolbar
-            error={activeError.error}
+            error={error}
             debugInfo={debugInfo}
             // TODO: Move the button inside and remove the feedback on the footer of the error overlay.
             feedbackButton={
@@ -60,7 +50,7 @@ export function IssuesTabContentLayout({
             }
           />
         </div>
-        <ErrorMessage errorMessage={errorMessage} />
+        <ErrorMessage errorMessage={message} />
       </div>
       {children}
     </div>

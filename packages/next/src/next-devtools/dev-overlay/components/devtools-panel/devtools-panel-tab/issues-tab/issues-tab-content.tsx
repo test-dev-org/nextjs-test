@@ -11,6 +11,11 @@ import { CallStack } from '../../../call-stack/call-stack'
 import { NEXTJS_HYDRATION_ERROR_LINK } from '../../../../../shared/react-19-hydration-error'
 import { ErrorContentSkeleton } from '../../../../container/runtime-error/error-content-skeleton'
 import { css } from '../../../../utils/css'
+import { getErrorTextFromBuildErrorMessage } from '../../../../container/build-error'
+import { IssuesTabContentLayout } from './issues-tab-content-layout'
+import type { DebugInfo } from '../../../../../shared/types'
+import type { ErrorType } from '../../../errors/error-type-label/error-type-label'
+import { IssuesTabEmptyContent } from './issues-tab-empty-content'
 
 // This consists of the Build Error, Runtime Error, etc.
 export function IssuesTabContent({
@@ -19,6 +24,9 @@ export function IssuesTabContent({
   hydrationWarning,
   errorDetails,
   activeError,
+  errorType,
+  debugInfo,
+  errorCode,
 }: {
   notes: string | null
   buildError: OverlayState['buildError']
@@ -27,50 +35,100 @@ export function IssuesTabContent({
     hydrationWarning: string | null
     notes: string | null
     reactOutputComponentDiff: string | null
-  }
-  activeError: ReadyRuntimeError
+  } | null
+  activeError: ReadyRuntimeError | null
+  errorType: ErrorType | null
+  debugInfo: DebugInfo
+  errorCode: string | null | undefined
 }) {
+  if (buildError) {
+    return <BuildError message={buildError} debugInfo={debugInfo} />
+  }
+
   return (
-    <>
-      {buildError ? (
-        <Terminal content={buildError} />
-      ) : (
-        <>
-          <div className="error-overlay-notes-container">
-            {notes ? (
-              <>
-                <p
-                  id="nextjs__container_errors__notes"
-                  className="nextjs__container_errors__notes"
-                >
-                  {notes}
-                </p>
-              </>
-            ) : null}
-            {hydrationWarning ? (
-              <p
-                id="nextjs__container_errors__link"
-                className="nextjs__container_errors__link"
-              >
-                <HotlinkedText
-                  text={`See more info here: ${NEXTJS_HYDRATION_ERROR_LINK}`}
-                />
-              </p>
-            ) : null}
-          </div>
-          {errorDetails.reactOutputComponentDiff ? (
-            <PseudoHtmlDiff
-              reactOutputComponentDiff={
-                errorDetails.reactOutputComponentDiff || ''
-              }
+    <ErrorContent
+      notes={notes}
+      hydrationWarning={hydrationWarning}
+      errorDetails={errorDetails}
+      activeError={activeError}
+      errorType={errorType}
+      debugInfo={debugInfo}
+      errorCode={errorCode}
+    />
+  )
+}
+
+function ErrorContent({
+  notes,
+  hydrationWarning,
+  errorDetails,
+  activeError,
+  errorType,
+  debugInfo,
+  errorCode,
+}: {
+  notes: string | null
+  hydrationWarning: string | null
+  errorDetails: {
+    hydrationWarning: string | null
+    notes: string | null
+    reactOutputComponentDiff: string | null
+  } | null
+  activeError: ReadyRuntimeError | null
+  errorType: ErrorType | null
+  debugInfo: DebugInfo
+  errorCode: string | null | undefined
+}) {
+  // If there's an activeError, the rest should have a value.
+  if (
+    !activeError ||
+    errorType === null ||
+    errorCode === null ||
+    errorDetails === null
+  ) {
+    return <IssuesTabEmptyContent />
+  }
+
+  return (
+    <IssuesTabContentLayout
+      error={activeError.error}
+      errorType={errorType}
+      message={activeError.error.message}
+      debugInfo={debugInfo}
+      errorCode={errorCode}
+      environmentName={activeError.error.environmentName}
+    >
+      <div className="error-overlay-notes-container">
+        {notes ? (
+          <>
+            <p
+              id="nextjs__container_errors__notes"
+              className="nextjs__container_errors__notes"
+            >
+              {notes}
+            </p>
+          </>
+        ) : null}
+        {hydrationWarning ? (
+          <p
+            id="nextjs__container_errors__link"
+            className="nextjs__container_errors__link"
+          >
+            <HotlinkedText
+              text={`See more info here: ${NEXTJS_HYDRATION_ERROR_LINK}`}
             />
-          ) : null}
-          <Suspense fallback={<ErrorContentSkeleton />}>
-            <RuntimeError key={activeError.id.toString()} error={activeError} />
-          </Suspense>
-        </>
-      )}
-    </>
+          </p>
+        ) : null}
+      </div>
+      {errorDetails.reactOutputComponentDiff ? (
+        <PseudoHtmlDiff
+          reactOutputComponentDiff={errorDetails.reactOutputComponentDiff || ''}
+        />
+      ) : null}
+      <Suspense fallback={<ErrorContentSkeleton />}>
+        <RuntimeError key={activeError.id.toString()} error={activeError} />
+      </Suspense>
+    </IssuesTabContentLayout>
   )
 }
 
@@ -114,6 +172,30 @@ function RuntimeError({ error }: { error: ReadyRuntimeError }) {
         />
       )}
     </>
+  )
+}
+
+function BuildError({
+  message,
+  debugInfo,
+}: {
+  message: string
+  debugInfo: DebugInfo
+}) {
+  const error = new Error(message)
+  const formattedMessage = useMemo(
+    () => getErrorTextFromBuildErrorMessage(message) || 'Failed to compile',
+    [message]
+  )
+  return (
+    <IssuesTabContentLayout
+      errorType={'Build Error'}
+      error={error}
+      message={formattedMessage}
+      debugInfo={debugInfo}
+    >
+      <Terminal content={message} />
+    </IssuesTabContentLayout>
   )
 }
 
