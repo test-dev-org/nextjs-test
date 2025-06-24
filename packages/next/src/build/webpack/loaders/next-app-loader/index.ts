@@ -48,7 +48,6 @@ export type AppLoaderOptions = {
   isDev?: true
   basePath: string
   nextConfigOutput?: NextConfig['output']
-  nextConfigExperimentalUseEarlyImport?: true
   middlewareConfig: string
   isGlobalNotFoundEnabled: true | undefined
 }
@@ -80,10 +79,11 @@ const GLOBAL_NOT_FOUND_FILE_TYPE = 'global-not-found'
 const PAGE_SEGMENT = 'page$'
 const PARALLEL_CHILDREN_SEGMENT = 'children$'
 
-const defaultGlobalErrorPath = 'next/dist/client/components/global-error'
-const defaultNotFoundPath = 'next/dist/client/components/not-found-error'
-const defaultLayoutPath = 'next/dist/client/components/default-layout'
-const defaultGlobalNotFoundPath = 'next/dist/client/components/global-not-found'
+const defaultGlobalErrorPath = 'next/dist/client/components/global-error.js'
+const defaultNotFoundPath = 'next/dist/client/components/not-found-error.js'
+const defaultLayoutPath = 'next/dist/client/components/default-layout.js'
+const defaultGlobalNotFoundPath =
+  'next/dist/client/components/global-not-found.js'
 
 type DirResolver = (pathToResolve: string) => string
 type PathResolver = (
@@ -252,6 +252,8 @@ async function createTreeCodeFromPath(
           ${createMetadataExportsCode(metadata)}
         }]`
           continue
+        } else {
+          throw new Error(`Can't resolve ${matchedPagePath}`)
         }
       }
 
@@ -553,7 +555,6 @@ const nextAppLoader: AppLoader = async function nextAppLoader() {
     preferredRegion,
     basePath,
     middlewareConfig: middlewareConfigBase64,
-    nextConfigExperimentalUseEarlyImport,
   } = loaderOptions
 
   const isGlobalNotFoundEnabled = !!loaderOptions.isGlobalNotFoundEnabled
@@ -839,25 +840,14 @@ const nextAppLoader: AppLoader = async function nextAppLoader() {
     }
   )
 
-  const header =
-    nextConfigExperimentalUseEarlyImport &&
-    process.env.NODE_ENV === 'production'
-      ? // Evaluate the imported modules early in the generated code
-        collectedDeclarations
-          .map(([varName, modulePath]) => {
-            return `import * as ${varName}_ from ${JSON.stringify(
-              modulePath
-            )};\nconst ${varName} = () => ${varName}_;\n`
-          })
-          .join('')
-      : // Lazily evaluate the imported modules in the generated code
-        collectedDeclarations
-          .map(([varName, modulePath]) => {
-            return `const ${varName} = () => import(/* webpackMode: "eager" */ ${JSON.stringify(
-              modulePath
-            )});\n`
-          })
-          .join('')
+  // Lazily evaluate the imported modules in the generated code
+  const header = collectedDeclarations
+    .map(([varName, modulePath]) => {
+      return `const ${varName} = () => import(/* webpackMode: "eager" */ ${JSON.stringify(
+        modulePath
+      )});\n`
+    })
+    .join('')
 
   return header + code
 }

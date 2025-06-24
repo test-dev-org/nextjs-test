@@ -406,6 +406,7 @@ export const configSchema: zod.ZodType<NextConfig> = z.lazy(() =>
         proxyTimeout: z.number().gte(0).optional(),
         routerBFCache: z.boolean().optional(),
         removeUncaughtErrorAndRejectionListeners: z.boolean().optional(),
+        validateRSCRequestHeaders: z.boolean().optional(),
         scrollRestoration: z.boolean().optional(),
         sri: z
           .object({
@@ -460,6 +461,7 @@ export const configSchema: zod.ZodType<NextConfig> = z.lazy(() =>
         turbopackPersistentCaching: z.boolean().optional(),
         turbopackSourceMaps: z.boolean().optional(),
         turbopackTreeShaking: z.boolean().optional(),
+        turbopackRemoveUnusedExports: z.boolean().optional(),
         optimizePackageImports: z.array(z.string()).optional(),
         optimizeServerReact: z.boolean().optional(),
         clientTraceMetadata: z.array(z.string()).optional(),
@@ -468,7 +470,6 @@ export const configSchema: zod.ZodType<NextConfig> = z.lazy(() =>
         serverSourceMaps: z.boolean().optional(),
         useWasmBinary: z.boolean().optional(),
         useLightningcss: z.boolean().optional(),
-        useEarlyImport: z.boolean().optional(),
         testProxy: z.boolean().optional(),
         defaultTestRunner: z.enum(SUPPORTED_TEST_RUNNERS_LIST).optional(),
         allowDevelopmentBuild: z.literal(true).optional(),
@@ -499,6 +500,7 @@ export const configSchema: zod.ZodType<NextConfig> = z.lazy(() =>
           .optional(),
         globalNotFound: z.boolean().optional(),
         devtoolSegmentExplorer: z.boolean().optional(),
+        devtoolNewPanelUI: z.boolean().optional(),
       })
       .optional(),
     exportPathMap: z

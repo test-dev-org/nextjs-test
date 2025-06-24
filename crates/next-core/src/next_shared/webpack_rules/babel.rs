@@ -1,5 +1,6 @@
 use anyhow::Result;
-use turbo_tasks::{ResolvedVc, Value, Vc};
+use turbo_rcstr::rcstr;
+use turbo_tasks::{ResolvedVc, Vc};
 use turbo_tasks_fs::{self, FileSystemEntryType, FileSystemPath};
 use turbopack::module_options::{LoaderRuleItem, OptionWebpackRules, WebpackRules};
 use turbopack_core::{
@@ -66,15 +67,15 @@ pub async fn maybe_add_babel_loader(
                 {
                     BabelIssue {
                         path: project_root.to_resolved().await?,
-                        title: StyledString::Text(
-                            "Unable to resolve babel-loader, but a babel config is present".into(),
-                        )
+                        title: StyledString::Text(rcstr!(
+                            "Unable to resolve babel-loader, but a babel config is present"
+                        ))
                         .resolved_cell(),
-                        description: StyledString::Text(
-                            "Make sure babel-loader is installed via your package manager.".into(),
-                        )
+                        description: StyledString::Text(rcstr!(
+                            "Make sure babel-loader is installed via your package manager."
+                        ))
                         .resolved_cell(),
-                        severity: IssueSeverity::Fatal.resolved_cell(),
+                        severity: IssueSeverity::Fatal,
                     }
                     .resolved_cell()
                     .emit();
@@ -83,7 +84,7 @@ pub async fn maybe_add_babel_loader(
                 }
 
                 let loader = WebpackLoaderItem {
-                    loader: "babel-loader".into(),
+                    loader: rcstr!("babel-loader"),
                     options: Default::default(),
                 };
                 if let Some(rule) = rule {
@@ -95,7 +96,7 @@ pub async fn maybe_add_babel_loader(
                         pattern.into(),
                         LoaderRuleItem {
                             loaders: ResolvedVc::cell(vec![loader]),
-                            rename_as: Some("*".into()),
+                            rename_as: Some(rcstr!("*")),
                         },
                     );
                 }
@@ -114,10 +115,8 @@ pub async fn maybe_add_babel_loader(
 pub async fn is_babel_loader_available(project_path: Vc<FileSystemPath>) -> Result<Vc<bool>> {
     let result = resolve(
         project_path,
-        Value::new(ReferenceType::CommonJs(CommonJsReferenceSubType::Undefined)),
-        Request::parse(Value::new(Pattern::Constant(
-            "babel-loader/package.json".into(),
-        ))),
+        ReferenceType::CommonJs(CommonJsReferenceSubType::Undefined),
+        Request::parse(Pattern::Constant("babel-loader/package.json".into())),
         node_cjs_resolve_options(project_path),
     );
     let assets = result.primary_sources().await?;
@@ -129,7 +128,7 @@ struct BabelIssue {
     path: ResolvedVc<FileSystemPath>,
     title: ResolvedVc<StyledString>,
     description: ResolvedVc<StyledString>,
-    severity: ResolvedVc<IssueSeverity>,
+    severity: IssueSeverity,
 }
 
 #[turbo_tasks::value_impl]
@@ -139,9 +138,8 @@ impl Issue for BabelIssue {
         IssueStage::Transform.into()
     }
 
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        *self.severity
+    fn severity(&self) -> IssueSeverity {
+        self.severity
     }
 
     #[turbo_tasks::function]

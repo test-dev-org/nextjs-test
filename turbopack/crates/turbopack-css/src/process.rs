@@ -5,6 +5,7 @@ use lightningcss::{
     css_modules::{CssModuleExport, CssModuleExports, Pattern, Segment},
     stylesheet::{ParserOptions, PrinterOptions, StyleSheet, ToCssResult},
     targets::{Features, Targets},
+    traits::ToCss,
     values::url::Url,
     visit_types,
     visitor::Visit,
@@ -13,7 +14,7 @@ use rustc_hash::FxHashMap;
 use smallvec::smallvec;
 use swc_core::base::sourcemap::SourceMapBuilder;
 use tracing::Instrument;
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{FxIndexMap, ResolvedVc, ValueToString, Vc};
 use turbo_tasks_fs::{FileContent, FileSystemPath, rope::Rope};
 use turbopack_core::{
@@ -289,13 +290,16 @@ pub async fn finalize_css(
 
 #[turbo_tasks::value_trait]
 pub trait ParseCss {
+    #[turbo_tasks::function]
     async fn parse_css(self: Vc<Self>) -> Result<Vc<ParseCssResult>>;
 }
 
 #[turbo_tasks::value_trait]
 pub trait ProcessCss: ParseCss {
+    #[turbo_tasks::function]
     async fn get_css_with_placeholder(self: Vc<Self>) -> Result<Vc<CssWithPlaceholderResult>>;
 
+    #[turbo_tasks::function]
     async fn finalize_css(
         self: Vc<Self>,
         chunking_context: Vc<Box<dyn ChunkingContext>>,
@@ -434,7 +438,7 @@ async fn process_content(
 
                             ParsingIssue {
                                 file: fs_path_vc,
-                                msg: ResolvedVc::cell(err.to_string().into()),
+                                msg: err.to_string().into(),
                                 source,
                             }
                             .resolved_cell()
@@ -471,7 +475,7 @@ async fn process_content(
                 };
                 ParsingIssue {
                     file: fs_path_vc,
-                    msg: ResolvedVc::cell(e.to_string().into()),
+                    msg: e.to_string().into(),
                     source,
                 }
                 .resolved_cell()
@@ -520,9 +524,11 @@ impl CssError {
             CssError::CssSelectorInModuleNotPure { selector } => {
                 ParsingIssue {
                     file,
-                    msg: ResolvedVc::cell(
-                        format!("{CSS_MODULE_ERROR}, (lightningcss, {selector})").into(),
-                    ),
+                    msg: format!(
+                        "Selector \"{selector}\" is not pure. Pure selectors must contain at \
+                         least one local class or id."
+                    )
+                    .into(),
                     source: None,
                 }
                 .resolved_cell()
@@ -531,9 +537,6 @@ impl CssError {
         }
     }
 }
-
-const CSS_MODULE_ERROR: &str =
-    "Selector is not pure (pure selectors must contain at least one local class or id)";
 
 /// We only visit top-level selectors.
 impl lightningcss::visitor::Visitor<'_> for CssValidator {
@@ -576,8 +579,14 @@ impl lightningcss::visitor::Visitor<'_> for CssValidator {
         }
 
         if is_selector_problematic(selector) {
+            let selector_string = selector
+                .to_css_string(PrinterOptions {
+                    minify: false,
+                    ..Default::default()
+                })
+                .expect("selector.to_css_string should not fail");
             self.errors.push(CssError::CssSelectorInModuleNotPure {
-                selector: format!("{selector:?}"),
+                selector: selector_string,
             });
         }
 
@@ -589,11 +598,11 @@ fn generate_css_source_map(source_map: &parcel_sourcemap::SourceMap) -> Result<R
     let mut builder = SourceMapBuilder::new(None);
 
     for src in source_map.get_sources() {
-        builder.add_source(&format!("{SOURCE_URL_PROTOCOL}///{src}"));
+        builder.add_source(format!("{SOURCE_URL_PROTOCOL}///{src}").into());
     }
 
     for (idx, content) in source_map.get_sources_content().iter().enumerate() {
-        builder.set_source_contents(idx as _, Some(content));
+        builder.set_source_contents(idx as _, Some(content.clone().into()));
     }
 
     for m in source_map.get_mappings() {
@@ -617,7 +626,7 @@ fn generate_css_source_map(source_map: &parcel_sourcemap::SourceMap) -> Result<R
 
 #[turbo_tasks::value]
 struct ParsingIssue {
-    msg: ResolvedVc<RcStr>,
+    msg: RcStr,
     file: ResolvedVc<FileSystemPath>,
     source: Option<IssueSource>,
 }
@@ -636,7 +645,7 @@ impl Issue for ParsingIssue {
 
     #[turbo_tasks::function]
     fn title(&self) -> Vc<StyledString> {
-        StyledString::Text("Parsing css source code failed".into()).cell()
+        StyledString::Text(rcstr!("Parsing css source code failed")).cell()
     }
 
     #[turbo_tasks::function]
@@ -650,7 +659,7 @@ impl Issue for ParsingIssue {
     #[turbo_tasks::function]
     async fn description(&self) -> Result<Vc<OptionStyledString>> {
         Ok(Vc::cell(Some(
-            StyledString::Text(self.msg.await?.as_str().into()).resolved_cell(),
+            StyledString::Text(self.msg.clone()).resolved_cell(),
         )))
     }
 }

@@ -27,7 +27,7 @@ export class NextDevInstance extends NextInstance {
     }
 
     const useTurbo =
-      !process.env.TEST_WASM &&
+      !process.env.NEXT_TEST_WASM &&
       ((this as any).turbo || (this as any).experimentalTurbo)
 
     let startArgs = [
@@ -93,7 +93,10 @@ export class NextDevInstance extends NextInstance {
           }
         })
 
-        const serverReadyTimeoutId = this.setServerReadyTimeout(reject)
+        const serverReadyTimeoutId = this.setServerReadyTimeout(
+          reject,
+          this.startServerTimeout
+        )
 
         const readyCb = (msg) => {
           const resolveServer = () => {

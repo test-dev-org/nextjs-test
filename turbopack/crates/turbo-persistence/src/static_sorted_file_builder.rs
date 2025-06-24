@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     cmp::min,
     fs::File,
     io::{self, BufWriter, Seek, Write},
@@ -72,13 +73,13 @@ pub enum EntryValue<'l> {
 }
 
 #[derive(Debug, Clone)]
-pub struct StaticSortedFileBuilderMeta {
+pub struct StaticSortedFileBuilderMeta<'a> {
     /// The minimum hash of the keys in the SST file
     pub min_hash: u64,
     /// The maximum hash of the keys in the SST file
     pub max_hash: u64,
     /// The AQMF data
-    pub aqmf: Vec<u8>,
+    pub aqmf: Cow<'a, [u8]>,
     /// The key compression dictionary
     pub key_compression_dictionary_length: u16,
     /// The value compression dictionary
@@ -92,8 +93,8 @@ pub struct StaticSortedFileBuilderMeta {
 }
 
 #[derive(Debug, Default)]
-pub struct StaticSortedFileBuilder {
-    aqmf: Vec<u8>,
+pub struct StaticSortedFileBuilder<'a> {
+    aqmf: Cow<'a, [u8]>,
     key_compression_dictionary: Vec<u8>,
     value_compression_dictionary: Vec<u8>,
     blocks: Vec<(u32, Vec<u8>)>,
@@ -102,7 +103,7 @@ pub struct StaticSortedFileBuilder {
     entries: u64,
 }
 
-impl StaticSortedFileBuilder {
+impl<'a> StaticSortedFileBuilder<'a> {
     pub fn new<E: Entry>(
         entries: &[E],
         total_key_size: usize,
@@ -136,7 +137,7 @@ impl StaticSortedFileBuilder {
         for entry in entries {
             debug_assert!(filter.contains_fingerprint(entry.key_hash()));
         }
-        self.aqmf = pot::to_vec(&filter).expect("AQMF serialization failed");
+        self.aqmf = Cow::Owned(pot::to_vec(&filter).expect("AQMF serialization failed"));
     }
 
     /// Computes compression dictionaries from keys and values of all entries
@@ -165,22 +166,21 @@ impl StaticSortedFileBuilder {
             let entry = &entries[i];
             let value_remaining = value_compression_samples_size - value_samples.len();
             let key_remaining = key_compression_samples_size - key_samples.len();
-            if value_remaining > 0 {
-                if let EntryValue::Small { value } | EntryValue::Medium { value } = entry.value() {
-                    let value = if value.len() <= COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY {
-                        value
-                    } else {
-                        j = (j + 12345678)
-                            % (value.len() - COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY);
-                        &value[j..j + COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY]
-                    };
-                    if value.len() <= value_remaining {
-                        value_sample_sizes.push(value.len());
-                        value_samples.extend_from_slice(value);
-                    } else {
-                        value_sample_sizes.push(value_remaining);
-                        value_samples.extend_from_slice(&value[..value_remaining]);
-                    }
+            if value_remaining > 0
+                && let EntryValue::Small { value } | EntryValue::Medium { value } = entry.value()
+            {
+                let value = if value.len() <= COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY {
+                    value
+                } else {
+                    j = (j + 12345678) % (value.len() - COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY);
+                    &value[j..j + COMPRESSION_DICTIONARY_SAMPLE_PER_ENTRY]
+                };
+                if value.len() <= value_remaining {
+                    value_sample_sizes.push(value.len());
+                    value_samples.extend_from_slice(value);
+                } else {
+                    value_sample_sizes.push(value_remaining);
+                    value_samples.extend_from_slice(&value[..value_remaining]);
                 }
             }
             if key_remaining > 0 {
@@ -390,7 +390,7 @@ impl StaticSortedFileBuilder {
 
     /// Writes the SST file.
     #[tracing::instrument(level = "trace", skip_all)]
-    pub fn write(self, file: &Path) -> io::Result<(StaticSortedFileBuilderMeta, File)> {
+    pub fn write(self, file: &Path) -> io::Result<(StaticSortedFileBuilderMeta<'a>, File)> {
         let mut file = BufWriter::new(File::create(file)?);
         // Write the key compression dictionary
         file.write_all(&self.key_compression_dictionary)?;

@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
 use turbo_esregex::EsRegex;
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
     FxIndexMap, NonLocalValue, OperationValue, ResolvedVc, TaskInput, Vc, debug::ValueDebugFormat,
     trace::TraceRawVcs,
@@ -62,7 +62,7 @@ impl Default for CacheKinds {
 
 #[turbo_tasks::value(serialization = "custom", eq = "manual")]
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, OperationValue)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct NextConfig {
     // TODO all fields should be private and access should be wrapped within a turbo-tasks function
     // Otherwise changing NextConfig will lead to invalidating all tasks accessing it.
@@ -797,6 +797,10 @@ pub struct ExperimentalConfig {
     turbopack_tree_shaking: Option<bool>,
     // Whether to enable the global-not-found convention
     global_not_found: Option<bool>,
+    /// Defaults to false in development mode, true in production mode.
+    turbopack_remove_unused_exports: Option<bool>,
+    /// Devtool option for the segment explorer.
+    devtool_segment_explorer: Option<bool>,
 }
 
 #[derive(
@@ -1559,11 +1563,26 @@ impl NextConfig {
     }
 
     #[turbo_tasks::function]
-    pub fn module_ids(&self) -> Vc<OptionModuleIds> {
-        let Some(module_ids) = self.turbopack.as_ref().and_then(|t| t.module_ids) else {
-            return Vc::cell(None);
-        };
-        Vc::cell(Some(module_ids))
+    pub fn turbopack_remove_unused_exports(&self, is_development: bool) -> Vc<bool> {
+        Vc::cell(
+            self.experimental
+                .turbopack_remove_unused_exports
+                .unwrap_or(!is_development),
+        )
+    }
+
+    #[turbo_tasks::function]
+    pub async fn module_ids(&self, mode: Vc<NextMode>) -> Result<Vc<ModuleIds>> {
+        Ok(match *mode.await? {
+            // Ignore configuration in development mode, HMR only works with `named`
+            NextMode::Development => ModuleIds::Named.cell(),
+            NextMode::Build => self
+                .turbopack
+                .as_ref()
+                .and_then(|t| t.module_ids)
+                .unwrap_or(ModuleIds::Deterministic)
+                .cell(),
+        })
     }
 
     #[turbo_tasks::function]
@@ -1636,9 +1655,8 @@ struct OutdatedConfigIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for OutdatedConfigIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        IssueSeverity::Error.into()
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Error
     }
 
     #[turbo_tasks::function]
@@ -1655,7 +1673,7 @@ impl Issue for OutdatedConfigIssue {
     fn title(&self) -> Vc<StyledString> {
         StyledString::Line(vec![
             StyledString::Code(self.old_name.clone()),
-            StyledString::Text(" has been replaced by ".into()),
+            StyledString::Text(rcstr!(" has been replaced by ")),
             StyledString::Code(self.new_name.clone()),
         ])
         .cell()

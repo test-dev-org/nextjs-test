@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  NAPI_CLI_VERSION: 2.16.2
+  NAPI_CLI_VERSION: 2.18.4
   TURBO_VERSION: 2.3.3
   NODE_LTS_VERSION: 20
   CARGO_PROFILE_RELEASE_LTO: 'true'
@@ -28,6 +28,9 @@ env:
 jobs:
   deploy-target:
     runs-on: ubuntu-latest
+    # Don't trigger this job on `pull_request` events from upstream branches.
+    # Those would already run this job on the `push` event
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork }}
     outputs:
       value: ${{ steps.deploy-target.outputs.value }}
     steps:
@@ -693,7 +696,7 @@ jobs:
 
   buildPassed:
     needs: ['deploy-target', 'build', 'build-wasm', 'build-native']
-    if: always()
+    if: ${{ always() && needs.deploy-target.outputs.value != '' }}
     name: thank you, build
     runs-on: ubuntu-latest
     steps:

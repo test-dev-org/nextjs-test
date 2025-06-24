@@ -516,101 +516,6 @@
     "flakey": [],
     "runtimeError": false
   },
-  "packages/next/src/client/components/react-dev-overlay/server/get-next-error-feedback-middleware.test.ts": {
-    "passed": [
-      "getNextErrorFeedbackMiddleware calls next() if path does not match",
-      "getNextErrorFeedbackMiddleware records telemetry when feedback is submitted",
-      "getNextErrorFeedbackMiddleware returns 400 if params are missing",
-      "getNextErrorFeedbackMiddleware returns 500 if telemetry recording fails"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/ui/components/code-frame/parse-code-frame.test.ts": {
-    "passed": [
-      "parse line numbers parse line numbers from code frame",
-      "parse line numbers parse line numbers when a token contains both break and spaces"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/ui/components/errors/error-overlay-layout/error-overlay-layout.test.tsx": {
-    "passed": [
-      "ErrorOverlayLayout Component renders ErrorOverlayLayout with provided props",
-      "ErrorOverlayLayout Component sends feedback when clicking helpful button",
-      "ErrorOverlayLayout Component sends feedback when clicking not helpful button",
-      "ErrorOverlayLayout Component voting buttons have aria-hidden icons"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/ui/utils/cx.test.ts": {
-    "passed": [
-      "cx should filter out falsy values",
-      "cx should handle all falsy values",
-      "cx should handle single string argument",
-      "cx should join multiple string arguments with spaces",
-      "cx should not add extra spaces when falsy values are between strings",
-      "cx should return an empty string for no arguments"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/ui/utils/parse-url-from-text.test.ts": {
-    "passed": [
-      "parseUrlFromText should extract a URL from text",
-      "parseUrlFromText should extract multiple URLs from text",
-      "parseUrlFromText should filter URLs using matcherFunc",
-      "parseUrlFromText should handle URLs with paths and query parameters",
-      "parseUrlFromText should handle empty string input",
-      "parseUrlFromText should return empty array when no URLs are found"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/utils/css.test.ts": {
-    "passed": [
-      "css template literal tag should combines strings and interpolations correctly",
-      "css template literal tag should handle CSS wildcard selector",
-      "css template literal tag should handle empty strings",
-      "css template literal tag should handle multiple interpolations",
-      "css template literal tag should remove CSS comments",
-      "css template literal tag should remove all whitespace",
-      "css template literal tag should remove multiline comments"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/utils/launch-editor.test.ts": {
-    "passed": ["applescript string escaping should escape strings correctly"],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
-  "packages/next/src/client/components/react-dev-overlay/utils/webpack-module-path.test.ts": {
-    "passed": [
-      "webpack-module-path formatFrameSourceFile should return the original file path",
-      "webpack-module-path isWebpackInternalResource should return false for non-webpack-internal paths",
-      "webpack-module-path isWebpackInternalResource should return true for webpack-internal paths"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
   "packages/next/src/client/components/redirect.test.ts": {
     "passed": ["test should throw a redirect error"],
     "failed": [],
@@ -743,6 +648,30 @@
       "shouldHardNavigate should return false if segments are dynamic and match",
       "shouldHardNavigate should return false if the segments match",
       "shouldHardNavigate should return true if segments are dynamic and mismatch"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/client/flight-data-helpers.test.ts": {
+    "passed": [
+      "prepareFlightRouterStateForRequest HMR refresh handling should preserve complete state for HMR refresh requests",
+      "prepareFlightRouterStateForRequest URL stripping should always set URL (index 2) to null",
+      "prepareFlightRouterStateForRequest __PAGE__ segment handling should preserve dynamic segments",
+      "prepareFlightRouterStateForRequest __PAGE__ segment handling should preserve non-page segments",
+      "prepareFlightRouterStateForRequest __PAGE__ segment handling should strip search params from __PAGE__ segments",
+      "prepareFlightRouterStateForRequest optional fields preservation should handle minimal FlightRouterState (only segment and parallelRoutes)",
+      "prepareFlightRouterStateForRequest optional fields preservation should preserve hasLoadingBoundary",
+      "prepareFlightRouterStateForRequest optional fields preservation should preserve isRootLayout when false",
+      "prepareFlightRouterStateForRequest optional fields preservation should preserve isRootLayout when true",
+      "prepareFlightRouterStateForRequest real-world scenarios should handle complex FlightRouterState with all features",
+      "prepareFlightRouterStateForRequest recursive processing of parallel routes should handle deeply nested parallel routes",
+      "prepareFlightRouterStateForRequest recursive processing of parallel routes should recursively process nested parallel routes",
+      "prepareFlightRouterStateForRequest refresh marker handling should preserve \"inside-shared-layout\" marker",
+      "prepareFlightRouterStateForRequest refresh marker handling should preserve \"refetch\" marker",
+      "prepareFlightRouterStateForRequest refresh marker handling should strip \"refresh\" marker (client-only)",
+      "prepareFlightRouterStateForRequest refresh marker handling should strip null refresh marker"
     ],
     "failed": [],
     "pending": [],
@@ -958,6 +887,111 @@
     "flakey": [],
     "runtimeError": false
   },
+  "packages/next/src/next-devtools/dev-overlay/components/code-frame/parse-code-frame.test.ts": {
+    "passed": [
+      "parse line numbers parse line numbers from code frame",
+      "parse line numbers parse line numbers when a token contains both break and spaces"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/dev-overlay/components/errors/error-overlay-layout/error-overlay-layout.test.tsx": {
+    "passed": [
+      "ErrorOverlayLayout Component renders ErrorOverlayLayout with provided props",
+      "ErrorOverlayLayout Component sends feedback when clicking helpful button",
+      "ErrorOverlayLayout Component sends feedback when clicking not helpful button",
+      "ErrorOverlayLayout Component voting buttons have aria-hidden icons"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/dev-overlay/segment-explorer.test.tsx": {
+    "passed": [
+      "Segment Explorer add complex structure",
+      "Segment Explorer remove node in the middle"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/dev-overlay/utils/css.test.ts": {
+    "passed": [
+      "css template literal tag should combines strings and interpolations correctly",
+      "css template literal tag should handle CSS wildcard selector",
+      "css template literal tag should handle empty strings",
+      "css template literal tag should handle multiple interpolations",
+      "css template literal tag should remove CSS comments",
+      "css template literal tag should remove all whitespace",
+      "css template literal tag should remove multiline comments"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/dev-overlay/utils/cx.test.ts": {
+    "passed": [
+      "cx should filter out falsy values",
+      "cx should handle all falsy values",
+      "cx should handle single string argument",
+      "cx should join multiple string arguments with spaces",
+      "cx should not add extra spaces when falsy values are between strings",
+      "cx should return an empty string for no arguments"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/dev-overlay/utils/parse-url-from-text.test.ts": {
+    "passed": [
+      "parseUrlFromText should extract a URL from text",
+      "parseUrlFromText should extract multiple URLs from text",
+      "parseUrlFromText should filter URLs using matcherFunc",
+      "parseUrlFromText should handle URLs with paths and query parameters",
+      "parseUrlFromText should handle empty string input",
+      "parseUrlFromText should return empty array when no URLs are found"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/server/get-next-error-feedback-middleware.test.ts": {
+    "passed": [
+      "getNextErrorFeedbackMiddleware calls next() if path does not match",
+      "getNextErrorFeedbackMiddleware records telemetry when feedback is submitted",
+      "getNextErrorFeedbackMiddleware returns 400 if params are missing",
+      "getNextErrorFeedbackMiddleware returns 500 if telemetry recording fails"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/server/launch-editor.test.ts": {
+    "passed": ["applescript string escaping should escape strings correctly"],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "packages/next/src/next-devtools/shared/webpack-module-path.test.ts": {
+    "passed": [
+      "webpack-module-path formatFrameSourceFile should return the original file path",
+      "webpack-module-path isWebpackInternalResource should return false for non-webpack-internal paths",
+      "webpack-module-path isWebpackInternalResource should return true for webpack-internal paths"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "packages/next/src/server/after/after-context.test.ts": {
     "passed": [
       "AfterContext does NOT shadow workAsyncStorage within after callbacks",
@@ -1141,7 +1175,7 @@
     "flakey": [],
     "runtimeError": false
   },
-  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.test.ts": {
+  "packages/next/src/server/lib/incremental-cache/shared-cache-controls.external.test.ts": {
     "passed": [
       "SharedCacheControls should clear the in-memory cache",
       "SharedCacheControls should get cache control from in-memory cache",
@@ -2447,6 +2481,15 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/development/app-dir/error-overlay/duplicate-runtime-error/duplicate-runtime-error.test.ts": {
+    "passed": [
+      "duplicate-runtime-error should not rerender the overlay for the same runtime error"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/development/app-dir/error-overlay/error-ignored-frames/error-ignored-frames.test.ts": {
     "passed": [
       "error-ignored-frames should be able to collapse ignored frames in client component",
@@ -2626,6 +2669,18 @@
       "app-dir - owner-stack should log stitched error for SSR errors",
       "app-dir - owner-stack should log stitched error for browser caught errors",
       "app-dir - owner-stack should log stitched error for browser uncaught errors"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/development/app-dir/segment-explorer/segment-explorer.test.ts": {
+    "passed": [
+      "segment-explorer should cleanup on soft navigation",
+      "segment-explorer should handle show file segments in order",
+      "segment-explorer should render the segment explorer for nested routes",
+      "segment-explorer should render the segment explorer for parallel routes"
     ],
     "failed": [],
     "pending": [],
@@ -3107,7 +3162,8 @@
   },
   "test/development/basic/legacy-decorators.test.ts": {
     "passed": [
-      "Legacy decorators SWC option should compile with legacy decorators enabled"
+      "Legacy decorators SWC option with base config should compile with legacy decorators enabled",
+      "Legacy decorators SWC option with extended tsconfig should compile with legacy decorators enabled from extended config"
     ],
     "failed": [],
     "pending": [],
@@ -3362,7 +3418,8 @@
       "client-dev-overlay should be able to minimize the fullscreen overlay",
       "client-dev-overlay should be possible to hide the minimized overlay when there are no errors",
       "client-dev-overlay should have a role of \"dialog\" if the page is focused",
-      "client-dev-overlay should keep the error indicator visible when there are errors"
+      "client-dev-overlay should keep the error indicator visible when there are errors",
+      "client-dev-overlay should nudge to use Turbopack unless Turbopack is disabled"
     ],
     "failed": [],
     "pending": [],
@@ -3390,6 +3447,15 @@
       "dev indicator - route type getStaticPaths should be marked static on first load",
       "dev indicator - route type getStaticPaths should update when going from dynamic -> static",
       "dev indicator - route type should have route type as static by default for static page"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/development/dev-indicator/dev-rendering-indicator.test.ts": {
+    "passed": [
+      "Dev Rendering Indicator Shows build indicator when page is built from modifying"
     ],
     "failed": [],
     "pending": [],
@@ -4035,6 +4101,21 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/actions-deployment-skew/actions-deployment-skew.test.ts": {
+    "passed": [
+      "actions-deployment-skew in the node runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the node runtime with a normal action should respond with a 404 for an unknown server action"
+    ],
+    "failed": [],
+    "pending": [
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript disabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a form action and JavaScript enabled should respond with a 404 for an unknown server action",
+      "actions-deployment-skew in the edge runtime with a normal action should respond with a 404 for an unknown server action"
+    ],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/actions-navigation/index.test.ts": {
     "passed": [
       "app-dir action handling should handle actions correctly after following a relative link",
@@ -4118,8 +4199,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -4248,8 +4329,8 @@
       "app-dir action handling fetch actions should store revalidation data in the prefetch cache",
       "app-dir action handling redirects displays searchParams correctly when redirecting with SearchParams",
       "app-dir action handling redirects merges cookies correctly when redirecting",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 307 status code",
-      "app-dir action handling redirects redirects properly when server action handler redirects with a 308 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 307 status code",
+      "app-dir action handling redirects redirects properly when route handler redirects with a 308 status code",
       "app-dir action handling redirects redirects properly when server action handler uses `permanentRedirect`",
       "app-dir action handling redirects redirects properly when server action handler uses `redirect`",
       "app-dir action handling redirects should not forward next-action header to a redirected RSC request",
@@ -5771,11 +5852,11 @@
   },
   "test/e2e/app-dir/dynamic-io-errors/dynamic-io-errors.sync-attribution.test.ts": {
     "passed": [
-      "Dynamic IO Errors - With Minification Error Attribution with Sync IO - Guarded RSC with guarded Client sync IO does not run in dev",
+      "Dynamic IO Errors - With Minification Error Attribution with Sync IO - Guarded RSC with guarded Client sync IO does not show a validation error in the dev overlay",
       "Dynamic IO Errors - With Minification Error Attribution with Sync IO - Guarded RSC with unguarded Client sync IO does not run in dev",
       "Dynamic IO Errors - With Minification Error Attribution with Sync IO - Unguarded RSC with guarded Client sync IO does not run in dev",
       "Dynamic IO Errors - With Minification Error Attribution with Sync IO - unguarded RSC with unguarded Client sync IO does not run in dev",
-      "Dynamic IO Errors - Without Minification Error Attribution with Sync IO - Guarded RSC with guarded Client sync IO does not run in dev",
+      "Dynamic IO Errors - Without Minification Error Attribution with Sync IO - Guarded RSC with guarded Client sync IO does not show a validation error in the dev overlay",
       "Dynamic IO Errors - Without Minification Error Attribution with Sync IO - Guarded RSC with unguarded Client sync IO does not run in dev",
       "Dynamic IO Errors - Without Minification Error Attribution with Sync IO - Unguarded RSC with guarded Client sync IO does not run in dev",
       "Dynamic IO Errors - Without Minification Error Attribution with Sync IO - unguarded RSC with unguarded Client sync IO does not run in dev"
@@ -6157,22 +6238,6 @@
     "flakey": [],
     "runtimeError": false
   },
-  "test/e2e/app-dir/empty-fallback-shells/empty-fallback-shells.test.ts": {
-    "passed": [
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
-      "empty-fallback-shells with cached IO and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
-      "empty-fallback-shells with cached IO and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
-      "empty-fallback-shells without IO should start and not postpone the response"
-    ],
-    "failed": [],
-    "pending": [],
-    "flakey": [],
-    "runtimeError": false
-  },
   "test/e2e/app-dir/error-boundary-navigation/index.test.ts": {
     "passed": [
       "app dir - not found navigation should allow navigating to a non-existent page",
@@ -6260,6 +6325,34 @@
     "passed": ["fallback-prefetch should prefetch the page without errors"],
     "failed": [],
     "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/fallback-shells/fallback-shells.test.ts": {
+    "passed": [
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and params.then/catch/finally passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in a cached non-page function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not render a fallback shell when using a params placeholder",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params accessed in the cached page does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page not wrapped in Suspense and the params transformed with an async function and then passed to a cached function does not resume a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page resumes a postponed fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached parent layout between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params transformed with an async function and then passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and params.then/catch/finally passed to a cached function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in cached non-page function resumes a postponed fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page resumes a postponed fallback shell",
+      "fallback-shells without IO should start and not postpone the response"
+    ],
+    "failed": [],
+    "pending": [
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page includes a cached layout with unused params in the fallback shell",
+      "fallback-shells with cached IO with generateStaticParams and the page wrapped in Suspense and the params accessed in the cached page shares a cached layout with unused params between a prerendered route shell and the fallback shell",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page does not produce hydration errors when resuming a fallback shell containing a layout with unused params",
+      "fallback-shells with cached IO without generateStaticParams and the params accessed in the cached page includes a cached layout with unused params in the fallback shell"
+    ],
     "flakey": [],
     "runtimeError": false
   },
@@ -6362,6 +6455,15 @@
     "passed": [
       "global-not-found - both-present should render global-not-found for 404 routes",
       "global-not-found - both-present should render not-found boundary when calling notFound() in a page"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/global-not-found/css/global-not-found-css.test.ts": {
+    "passed": [
+      "global-not-found - css should include css for global-not-found properly"
     ],
     "failed": [],
     "pending": [],
@@ -6498,7 +6600,7 @@
     "runtimeError": false
   },
   "test/e2e/app-dir/instrumentation-order/instrumentation-order.test.ts": {
-    "passed": ["instrumentation-order should work using cheerio"],
+    "passed": ["instrumentation-order should work"],
     "failed": [],
     "pending": [],
     "flakey": [],
@@ -6786,6 +6888,8 @@
   },
   "test/e2e/app-dir/metadata-icons/metadata-icons.test.ts": {
     "passed": [
+      "app-dir - metadata-icons should not contain icon insertion script when metadata is rendered in head",
+      "app-dir - metadata-icons should not contain icon replacement mark in html or after hydration",
       "app-dir - metadata-icons should only have 1 favicon link in nested page",
       "app-dir - metadata-icons should only have 1 favicon link in root page",
       "app-dir - metadata-icons should re-insert the apple icons into the head after navigation",
@@ -6881,6 +6985,7 @@
   },
   "test/e2e/app-dir/metadata-streaming/metadata-streaming-customized-rule.test.ts": {
     "passed": [
+      "app-dir - metadata-streaming-customized-rule should not have schema issue",
       "app-dir - metadata-streaming-customized-rule should send streaming response for headless browser bots",
       "app-dir - metadata-streaming-customized-rule should send the blocking response for html limited bots"
     ],
@@ -6908,6 +7013,7 @@
       "app-dir - metadata-streaming should still load viewport meta tags even if metadata is delayed",
       "app-dir - metadata-streaming static should determine dynamic metadata in build and render in the body",
       "app-dir - metadata-streaming static should render static metadata in the head",
+      "app-dir - metadata-streaming static should still render blocking metadata for Google speed insights bot (special case)",
       "app-dir - metadata-streaming static should still render dynamic metadata in the head for html bots"
     ],
     "failed": [],
@@ -6917,7 +7023,7 @@
   },
   "test/e2e/app-dir/metadata-suspense/index.test.ts": {
     "passed": [
-      "app dir - metadata dynamic routes suspense should render metadata in head even root layout is wrapped with Suspense"
+      "app dir - metadata dynamic routes suspense should render metadata in head when root layout is wrapped with Suspense for bot requests"
     ],
     "failed": [],
     "pending": [],
@@ -7000,6 +7106,7 @@
       "app dir - metadata opengraph should support opengraph with article type",
       "app dir - metadata react cache should have same title and page value on initial load",
       "app dir - metadata react cache should have same title and page value when navigating",
+      "app dir - metadata regression: renders a large shell",
       "app dir - metadata should not effect metadata images convention like files under pages directory",
       "app dir - metadata static routes should have /favicon.ico as route",
       "app dir - metadata static routes should have icons as route",
@@ -7626,6 +7733,18 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/nx-handling/nx-handling.test.ts": {
+    "passed": [
+      "nx-handling should work for pages API",
+      "nx-handling should work for pages page",
+      "nx-handling should work with app page",
+      "nx-handling should work with app route"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/pages-to-app-routing/pages-to-app-routing.test.ts": {
     "passed": ["pages-to-app-routing should work using browser"],
     "failed": [],
@@ -8039,6 +8158,7 @@
       "ppr-metadata-streaming dynamic metadata should generate metadata in body when page is fully dynamic",
       "ppr-metadata-streaming partial shell should insert metadata into body with dynamic metadata and wrapped under layout Suspense boundary",
       "ppr-metadata-streaming partial shell should insert metadata into head with dynamic metadata and dynamic page wrapped under layout Suspense boundary",
+      "ppr-metadata-streaming partial shell should not yield hydration errors after revalidation",
       "ppr-metadata-streaming static metadata should generate metadata in head when page is fully static",
       "ppr-metadata-streaming static metadata should insert metadata in body when page is dynamic page content"
     ],
@@ -8144,6 +8264,17 @@
       "ppr with suspense for /suspense/edge should eventually render the dynamic part",
       "ppr with suspense for /suspense/node should eventually render the dynamic part",
       "ppr without suspense for /no-suspense should immediately render the dynamic part"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/preferred-region/preferred-region.test.ts": {
+    "passed": [
+      "preferred-region should include preferredRegion in functions config manifest for nodejs runtime",
+      "preferred-region should return success from Edge API route",
+      "preferred-region should return success from Node.js API route"
     ],
     "failed": [],
     "pending": [],
@@ -8472,6 +8603,16 @@
     "passed": [
       "rsc-query-routing should contain rsc query in rsc request when redirect the page",
       "rsc-query-routing should contain rsc query in rsc request when rewrite the page"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/app-dir/rsc-redirect/rsc-redirect.test.ts": {
+    "passed": [
+      "rsc-redirect should get 200 status code for rsc request",
+      "rsc-redirect should get 307 status code for document request"
     ],
     "failed": [],
     "pending": [],
@@ -9331,6 +9472,13 @@
     "flakey": [],
     "runtimeError": false
   },
+  "test/e2e/app-dir/upward-distdir/upward-distdir.test.ts": {
+    "passed": ["upward-distdir should work"],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
   "test/e2e/app-dir/use-cache-close-over-function/use-cache-close-over-function.test.ts": {
     "passed": [
       "use-cache-close-over-function should show an error toast for client-side usage",
@@ -9460,6 +9608,7 @@
       "use-cache can reference server actions in \"use cache\" functions",
       "use-cache renders the not-found page when `notFound()` is used",
       "use-cache replays logs from \"use cache\" functions",
+      "use-cache shares caches between the page/layout and generateMetadata",
       "use-cache should be able to revalidate a page using unstable_expireTag",
       "use-cache should cache complex args",
       "use-cache should cache fetch without no-store",
@@ -9862,6 +10011,33 @@
     "passed": [
       "children-page with app dir should show the content if you have a page named children",
       "children-page with pages dir should show the content if you have a page named children"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace-base-path.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace basePath should be able to connect to Chrome DevTools in dev with a configured basePath"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace-custom-disable.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace custom disable can be disabled by providing your own endpoint"
+    ],
+    "failed": [],
+    "pending": [],
+    "flakey": [],
+    "runtimeError": false
+  },
+  "test/e2e/chrome-devtools-workspace/chrome-devtools-workspace.test.ts": {
+    "passed": [
+      "chrome-devtools-workspace default should be able to connect to Chrome DevTools in dev"
     ],
     "failed": [],
     "pending": [],
@@ -13298,6 +13474,7 @@
       "Config Experimental Warning should not show warning with default config from function",
       "Config Experimental Warning should not show warning with default value",
       "Config Experimental Warning should show the configured value for numerical features",
+      "Config Experimental Warning should show the configured value for string features",
       "Config Experimental Warning should show warning with a symbol indicating that a default `true` value is set to `false`",
       "Config Experimental Warning should show warning with config from function with experimental",
       "Config Experimental Warning should show warning with config from object with experimental",
@@ -13675,9 +13852,7 @@
     "passed": [],
     "failed": [],
     "pending": [
-      "Browserslist: New production mode should have compiled successfully",
       "Browserslist: New production mode should've emitted a single CSS file",
-      "Browserslist: Old production mode should have compiled successfully",
       "Browserslist: Old production mode should've emitted a single CSS file"
     ],
     "flakey": [],

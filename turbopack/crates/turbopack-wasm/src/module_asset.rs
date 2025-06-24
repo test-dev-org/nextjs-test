@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use turbo_rcstr::rcstr;
-use turbo_tasks::{ResolvedVc, Value, Vc, fxindexmap};
+use turbo_tasks::{IntoTraitRef, ResolvedVc, Vc, fxindexmap};
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
     asset::{Asset, AssetContent},
@@ -15,7 +15,7 @@ use turbopack_core::{
     output::OutputAssets,
     reference::{ModuleReferences, SingleChunkableModuleReference},
     reference_type::ReferenceType,
-    resolve::{origin::ResolveOrigin, parse::Request},
+    resolve::{ExportUsage, origin::ResolveOrigin, parse::Request},
     source::Source,
 };
 use turbopack_ecmascript::{
@@ -73,9 +73,9 @@ impl WebAssemblyModuleAsset {
 
         let module = this.asset_context.process(
             loader_source,
-            Value::new(ReferenceType::Internal(ResolvedVc::cell(fxindexmap! {
-                "WASM_PATH".into() => ResolvedVc::upcast(RawWebAssemblyModuleAsset::new(*this.source, *this.asset_context).to_resolved().await?),
-            }))),
+            ReferenceType::Internal(ResolvedVc::cell(fxindexmap! {
+                rcstr!("WASM_PATH") => ResolvedVc::upcast(RawWebAssemblyModuleAsset::new(*this.source, *this.asset_context).to_resolved().await?),
+            })),
         ).module();
 
         Ok(module)
@@ -110,7 +110,8 @@ impl WebAssemblyModuleAsset {
         Ok(Vc::cell(vec![ResolvedVc::upcast(
             SingleChunkableModuleReference::new(
                 Vc::upcast(self.loader()),
-                Vc::cell("wasm loader".into()),
+                rcstr!("wasm loader"),
+                ExportUsage::all(),
             )
             .to_resolved()
             .await?,
@@ -126,7 +127,7 @@ impl Module for WebAssemblyModuleAsset {
             .source
             .ident()
             .with_modifier(rcstr!("wasm module"))
-            .with_layer(self.asset_context.layer().owned().await?))
+            .with_layer(self.asset_context.into_trait_ref().await?.layer()))
     }
 
     #[turbo_tasks::function]

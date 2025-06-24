@@ -50,8 +50,8 @@ import { RedirectStatusCode } from '../../client/components/redirect-status-code
 import { synchronizeMutableCookies } from '../async-storage/request-store'
 import type { TemporaryReferenceSet } from 'react-server-dom-webpack/server.edge'
 import { workUnitAsyncStorage } from '../app-render/work-unit-async-storage.external'
-import { InvariantError } from '../../shared/lib/invariant-error'
 import { executeRevalidates } from '../revalidation-utils'
+import { getRequestMeta } from '../request-meta'
 
 function formDataFromSearchQueryString(query: string) {
   const searchParams = new URLSearchParams(query)
@@ -160,8 +160,7 @@ async function createForwardedActionResponse(
   res: BaseNextResponse,
   host: Host,
   workerPathname: string,
-  basePath: string,
-  workStore: WorkStore
+  basePath: string
 ) {
   if (!host) {
     throw new Error(
@@ -176,7 +175,8 @@ async function createForwardedActionResponse(
   // with the response from the forwarded worker
   forwardedHeaders.set('x-action-forwarded', '1')
 
-  const proto = workStore.incrementalCache?.requestProtocol || 'https'
+  const proto =
+    getRequestMeta(req, 'initProtocol')?.replace(/:+$/, '') || 'https'
 
   // For standalone or the serverful mode, use the internal origin directly
   // other than the host headers from the request.
@@ -306,7 +306,8 @@ async function createRedirectRenderResult(
     const forwardedHeaders = getForwardedHeaders(req, res)
     forwardedHeaders.set(RSC_HEADER, '1')
 
-    const proto = workStore.incrementalCache?.requestProtocol || 'https'
+    const proto =
+      getRequestMeta(req, 'initProtocol')?.replace(/:+$/, '') || 'https'
 
     // For standalone or the serverful mode, use the internal origin directly
     // other than the host headers from the request.
@@ -616,15 +617,14 @@ export async function handleAction({
           res,
           host,
           forwardedWorker,
-          ctx.renderOpts.basePath,
-          workStore
+          ctx.renderOpts.basePath
         ),
       }
     }
   }
 
   try {
-    await actionAsyncStorage.run({ isAction: true }, async () => {
+    return await actionAsyncStorage.run({ isAction: true }, async () => {
       if (
         // The type check here ensures that `req` is correctly typed, and the
         // environment variable check provides dead code elimination.
@@ -657,7 +657,21 @@ export async function handleAction({
               { temporaryReferences }
             )
           } else {
-            const action = await decodeAction(formData, serverModuleMap)
+            let action: (() => unknown) | null = null
+
+            try {
+              action = await decodeAction(formData, serverModuleMap)
+            } catch (err) {
+              const unknownActionId = getActionIdFromReactError(err)
+
+              if (unknownActionId) {
+                console.warn(createUnknownServerActionError(unknownActionId))
+                return { type: 'not-found' }
+              }
+
+              throw err
+            }
+
             if (typeof action === 'function') {
               // Only warn if it's a server action, otherwise skip for other post requests
               warnBadServerActionRequest()
@@ -677,19 +691,19 @@ export async function handleAction({
               )
             }
 
-            // Skip the fetch path
-            return
+            return { type: 'done', result: undefined, formState }
           }
         } else {
+          if (!actionId) {
+            // We don't consider this a server action when there's no actionId.
+            return undefined
+          }
+
           try {
             actionModId = getActionModIdOrError(actionId, serverModuleMap)
           } catch (err) {
-            if (actionId !== null) {
-              console.error(err)
-            }
-            return {
-              type: 'not-found',
-            }
+            console.warn(err)
+            return { type: 'not-found' }
           }
 
           const chunks: Buffer[] = []
@@ -748,7 +762,7 @@ export async function handleAction({
         const bodySizeLimitBytes =
           bodySizeLimit !== defaultBodySizeLimit
             ? (
-                require('next/dist/compiled/bytes') as typeof import('bytes')
+                require('next/dist/compiled/bytes') as typeof import('next/dist/compiled/bytes')
               ).parse(bodySizeLimit)
             : 1024 * 1024 // 1 MB
 
@@ -757,7 +771,8 @@ export async function handleAction({
           transform(chunk, encoding, callback) {
             size += Buffer.byteLength(chunk, encoding)
             if (size > bodySizeLimitBytes) {
-              const { ApiError } = require('../api-utils')
+              const { ApiError } =
+                require('../api-utils') as typeof import('../api-utils')
 
               callback(
                 new ApiError(
@@ -827,8 +842,23 @@ export async function handleAction({
               }),
               duplex: 'half',
             })
+
             const formData = await fakeRequest.formData()
-            const action = await decodeAction(formData, serverModuleMap)
+            let action: (() => unknown) | null = null
+
+            try {
+              action = await decodeAction(formData, serverModuleMap)
+            } catch (err) {
+              const unknownActionId = getActionIdFromReactError(err)
+
+              if (unknownActionId) {
+                console.warn(createUnknownServerActionError(unknownActionId))
+                return { type: 'not-found' }
+              }
+
+              throw err
+            }
+
             if (typeof action === 'function') {
               // Only warn if it's a server action, otherwise skip for other post requests
               warnBadServerActionRequest()
@@ -848,19 +878,19 @@ export async function handleAction({
               )
             }
 
-            // Skip the fetch path
-            return
+            return { type: 'done', result: undefined, formState }
           }
         } else {
+          if (!actionId) {
+            // We don't consider this a server action when there's no actionId.
+            return undefined
+          }
+
           try {
             actionModId = getActionModIdOrError(actionId, serverModuleMap)
           } catch (err) {
-            if (actionId !== null) {
-              console.error(err)
-            }
-            return {
-              type: 'not-found',
-            }
+            console.warn(err)
+            return { type: 'not-found' }
           }
 
           const chunks: Buffer[] = []
@@ -901,16 +931,16 @@ export async function handleAction({
       // / -> fire action -> POST / -> appRender1 -> modId for the action file
       // /foo -> fire action -> POST /foo -> appRender2 -> modId for the action file
 
+      if (!actionId) {
+        // We don't consider this a server action when there's no actionId.
+        return undefined
+      }
+
       try {
-        actionModId =
-          actionModId ?? getActionModIdOrError(actionId, serverModuleMap)
+        actionModId ??= getActionModIdOrError(actionId, serverModuleMap)
       } catch (err) {
-        if (actionId !== null) {
-          console.error(err)
-        }
-        return {
-          type: 'not-found',
-        }
+        console.warn(err)
+        return { type: 'not-found' }
       }
 
       const actionMod = (await ComponentMod.__next_app__.require(
@@ -940,13 +970,13 @@ export async function handleAction({
           temporaryReferences,
         })
       }
-    })
 
-    return {
-      type: 'done',
-      result: actionResult,
-      formState,
-    }
+      return {
+        type: 'done',
+        result: actionResult,
+        formState,
+      }
+    })
   } catch (err) {
     if (isRedirectError(err)) {
       const redirectUrl = getURLFromRedirectError(err)
@@ -1070,26 +1100,46 @@ async function executeActionAndPrepareForRender<
   }
 }
 
+function createUnknownServerActionError(actionId: string): Error {
+  return new Error(
+    `Failed to find Server Action "${actionId}". This request might be from an older or newer deployment.\nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action`
+  )
+}
+
+const unknownServerActionErrorMessageRegExp =
+  /Could not find the module "(?<actionId>[0-9A-Fa-f]+)" in the React Server Manifest./
+
+/**
+ * Extract the action ID from a React error message that indicates the action ID
+ * could not be found in the server module map. Brand-checking the error message
+ * is a bit unfortunate, but there's currently no other way to detect this case
+ * for MPA server actions, unless we duplicate React's form data parsing.
+ */
+function getActionIdFromReactError(err: unknown): string | undefined {
+  if (err instanceof Error) {
+    const match = err.message.match(unknownServerActionErrorMessageRegExp)
+
+    if (match?.groups?.actionId) {
+      return match.groups.actionId
+    }
+  }
+
+  return undefined
+}
+
 /**
  * Attempts to find the module ID for the action from the module map. When this fails, it could be a deployment skew where
  * the action came from a different deployment. It could also simply be an invalid POST request that is not a server action.
  * In either case, we'll throw an error to be handled by the caller.
  */
 function getActionModIdOrError(
-  actionId: string | null,
+  actionId: string,
   serverModuleMap: ServerModuleMap
 ): string {
-  // if we're missing the action ID header, we can't do any further processing
-  if (!actionId) {
-    throw new InvariantError("Missing 'next-action' header.")
-  }
-
   const actionModId = serverModuleMap[actionId]?.id
 
   if (!actionModId) {
-    throw new Error(
-      `Failed to find Server Action "${actionId}". This request might be from an older or newer deployment.\nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action`
-    )
+    throw createUnknownServerActionError(actionId)
   }
 
   return actionModId

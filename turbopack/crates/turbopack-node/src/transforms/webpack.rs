@@ -8,10 +8,10 @@ use futures::try_join;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use serde_with::serde_as;
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
     Completion, NonLocalValue, OperationValue, OperationVc, ResolvedVc, TaskInput, TryJoinIterExt,
-    Value, ValueToString, Vc, trace::TraceRawVcs,
+    ValueToString, Vc, trace::TraceRawVcs,
 };
 use turbo_tasks_bytes::stream::SingleValue;
 use turbo_tasks_env::ProcessEnv;
@@ -188,12 +188,10 @@ async fn webpack_loaders_executor(
     evaluate_context: Vc<Box<dyn AssetContext>>,
 ) -> Result<Vc<ProcessResult>> {
     Ok(evaluate_context.process(
-        Vc::upcast(FileSource::new(embed_file_path(
-            "transforms/webpack-loaders.ts".into(),
-        ))),
-        Value::new(ReferenceType::Internal(
-            InnerAssets::empty().to_resolved().await?,
-        )),
+        Vc::upcast(FileSource::new(embed_file_path(rcstr!(
+            "transforms/webpack-loaders.ts"
+        )))),
+        ReferenceType::Internal(InnerAssets::empty().to_resolved().await?),
     ))
 }
 
@@ -540,7 +538,7 @@ impl EvaluateContext for WebpackLoaderContext {
                 EvaluateEmittedErrorIssue {
                     file_path: self.context_ident_for_issue.path().to_resolved().await?,
                     error,
-                    severity: severity.resolved_cell(),
+                    severity,
                     assets_for_source_mapping: pool.assets_for_source_mapping,
                     assets_root: pool.assets_root,
                     project_dir: self.chunking_context.root_path().to_resolved().await?,
@@ -571,17 +569,12 @@ impl EvaluateContext for WebpackLoaderContext {
                     bail!("Resolve options are not available in this context");
                 };
                 let lookup_path = self.cwd.join(lookup_path);
-                let request = Request::parse(Value::new(Pattern::Constant(request)));
+                let request = Request::parse(Pattern::Constant(request));
                 let options = resolve_options(lookup_path, *resolve_options_context);
 
                 let options = apply_webpack_resolve_options(options, webpack_options);
 
-                let resolved = resolve(
-                    lookup_path,
-                    Value::new(ReferenceType::Undefined),
-                    request,
-                    options,
-                );
+                let resolved = resolve(lookup_path, ReferenceType::Undefined, request, options);
 
                 let request_str = request.to_string().await?;
                 let lookup_path_str = lookup_path.to_string().await?;
@@ -628,9 +621,9 @@ impl EvaluateContext for WebpackLoaderContext {
                 file_path: self.context_ident_for_issue.path().to_resolved().await?,
                 logging: logs,
                 severity: if has_errors {
-                    IssueSeverity::Error.resolved_cell()
+                    IssueSeverity::Error
                 } else {
-                    IssueSeverity::Warning.resolved_cell()
+                    IssueSeverity::Warning
                 },
                 assets_for_source_mapping: pool.assets_for_source_mapping,
                 assets_root: pool.assets_root,
@@ -735,14 +728,13 @@ pub struct BuildDependencyIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for BuildDependencyIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        IssueSeverity::Warning.into()
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Warning
     }
 
     #[turbo_tasks::function]
     fn title(&self) -> Vc<StyledString> {
-        StyledString::Text("Build dependencies are not yet supported".into()).cell()
+        StyledString::Text(rcstr!("Build dependencies are not yet supported")).cell()
     }
 
     #[turbo_tasks::function]
@@ -759,7 +751,7 @@ impl Issue for BuildDependencyIssue {
     async fn description(&self) -> Result<Vc<OptionStyledString>> {
         Ok(Vc::cell(Some(
             StyledString::Line(vec![
-                StyledString::Text("The file at ".into()),
+                StyledString::Text(rcstr!("The file at ")),
                 StyledString::Code(self.path.await?.to_string().into()),
                 StyledString::Text(
                     " is a build dependency, which is not yet implemented.
@@ -776,7 +768,7 @@ impl Issue for BuildDependencyIssue {
 #[turbo_tasks::value(shared)]
 pub struct EvaluateEmittedErrorIssue {
     pub file_path: ResolvedVc<FileSystemPath>,
-    pub severity: ResolvedVc<IssueSeverity>,
+    pub severity: IssueSeverity,
     pub error: StructuredError,
     pub assets_for_source_mapping: ResolvedVc<AssetsForSourceMapping>,
     pub assets_root: ResolvedVc<FileSystemPath>,
@@ -795,14 +787,13 @@ impl Issue for EvaluateEmittedErrorIssue {
         IssueStage::Transform.cell()
     }
 
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        *self.severity
+    fn severity(&self) -> IssueSeverity {
+        self.severity
     }
 
     #[turbo_tasks::function]
     fn title(&self) -> Vc<StyledString> {
-        StyledString::Text("Issue while running loader".into()).cell()
+        StyledString::Text(rcstr!("Issue while running loader")).cell()
     }
 
     #[turbo_tasks::function]
@@ -827,7 +818,7 @@ impl Issue for EvaluateEmittedErrorIssue {
 #[turbo_tasks::value(shared)]
 pub struct EvaluateErrorLoggingIssue {
     pub file_path: ResolvedVc<FileSystemPath>,
-    pub severity: ResolvedVc<IssueSeverity>,
+    pub severity: IssueSeverity,
     #[turbo_tasks(trace_ignore)]
     pub logging: Vec<LogInfo>,
     pub assets_for_source_mapping: ResolvedVc<AssetsForSourceMapping>,
@@ -847,14 +838,13 @@ impl Issue for EvaluateErrorLoggingIssue {
         IssueStage::Transform.cell()
     }
 
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        *self.severity
+    fn severity(&self) -> IssueSeverity {
+        self.severity
     }
 
     #[turbo_tasks::function]
     fn title(&self) -> Vc<StyledString> {
-        StyledString::Text("Error logging while running loader".into()).cell()
+        StyledString::Text(rcstr!("Error logging while running loader")).cell()
     }
 
     #[turbo_tasks::function]
@@ -886,7 +876,7 @@ impl Issue for EvaluateErrorLoggingIssue {
                 LogType::Warn => StyledString::Text(fmt_args("<w> ".to_string(), &log.args).into()),
                 LogType::Info => StyledString::Text(fmt_args("<i> ".to_string(), &log.args).into()),
                 LogType::Log => StyledString::Text(fmt_args("<l> ".to_string(), &log.args).into()),
-                LogType::Clear => StyledString::Strong("---".into()),
+                LogType::Clear => StyledString::Strong(rcstr!("---")),
                 _ => {
                     unimplemented!("{:?} is not implemented", log.log_type)
                 }

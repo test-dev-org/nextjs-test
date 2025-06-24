@@ -12,8 +12,7 @@ use serde::Deserialize;
 use serde_json::json;
 use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
-    ReadConsistency, ReadRef, ResolvedVc, TryJoinIterExt, TurboTasks, Value, ValueToString, Vc,
-    apply_effects,
+    ReadConsistency, ReadRef, ResolvedVc, TurboTasks, ValueToString, Vc, apply_effects,
 };
 use turbo_tasks_backend::{BackendOptions, TurboTasksBackend, noop_backing_storage};
 use turbo_tasks_env::DotenvProcessEnv;
@@ -43,7 +42,7 @@ use turbopack_core::{
     environment::{BrowserEnvironment, Environment, ExecutionEnvironment, NodeJsEnvironment},
     file_source::FileSource,
     free_var_references,
-    issue::{Issue, IssueDescriptionExt},
+    issue::IssueDescriptionExt,
     module::Module,
     module_graph::{
         ModuleGraph,
@@ -61,7 +60,7 @@ use turbopack_ecmascript_runtime::RuntimeType;
 use turbopack_env::ProcessEnvAsset;
 use turbopack_nodejs::NodeJsChunkingContext;
 use turbopack_resolve::resolve_options_context::ResolveOptionsContext;
-use turbopack_test_utils::snapshot::{diff, expected, matches_expected, snapshot_issues};
+use turbopack_test_utils::snapshot::{UPDATE, diff, expected, matches_expected, snapshot_issues};
 
 use crate::util::REPO_ROOT;
 
@@ -96,6 +95,8 @@ struct SnapshotOptions {
     environment: SnapshotEnvironment,
     #[serde(default)]
     tree_shaking_mode: Option<TreeShakingMode>,
+    #[serde(default)]
+    remove_unused_exports: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -122,6 +123,7 @@ impl Default for SnapshotOptions {
             runtime_type: default_runtime_type(),
             environment: Default::default(),
             tree_shaking_mode: Default::default(),
+            remove_unused_exports: false,
         }
     }
 }
@@ -159,6 +161,9 @@ async fn run(resource: PathBuf) -> Result<()> {
     let tt = TurboTasks::new(TurboTasksBackend::new(
         BackendOptions {
             storage_mode: None,
+            // Enable dependency tracking when we are running under UPDATE=1 to ensure file writes
+            // don't crash the test.
+            dependency_tracking: *UPDATE,
             ..Default::default()
         },
         noop_backing_storage(),
@@ -182,13 +187,9 @@ async fn run_inner_operation(resource: RcStr) -> Result<()> {
     let out_vc = out_op.resolve_strongly_consistent().await?;
     let captured_issues = out_op.peek_issues_with_path().await?;
 
-    let plain_issues = captured_issues
-        .iter_with_shortest_path()
-        .map(|(issue_vc, path)| async move { issue_vc.into_plain(path).await })
-        .try_join()
-        .await?;
+    let plain_issues = captured_issues.get_plain_issues().await?;
 
-    snapshot_issues(plain_issues, out_vc.join("issues".into()), &REPO_ROOT)
+    snapshot_issues(plain_issues, out_vc.join(rcstr!("issues")), &REPO_ROOT)
         .await
         .context("Unable to handle issues")?;
 
@@ -210,7 +211,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
         Err(_) => SnapshotOptions::default(),
         Ok(options_str) => parse_json_with_source_context(&options_str).unwrap(),
     };
-    let project_fs = DiskFileSystem::new("project".into(), REPO_ROOT.clone(), vec![]);
+    let project_fs = DiskFileSystem::new(rcstr!("project"), REPO_ROOT.clone(), vec![]);
     let project_root = project_fs.root().to_resolved().await?;
 
     let relative_path = test_path.strip_prefix(&*REPO_ROOT)?;
@@ -227,7 +228,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
 
     let entry_asset = project_path.join(options.entry.into());
 
-    let env = Environment::new(Value::new(match options.environment {
+    let env = Environment::new(match options.environment {
         SnapshotEnvironment::Browser => {
             ExecutionEnvironment::Browser(
                 // TODO: load more from options.json
@@ -246,7 +247,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                 NodeJsEnvironment::default().resolved_cell(),
             )
         }
-    }))
+    })
     .to_resolved()
     .await?;
 
@@ -309,12 +310,16 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                     css: CssOptionsContext {
                         ..Default::default()
                     },
+                    preset_env_versions: Some(env),
+                    tree_shaking_mode: options.tree_shaking_mode,
+                    remove_unused_exports: options.remove_unused_exports,
                     ..Default::default()
                 }
                 .resolved_cell(),
             )],
             module_rules: vec![module_rules],
             tree_shaking_mode: options.tree_shaking_mode,
+            remove_unused_exports: options.remove_unused_exports,
             ..Default::default()
         }
         .into(),
@@ -342,15 +347,15 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
         .await?
         .map(|asset| EvaluatableAssets::one(asset.to_evaluatable(asset_context)));
 
-    let chunk_root_path = project_path.join("output".into()).to_resolved().await?;
-    let static_root_path = project_path.join("static".into()).to_resolved().await?;
+    let chunk_root_path = project_path.join(rcstr!("output")).to_resolved().await?;
+    let static_root_path = project_path.join(rcstr!("static")).to_resolved().await?;
 
     let chunking_context: Vc<Box<dyn ChunkingContext>> = match options.runtime {
         Runtime::Browser => Vc::upcast(
             BrowserChunkingContext::builder(
                 project_root,
                 project_path,
-                ResolvedVc::cell(project_path_to_project_root),
+                project_path_to_project_root,
                 project_path,
                 chunk_root_path,
                 static_root_path,
@@ -363,7 +368,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
             NodeJsChunkingContext::builder(
                 project_root,
                 project_path,
-                ResolvedVc::cell(project_path_to_project_root),
+                project_path_to_project_root,
                 project_path,
                 chunk_root_path,
                 static_root_path,
@@ -384,7 +389,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
     let entry_module = asset_context
         .process(
             Vc::upcast(FileSource::new(entry_asset)),
-            Value::new(ReferenceType::Entry(EntryReferenceSubType::Undefined)),
+            ReferenceType::Entry(EntryReferenceSubType::Undefined),
         )
         .module();
 
@@ -410,7 +415,7 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                 entry_module.ident(),
                 ChunkGroup::Entry(all_modules.into_iter().collect()),
                 module_graph,
-                Value::new(AvailabilityInfo::Root),
+                AvailabilityInfo::Root,
             ),
             Runtime::NodeJs => {
                 Vc::cell(vec![
@@ -430,11 +435,11 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                                         .unwrap()
                                         .into(),
                                 )
-                                .with_extension("entry.js".into()),
+                                .with_extension(rcstr!("entry.js")),
                             evaluatable_assets,
                             module_graph,
                             OutputAssets::empty(),
-                            Value::new(AvailabilityInfo::Root),
+                            AvailabilityInfo::Root,
                         )
                         .await?
                         .asset,
@@ -489,11 +494,7 @@ async fn walk_asset(
             .await?
             .iter()
             .copied()
-            .map(|asset| async move { Ok(ResolvedVc::try_downcast::<Box<dyn OutputAsset>>(asset)) })
-            .try_join()
-            .await?
-            .into_iter()
-            .flatten(),
+            .flat_map(ResolvedVc::try_downcast::<Box<dyn OutputAsset>>),
     );
 
     Ok(())
@@ -503,7 +504,7 @@ async fn maybe_load_env(
     _context: Vc<Box<dyn AssetContext>>,
     path: Vc<FileSystemPath>,
 ) -> Result<Option<Vc<Box<dyn Source>>>> {
-    let dotenv_path = path.join("input/.env".into());
+    let dotenv_path = path.join(rcstr!("input/.env"));
 
     if !dotenv_path.read().await?.is_content() {
         return Ok(None);

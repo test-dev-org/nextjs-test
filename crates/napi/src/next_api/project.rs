@@ -28,13 +28,14 @@ use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncWriteExt, time::Instant};
 use tracing::Instrument;
 use tracing_subscriber::{Registry, layer::SubscriberExt, util::SubscriberInitExt};
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
     Completion, Effects, FxIndexSet, NonLocalValue, OperationValue, OperationVc, ReadRef,
     ResolvedVc, TaskInput, TransientInstance, TryJoinIterExt, UpdateInfo, Vc, get_effects,
     message_queue::{CompilationEvent, Severity, TimingEvent},
     trace::TraceRawVcs,
 };
+use turbo_tasks_backend::db_invalidation::invalidation_reasons;
 use turbo_tasks_fs::{
     DiskFileSystem, FileContent, FileSystem, FileSystemPath, get_relative_path_to,
     util::uri_from_file,
@@ -48,7 +49,7 @@ use turbopack_core::{
     source_map::{OptionStringifiedSourceMap, SourceMap, Token},
     version::{PartialUpdate, TotalUpdate, Update, VersionState},
 };
-use turbopack_ecmascript_hmr_protocol::{ClientUpdateInstruction, ResourceIdentifier};
+use turbopack_ecmascript_hmr_protocol::{ClientUpdateInstruction, Issue, ResourceIdentifier};
 use turbopack_trace_utils::{
     exit::{ExitHandler, ExitReceiver},
     filter_layer::FilterLayer,
@@ -426,7 +427,7 @@ pub async fn project_new(
     let options: ProjectOptions = options.into();
     let container = turbo_tasks
         .run_once(async move {
-            let project = ProjectContainer::new("next.js".into(), options.dev);
+            let project = ProjectContainer::new(rcstr!("next.js"), options.dev);
             let project = project.to_resolved().await?;
             project.initialize(options).await?;
             Ok(project)
@@ -571,9 +572,15 @@ pub async fn project_update(
 pub async fn project_invalidate_persistent_cache(
     #[napi(ts_arg_type = "{ __napiType: \"Project\" }")] project: External<ProjectInstance>,
 ) -> napi::Result<()> {
-    tokio::task::spawn_blocking(move || project.turbo_tasks.invalidate_persistent_cache())
-        .await
-        .context("panicked while invalidating persistent cache")??;
+    tokio::task::spawn_blocking(move || {
+        // TODO: Let the JS caller specify a reason? We need to limit the reasons to ones we know
+        // how to generate a message for on the Rust side of the FFI.
+        project
+            .turbo_tasks
+            .invalidate_persistent_cache(invalidation_reasons::USER_REQUEST)
+    })
+    .await
+    .context("panicked while invalidating persistent cache")??;
     Ok(())
 }
 
@@ -1079,7 +1086,7 @@ pub fn project_hmr_events(
                 .collect();
             let update_issues = issues
                 .iter()
-                .map(|issue| (&**issue).into())
+                .map(|issue| Issue::from(&**issue))
                 .collect::<Vec<_>>();
 
             let identifier = ResourceIdentifier {

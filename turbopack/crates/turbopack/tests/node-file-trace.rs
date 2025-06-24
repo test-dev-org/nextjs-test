@@ -12,14 +12,13 @@ use std::{
     },
     io::{ErrorKind, Write as _},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex},
     time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result, anyhow};
 use difference::Changeset;
 use helpers::print_changeset;
-use lazy_static::lazy_static;
 use regex::Regex;
 use rstest::*;
 use rstest_reuse::{
@@ -29,8 +28,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{process::Command, time::timeout};
 use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
-    ResolvedVc, TurboTasks, Value, ValueToString, Vc, apply_effects, backend::Backend,
-    trace::TraceRawVcs,
+    ResolvedVc, TurboTasks, ValueToString, Vc, apply_effects, backend::Backend, trace::TraceRawVcs,
 };
 use turbo_tasks_backend::TurboTasksBackend;
 use turbo_tasks_fs::{DiskFileSystem, FileSystem};
@@ -286,7 +284,8 @@ fn node_file_trace_persistent(#[case] input: CaseInput) {
                 },
                 false,
             )
-            .unwrap(),
+            .unwrap()
+            .0,
         ))
     });
 }
@@ -327,14 +326,14 @@ async fn node_file_trace_operation(
     directory: RcStr,
 ) -> Result<Vc<RebasedAsset>> {
     let workspace_fs: Vc<Box<dyn FileSystem>> = Vc::upcast(DiskFileSystem::new(
-        "workspace".into(),
+        rcstr!("workspace"),
         package_root.clone(),
         vec![],
     ));
     let input_dir = workspace_fs.root().to_resolved().await?;
     let input = input_dir.join(format!("tests/{input}").into());
 
-    let output_fs = DiskFileSystem::new("output".into(), directory.clone(), vec![]);
+    let output_fs = DiskFileSystem::new(rcstr!("output"), directory.clone(), vec![]);
     let output_dir = output_fs.root().to_resolved().await?;
 
     let source = FileSource::new(input);
@@ -343,8 +342,8 @@ async fn node_file_trace_operation(
         // TODO It's easy to make a mistake here as this should match the config in the
         // binary. TODO These test cases should move into the
         // `node-file-trace` crate and use the same config.
-        CompileTimeInfo::new(Environment::new(Value::new(
-            ExecutionEnvironment::NodeJsLambda(NodeJsEnvironment::default().resolved_cell()),
+        CompileTimeInfo::new(Environment::new(ExecutionEnvironment::NodeJsLambda(
+            NodeJsEnvironment::default().resolved_cell(),
         ))),
         ModuleOptionsContext {
             ecmascript: EcmascriptOptionsContext {
@@ -361,14 +360,14 @@ async fn node_file_trace_operation(
         ResolveOptionsContext {
             enable_node_native_modules: true,
             enable_node_modules: Some(input_dir),
-            custom_conditions: vec!["node".into()],
+            custom_conditions: vec![rcstr!("node")],
             ..Default::default()
         }
         .cell(),
         rcstr!("test"),
     );
     let module = module_asset_context
-        .process(Vc::upcast(source), Value::new(ReferenceType::Undefined))
+        .process(Vc::upcast(source), ReferenceType::Undefined)
         .module();
 
     let rebased = RebasedAsset::new(Vc::upcast(module), *input_dir, *output_dir)
@@ -394,9 +393,8 @@ fn node_file_trace<B: Backend + 'static>(
     timeout_len: u64,
     create_turbo_tasks: impl Fn(&Path) -> Arc<TurboTasks<B>>,
 ) {
-    lazy_static! {
-        static ref BENCH_SUITES: Arc<Mutex<Vec<BenchSuite>>> = Arc::new(Mutex::new(Vec::new()));
-    };
+    static BENCH_SUITES: LazyLock<Arc<Mutex<Vec<BenchSuite>>>> =
+        LazyLock::new(|| Arc::new(Mutex::new(Vec::new())));
 
     let r = &mut {
         let mut builder = if multi_threaded {
@@ -634,24 +632,20 @@ async fn exec_node(directory: &str, path: &str) -> Result<CommandOutput> {
 }
 
 fn clean_stderr(str: &str) -> String {
-    lazy_static! {
-        static ref EXPERIMENTAL_WARNING: Regex =
-            Regex::new(r"\(node:\d+\) ExperimentalWarning:").unwrap();
-        static ref DEPRECATION_WARNING: Regex =
-            Regex::new(r"\(node:\d+\) \[DEP\d+] DeprecationWarning:").unwrap();
-    }
+    static EXPERIMENTAL_WARNING: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\(node:\d+\) ExperimentalWarning:").unwrap());
+    static DEPRECATION_WARNING: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\(node:\d+\) \[DEP\d+] DeprecationWarning:").unwrap());
     let str = EXPERIMENTAL_WARNING.replace_all(str, "(node:XXXX) ExperimentalWarning:");
     let str = DEPRECATION_WARNING.replace_all(&str, "(node:XXXX) [DEPXXXX] DeprecationWarning:");
     str.to_string()
 }
 
 fn diff(expected: &str, actual: &str) -> String {
-    lazy_static! {
-        static ref JAVASCRIPT_TIMESTAMP: Regex =
-            Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z").unwrap();
-        static ref JAVASCRIPT_DATE_TIME: Regex =
-            Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6}").unwrap();
-    }
+    static JAVASCRIPT_TIMESTAMP: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z").unwrap());
+    static JAVASCRIPT_DATE_TIME: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{6}").unwrap());
     // Remove timestamps from the output.
     if JAVASCRIPT_DATE_TIME.replace_all(JAVASCRIPT_TIMESTAMP.replace_all(actual, "").as_ref(), "")
         == JAVASCRIPT_DATE_TIME

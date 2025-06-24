@@ -391,11 +391,14 @@ export class AppRouteRouteModule extends RouteModule<
               // During prospective render we don't use a controller
               // because we need to let all caches fill.
               dynamicTracking,
+              allowEmptyStaticShell: false,
               revalidate: defaultRevalidate,
               expire: INFINITE_CACHE,
               stale: INFINITE_CACHE,
               tags: [...implicitTags.tags],
+              // TODO: Shouldn't we provide an RDC here?
               prerenderResumeDataCache: null,
+              renderResumeDataCache: null,
               hmrRefreshHash: undefined,
             })
 
@@ -479,11 +482,14 @@ export class AppRouteRouteModule extends RouteModule<
             controller: finalController,
             cacheSignal: null,
             dynamicTracking,
+            allowEmptyStaticShell: false,
             revalidate: defaultRevalidate,
             expire: INFINITE_CACHE,
             stale: INFINITE_CACHE,
             tags: [...implicitTags.tags],
+            // TODO: Shouldn't we provide an RDC here?
             prerenderResumeDataCache: null,
+            renderResumeDataCache: null,
             hmrRefreshHash: undefined,
           })
 
@@ -724,6 +730,14 @@ export class AppRouteRouteModule extends RouteModule<
               case 'force-dynamic': {
                 // Routes of generated paths should be dynamic
                 workStore.forceDynamic = true
+                if (workStore.isStaticGeneration) {
+                  const err = new DynamicServerError(
+                    'Route is configured with dynamic = error which cannot be statically generated.'
+                  )
+                  workStore.dynamicUsageDescription = err.message
+                  workStore.dynamicUsageStack = err.stack
+                  throw err
+                }
                 break
               }
               case 'force-static':

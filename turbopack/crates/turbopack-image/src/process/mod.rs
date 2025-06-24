@@ -17,6 +17,7 @@ use image::{
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
+use turbo_rcstr::rcstr;
 use turbo_tasks::{NonLocalValue, ResolvedVc, Vc, debug::ValueDebugFormat, trace::TraceRawVcs};
 use turbo_tasks_fs::{File, FileContent, FileSystemPath};
 use turbopack_core::{
@@ -144,13 +145,12 @@ fn load_image_internal(
         .with_guessed_format()
         .context("unable to determine image format from file content")?;
     let mut format = reader.format();
-    if format.is_none() {
-        if let Some(extension) = extension {
-            if let Some(new_format) = extension_to_image_format(extension) {
-                format = Some(new_format);
-                reader.set_format(new_format);
-            }
-        }
+    if format.is_none()
+        && let Some(extension) = extension
+        && let Some(new_format) = extension_to_image_format(extension)
+    {
+        format = Some(new_format);
+        reader.set_format(new_format);
     }
 
     // [NOTE]
@@ -171,8 +171,8 @@ fn load_image_internal(
                     .into(),
             )
             .resolved_cell(),
-            title: Some(StyledString::Text("AVIF image not supported".into()).resolved_cell()),
-            issue_severity: Some(IssueSeverity::Warning.resolved_cell()),
+            title: Some(StyledString::Text(rcstr!("AVIF image not supported")).resolved_cell()),
+            issue_severity: Some(IssueSeverity::Warning),
         }
         .resolved_cell()
         .emit();
@@ -189,8 +189,8 @@ fn load_image_internal(
                     .into(),
             )
             .resolved_cell(),
-            title: Some(StyledString::Text("WEBP image not supported".into()).resolved_cell()),
-            issue_severity: Some(IssueSeverity::Warning.resolved_cell()),
+            title: Some(StyledString::Text(rcstr!("WEBP image not supported")).resolved_cell()),
+            issue_severity: Some(IssueSeverity::Warning),
         }
         .resolved_cell()
         .emit();
@@ -489,16 +489,13 @@ struct ImageProcessingIssue {
     path: ResolvedVc<FileSystemPath>,
     message: ResolvedVc<StyledString>,
     title: Option<ResolvedVc<StyledString>>,
-    issue_severity: Option<ResolvedVc<IssueSeverity>>,
+    issue_severity: Option<IssueSeverity>,
 }
 
 #[turbo_tasks::value_impl]
 impl Issue for ImageProcessingIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        self.issue_severity
-            .map(|s| *s)
-            .unwrap_or(IssueSeverity::Error.into())
+    fn severity(&self) -> IssueSeverity {
+        self.issue_severity.unwrap_or(IssueSeverity::Error)
     }
 
     #[turbo_tasks::function]
@@ -515,7 +512,7 @@ impl Issue for ImageProcessingIssue {
     fn title(&self) -> Vc<StyledString> {
         *self
             .title
-            .unwrap_or(StyledString::Text("Processing image failed".into()).resolved_cell())
+            .unwrap_or(StyledString::Text(rcstr!("Processing image failed")).resolved_cell())
     }
 
     #[turbo_tasks::function]

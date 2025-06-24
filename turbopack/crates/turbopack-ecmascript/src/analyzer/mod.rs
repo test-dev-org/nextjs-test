@@ -111,6 +111,13 @@ impl ConstantString {
         }
     }
 
+    pub fn as_rcstr(&self) -> RcStr {
+        match self {
+            Self::Atom(s) => RcStr::from(s.as_str()),
+            Self::RcStr(s) => s.clone(),
+        }
+    }
+
     pub fn as_atom(&self) -> Cow<Atom> {
         match self {
             Self::Atom(s) => Cow::Borrowed(s),
@@ -2007,31 +2014,31 @@ impl JsValue {
         >,
         prop: &DefineableNameSegment,
     ) -> Option<&'a T> {
-        if let Some(def_name_len) = self.get_defineable_name_len() {
-            if let Some(references) = free_var_references.get(prop) {
-                for (name, value) in references {
-                    if name.len() != def_name_len {
-                        continue;
-                    }
+        if let Some(def_name_len) = self.get_defineable_name_len()
+            && let Some(references) = free_var_references.get(prop)
+        {
+            for (name, value) in references {
+                if name.len() != def_name_len {
+                    continue;
+                }
 
-                    let name_rev_it = name.iter().map(Cow::Borrowed).rev();
-                    if name_rev_it.eq(self.iter_defineable_name_rev()) {
-                        if let Some(var_graph) = var_graph {
-                            if let DefineableNameSegment::Name(first_str) = name.first().unwrap() {
-                                let first_str: &str = first_str;
-                                if var_graph
-                                    .free_var_ids
-                                    .get(&first_str.into())
-                                    .is_some_and(|id| var_graph.values.contains_key(id))
-                                {
-                                    // `typeof foo...` but `foo` was reassigned
-                                    return None;
-                                }
-                            }
+                let name_rev_it = name.iter().map(Cow::Borrowed).rev();
+                if name_rev_it.eq(self.iter_defineable_name_rev()) {
+                    if let Some(var_graph) = var_graph
+                        && let DefineableNameSegment::Name(first_str) = name.first().unwrap()
+                    {
+                        let first_str: &str = first_str;
+                        if var_graph
+                            .free_var_ids
+                            .get(&first_str.into())
+                            .is_some_and(|id| var_graph.values.contains_key(id))
+                        {
+                            // `typeof foo...` but `foo` was reassigned
+                            return None;
                         }
-
-                        return Some(value);
                     }
+
+                    return Some(value);
                 }
             }
         }
@@ -3847,6 +3854,7 @@ fn is_unresolved_id(i: &Id, unresolved_mark: Mark) -> bool {
 #[doc(hidden)]
 pub mod test_utils {
     use anyhow::Result;
+    use turbo_rcstr::rcstr;
     use turbo_tasks::{FxIndexMap, Vc};
     use turbopack_core::{compile_time_info::CompileTimeInfo, error::PrettyPrintError};
 
@@ -3907,9 +3915,18 @@ pub mod test_utils {
                 Ok(options) => {
                     let mut map = FxIndexMap::default();
 
-                    map.insert("./a".into(), format!("[context: {}]/a", options.dir).into());
-                    map.insert("./b".into(), format!("[context: {}]/b", options.dir).into());
-                    map.insert("./c".into(), format!("[context: {}]/c", options.dir).into());
+                    map.insert(
+                        rcstr!("./a"),
+                        format!("[context: {}]/a", options.dir).into(),
+                    );
+                    map.insert(
+                        rcstr!("./b"),
+                        format!("[context: {}]/b", options.dir).into(),
+                    );
+                    map.insert(
+                        rcstr!("./c"),
+                        format!("[context: {}]/c", options.dir).into(),
+                    );
 
                     JsValue::WellKnownFunction(WellKnownFunctionKind::RequireContextRequire(
                         RequireContextValue(map),
@@ -4005,7 +4022,7 @@ mod tests {
         },
         testing::{NormalizedOutput, fixture, run_test},
     };
-    use turbo_tasks::{ResolvedVc, Value, util::FormatDuration};
+    use turbo_tasks::{ResolvedVc, util::FormatDuration};
     use turbopack_core::{
         compile_time_info::CompileTimeInfo,
         environment::{Environment, ExecutionEnvironment, NodeJsEnvironment, NodeJsVersion},
@@ -4406,7 +4423,7 @@ mod tests {
     ) -> (JsValue, u32) {
         turbo_tasks_testing::VcStorage::with(async {
             let compile_time_info = CompileTimeInfo::builder(
-                Environment::new(Value::new(ExecutionEnvironment::NodeJsLambda(
+                Environment::new(ExecutionEnvironment::NodeJsLambda(
                     NodeJsEnvironment {
                         compile_target: CompileTarget {
                             arch: Arch::X64,
@@ -4419,7 +4436,7 @@ mod tests {
                         cwd: ResolvedVc::cell(None),
                     }
                     .resolved_cell(),
-                )))
+                ))
                 .to_resolved()
                 .await?,
             )

@@ -87,10 +87,9 @@ function ensureTestApisIntercepted() {
   if (!testApisIntercepted) {
     testApisIntercepted = true
     if (process.env.NEXT_PRIVATE_TEST_PROXY === 'true') {
-      const {
-        interceptTestApis,
-        wrapRequestHandler,
-      } = require('next/dist/experimental/testmode/server-edge')
+      const { interceptTestApis, wrapRequestHandler } =
+        // eslint-disable-next-line @next/internal/typechecked-require -- experimental/testmode is not built ins next/dist/esm
+        require('next/dist/experimental/testmode/server-edge') as typeof import('../../experimental/testmode/server-edge')
       interceptTestApis()
       propagator = wrapRequestHandler(propagator)
     }
@@ -201,7 +200,6 @@ export async function adapter(
       fetchCacheKeyPrefix: process.env.__NEXT_FETCH_CACHE_KEY_PREFIX,
       dev: process.env.NODE_ENV === 'development',
       requestHeaders: params.request.headers as any,
-      requestProtocol: 'https',
       getPrerenderManifest: () => {
         return {
           version: -1 as any, // letting us know this doesn't conform to spec
