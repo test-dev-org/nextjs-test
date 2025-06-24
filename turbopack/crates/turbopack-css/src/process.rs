@@ -69,36 +69,34 @@ async fn get_lightningcss_browser_targets(
     environment: Option<ResolvedVc<Environment>>,
     handle_nesting: bool,
 ) -> Result<Vc<LightningCssTargets>> {
-    let browserslist_query = if let Some(environment) = environment {
-        (*environment.browserslist_query().await?).clone()
-    } else {
-        // This case should never happen because the only time `environment` is `None`
-        // is for Turbopack runtime code currently.
-        //
-        // TODO: Remove this once we have a proper environment for runtime code.
-        todo!()
-    };
+    match environment {
+        Some(environment) => {
+            let browserslist_query = (*environment.browserslist_query().await?).clone();
+            let browserslist_browsers =
+                lightningcss::targets::Browsers::from_browserslist_with_config(
+                    browserslist_query.split(','),
+                    BrowserslistConfig {
+                        ignore_unknown_versions: true,
+                        ..Default::default()
+                    },
+                )?;
 
-    let browserslist_browsers = lightningcss::targets::Browsers::from_browserslist_with_config(
-        browserslist_query.split(','),
-        BrowserslistConfig {
-            ignore_unknown_versions: true,
-            ..Default::default()
-        },
-    )?;
-
-    Ok(if handle_nesting {
-        Vc::cell(Targets {
-            browsers: browserslist_browsers,
-            include: Features::Nesting,
-            ..Default::default()
-        })
-    } else {
-        Vc::cell(Targets {
-            browsers: browserslist_browsers,
-            ..Default::default()
-        })
-    })
+            Ok(if handle_nesting {
+                Vc::cell(Targets {
+                    browsers: browserslist_browsers,
+                    include: Features::Nesting,
+                    ..Default::default()
+                })
+            } else {
+                Vc::cell(Targets {
+                    browsers: browserslist_browsers,
+                    ..Default::default()
+                })
+            })
+        }
+        // Default when empty environment is passed.
+        None => Ok(Vc::cell(Default::default())),
+    }
 }
 
 impl StyleSheetLike<'_, '_> {

@@ -355,7 +355,9 @@ async fn node_file_trace_operation(
                 enable_raw_css: true,
                 ..Default::default()
             },
-            environment: Some(environment.to_resolved().await?),
+            // Environment is not passed in order to avoid downleveling JS / CSS for
+            // node-file-trace.
+            environment: None,
             ..Default::default()
         }
         .cell(),

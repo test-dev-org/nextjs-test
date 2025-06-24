@@ -688,6 +688,9 @@ async fn externals_tracing_module_context(ty: ExternalType) -> Result<Vc<ModuleA
                 source_maps: SourceMapsType::None,
                 ..Default::default()
             },
+            // Environment is not passed in order to avoid downleveling JS / CSS for
+            // node-file-trace.
+            environment: None,
             ..Default::default()
         }
         .cell(),
