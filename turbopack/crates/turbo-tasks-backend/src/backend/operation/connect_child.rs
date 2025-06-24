@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use turbo_tasks::TaskId;
+use turbo_tasks::{TaskExecutionReason, TaskId};
 
 use crate::{
     backend::{
@@ -36,7 +36,10 @@ impl ConnectChildOperation {
             }
             if !task.has_key(&CachedDataItemKey::Output {}) {
                 let description = ctx.get_task_desc_fn(child_task_id);
-                let should_schedule = task.add(CachedDataItem::new_scheduled(description));
+                let should_schedule = task.add(CachedDataItem::new_scheduled(
+                    TaskExecutionReason::Connect,
+                    description,
+                ));
                 drop(task);
                 if should_schedule {
                     ctx.schedule(child_task_id);
@@ -97,7 +100,10 @@ impl ConnectChildOperation {
 
             if !task.has_key(&CachedDataItemKey::Output {}) {
                 let description = ctx.get_task_desc_fn(child_task_id);
-                let should_schedule = task.add(CachedDataItem::new_scheduled(description));
+                let should_schedule = task.add(CachedDataItem::new_scheduled(
+                    TaskExecutionReason::Connect,
+                    description,
+                ));
                 drop(task);
                 if should_schedule {
                     ctx.schedule(child_task_id);
