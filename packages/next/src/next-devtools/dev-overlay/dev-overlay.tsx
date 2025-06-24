@@ -35,7 +35,10 @@ export function DevOverlay({
 
   const isBuildError = state.buildError !== null
 
-  if (isBuildError !== isPrevBuildError) {
+  if (
+    process.env.__NEXT_DEVTOOL_NEW_PANEL_UI &&
+    isBuildError !== isPrevBuildError
+  ) {
     // If the build error is set, enable the devtools panel as the error overlay mode,
     // and the rest actions (close, minimize, fullscreen) can be handled by the user.
     if (isBuildError) {
