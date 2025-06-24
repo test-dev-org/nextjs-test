@@ -104,8 +104,8 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
             .flat_map(|g| g.iter_nodes())
             .map(async |n| {
                 let module = n.module;
-                let mergeable = ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module);
-                if let Some(mergeable) = mergeable
+                if let Some(mergeable) =
+                    ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
                     && *mergeable.is_mergeable().await?
                 {
                     return Ok(Some(module));
@@ -143,10 +143,10 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                     Ok(if parent_module.is_some_and(|p| p == module) {
                         // A self-reference
                         GraphTraversalAction::Skip
-                    } else if let Some(parent_module) = parent_module.filter(|m| {
-                        ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(*m).is_some()
-                    }) && mergeable.contains(&module)
-                        && hoisted
+                    } else if hoisted
+                        && let Some(parent_module) = parent_module
+                        && mergeable.contains(&parent_module)
+                        && mergeable.contains(&module)
                         && !async_module_info.contains(&parent_module)
                         && !async_module_info.contains(&module)
                     {
@@ -269,9 +269,10 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                             .get(&module)
                             .context("every module should have a bitmap at this point")?;
 
-                        if let Some(mergeable_module) =
-                            ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
-                        {
+                        if mergeable.contains(&module) {
+                            let mergeable_module =
+                                ResolvedVc::try_downcast::<Box<dyn MergeableModule>>(module)
+                                    .unwrap();
                             match chunk_lists.entry(bitmap) {
                                 Entry::Vacant(e) => {
                                     // New list, insert the module
