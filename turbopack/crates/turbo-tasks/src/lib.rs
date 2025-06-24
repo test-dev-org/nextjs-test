@@ -77,7 +77,6 @@ mod state;
 pub mod task;
 pub mod task_statistics;
 pub mod trace;
-mod trait_helpers;
 mod trait_ref;
 mod triomphe_utils;
 pub mod util;
@@ -95,8 +94,7 @@ pub use completion::{Completion, Completions};
 pub use display::ValueToString;
 pub use effect::{ApplyEffectsContext, Effects, apply_effects, effect, get_effects};
 pub use id::{
-    ExecutionId, FunctionId, LocalTaskId, SessionId, TRANSIENT_TASK_BIT, TaskId, TraitTypeId,
-    ValueTypeId,
+    ExecutionId, LocalTaskId, SessionId, TRANSIENT_TASK_BIT, TaskId, TraitTypeId, ValueTypeId,
 };
 pub use invalidation::{
     DynamicEqHash, InvalidationReason, InvalidationReasonKind, InvalidationReasonSet, Invalidator,

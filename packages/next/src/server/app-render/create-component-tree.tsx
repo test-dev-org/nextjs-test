@@ -25,6 +25,7 @@ import type {
   UseCacheLayoutComponentProps,
   UseCachePageComponentProps,
 } from '../use-cache/use-cache-wrapper'
+import { DEFAULT_SEGMENT_KEY } from '../../shared/lib/segment'
 
 /**
  * Use the provided loader tree to create the React Component tree.
@@ -118,7 +119,7 @@ async function createComponentTreeInternal({
     query,
   } = ctx
 
-  const { page, layoutOrPagePath, segment, modules, parallelRoutes } =
+  const { page, conventionPath, segment, modules, parallelRoutes } =
     parseLoaderTree(tree)
 
   const {
@@ -140,7 +141,7 @@ async function createComponentTreeInternal({
   const layerAssets = getLayerAssets({
     preloadCallbacks,
     ctx,
-    layoutOrPagePath,
+    layoutOrPagePath: conventionPath,
     injectedCSS: injectedCSSWithCurrentLayout,
     injectedJS: injectedJSWithCurrentLayout,
     injectedFontPreloadTags: injectedFontPreloadTagsWithCurrentLayout,
@@ -392,6 +393,13 @@ async function createComponentTreeInternal({
 
   // Resolve the segment param
   const actualSegment = segmentParam ? segmentParam.treeSegment : segment
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const dir =
+    process.env.NEXT_RUNTIME === 'edge'
+      ? process.env.__NEXT_EDGE_PROJECT_DIR!
+      : ctx.renderOpts.dir || ''
 
   // Use the same condition to render metadataOutlet as metadata
   const metadataOutlet = StreamingMetadataOutlet ? (
@@ -400,26 +408,29 @@ async function createComponentTreeInternal({
     <MetadataOutlet ready={getMetadataReady} />
   )
 
-  const notFoundElement = NotFound ? (
-    <>
-      <NotFound />
-      {notFoundStyles}
-    </>
-  ) : undefined
+  const notFoundElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'not-found',
+    Component: NotFound,
+    styles: notFoundStyles,
+    tree,
+  })
 
-  const forbiddenElement = Forbidden ? (
-    <>
-      <Forbidden />
-      {forbiddenStyles}
-    </>
-  ) : undefined
+  const forbiddenElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'forbidden',
+    Component: Forbidden,
+    styles: forbiddenStyles,
+    tree,
+  })
 
-  const unauthorizedElement = Unauthorized ? (
-    <>
-      <Unauthorized />
-      {unauthorizedStyles}
-    </>
-  ) : undefined
+  const unauthorizedElement = await createBoundaryConventionElement({
+    ctx,
+    conventionName: 'unauthorized',
+    Component: Unauthorized,
+    styles: unauthorizedStyles,
+    tree,
+  })
 
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
@@ -491,7 +502,7 @@ async function createComponentTreeInternal({
             // to provide more helpful debug information during development mode.
             const parsedTree = parseLoaderTree(parallelRoute)
             if (
-              parsedTree.layoutOrPagePath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
+              parsedTree.conventionPath?.endsWith(PARALLEL_ROUTE_DEFAULT_PATH)
             ) {
               missingSlots.add(parallelRouteKey)
             }
@@ -526,19 +537,42 @@ async function createComponentTreeInternal({
           childCacheNodeSeedData = seedData
         }
 
-        // This is turned back into an object below.
+        const templateNode = (
+          <Template>
+            <RenderFromTemplateContext />
+          </Template>
+        )
+
+        const templateFilePath = getConventionPathByType(tree, dir, 'template')
+
+        const errorFilePath = getConventionPathByType(tree, dir, 'error')
+
+        const wrappedErrorStyles =
+          isSegmentViewEnabled && errorFilePath ? (
+            <SegmentViewNode type="error" pagePath={errorFilePath}>
+              {errorStyles}
+            </SegmentViewNode>
+          ) : (
+            errorStyles
+          )
+
         return [
           parallelRouteKey,
           <LayoutRouter
             parallelRouterKey={parallelRouteKey}
             // TODO-APP: Add test for loading returning `undefined`. This currently can't be tested as the `webdriver()` tab will wait for the full page to load before returning.
             error={ErrorComponent}
-            errorStyles={errorStyles}
+            errorStyles={wrappedErrorStyles}
             errorScripts={errorScripts}
             template={
-              <Template>
-                <RenderFromTemplateContext />
-              </Template>
+              // Only render SegmentViewNode when there's an actual template
+              isSegmentViewEnabled && templateFilePath ? (
+                <SegmentViewNode type="template" pagePath={templateFilePath}>
+                  {templateNode}
+                </SegmentViewNode>
+              ) : (
+                templateNode
+              )
             }
             templateStyles={templateStyles}
             templateScripts={templateScripts}
@@ -566,8 +600,20 @@ async function createComponentTreeInternal({
     parallelRouteCacheNodeSeedData[parallelRouteKey] = flightData
   }
 
-  const loadingData: LoadingModuleData = Loading
-    ? [<Loading key="l" />, loadingStyles, loadingScripts]
+  let loadingElement = Loading ? <Loading key="l" /> : null
+  if (isSegmentViewEnabled && loadingElement) {
+    const loadingFilePath = getConventionPathByType(tree, dir, 'loading')
+    if (loadingFilePath) {
+      loadingElement = (
+        <SegmentViewNode type="loading" pagePath={loadingFilePath}>
+          {loadingElement}
+        </SegmentViewNode>
+      )
+    }
+  }
+
+  const loadingData: LoadingModuleData = loadingElement
+    ? [loadingElement, loadingStyles, loadingScripts]
     : null
 
   // When the segment does not have a layout or page we still have to add the layout router to ensure the path holds the loading component
@@ -628,25 +674,8 @@ async function createComponentTreeInternal({
     )
   }
 
-  const dir = ctx.renderOpts.dir || process.cwd()
-  const isSegmentViewEnabled =
-    process.env.NODE_ENV === 'development' &&
-    ctx.renderOpts.devtoolSegmentExplorer
-  const nodeName = modType ?? 'page'
-
   if (isPage) {
-    const PageComponent = isSegmentViewEnabled
-      ? (pageProps: any) => {
-          return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
-              <Component {...pageProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
+    const PageComponent = Component
 
     // Assign searchParams to props if this is a page
     let pageElement: React.ReactNode
@@ -712,10 +741,27 @@ async function createComponentTreeInternal({
         )
       }
     }
+
+    const isDefaultSegment = segment === DEFAULT_SEGMENT_KEY
+    const pageFilePath =
+      getConventionPathByType(tree, dir, 'page') ??
+      getConventionPathByType(tree, dir, 'defaultPage')
+    const wrappedPageElement =
+      isSegmentViewEnabled && pageFilePath ? (
+        <SegmentViewNode
+          type={isDefaultSegment ? 'default' : 'page'}
+          pagePath={pageFilePath}
+        >
+          {pageElement}
+        </SegmentViewNode>
+      ) : (
+        pageElement
+      )
+
     return [
       actualSegment,
       <React.Fragment key={cacheNodeKey}>
-        {pageElement}
+        {wrappedPageElement}
         {layerAssets}
         <OutletBoundary>
           <MetadataOutlet ready={getViewportReady} />
@@ -727,19 +773,7 @@ async function createComponentTreeInternal({
       isPossiblyPartialResponse,
     ]
   } else {
-    const SegmentComponent = isSegmentViewEnabled
-      ? (segmentProps: any) => {
-          return (
-            <SegmentViewNode
-              type={nodeName}
-              pagePath={normalizePageOrLayoutFilePath(dir, layoutOrPagePath)}
-            >
-              <Component {...segmentProps} />
-            </SegmentViewNode>
-          )
-        }
-      : Component
-
+    const SegmentComponent = Component
     const isRootLayoutWithChildrenSlotAndAtLeastOneMoreSlot =
       rootLayoutAtThisLevel &&
       'children' in parallelRoutes &&
@@ -874,12 +908,12 @@ async function createComponentTreeInternal({
           <HTTPAccessFallbackBoundary
             key={cacheNodeKey}
             notFound={
-              NotFound ? (
+              notFoundElement ? (
                 <>
                   {layerAssets}
                   <SegmentComponent params={params}>
                     {notFoundStyles}
-                    <NotFound />
+                    {notFoundElement}
                   </SegmentComponent>
                 </>
               ) : undefined
@@ -898,10 +932,21 @@ async function createComponentTreeInternal({
         )
       }
     }
+
+    const layoutFilePath = getConventionPathByType(tree, dir, 'layout')
+    const wrappedSegmentNode =
+      isSegmentViewEnabled && layoutFilePath ? (
+        <SegmentViewNode type="layout" pagePath={layoutFilePath}>
+          {segmentNode}
+        </SegmentViewNode>
+      ) : (
+        segmentNode
+      )
+
     // For layouts we just render the component
     return [
       actualSegment,
-      segmentNode,
+      wrappedSegmentNode,
       parallelRouteCacheNodeSeedData,
       loadingData,
       isPossiblyPartialResponse,
@@ -1010,19 +1055,100 @@ function getRootParamsImpl(
   }
 }
 
-function normalizePageOrLayoutFilePath(
+async function createBoundaryConventionElement({
+  ctx,
+  conventionName,
+  Component,
+  styles,
+  tree,
+}: {
+  ctx: AppRenderContext
+  conventionName:
+    | 'not-found'
+    | 'error'
+    | 'loading'
+    | 'forbidden'
+    | 'unauthorized'
+  Component: React.ComponentType<any> | undefined
+  styles: React.ReactNode | undefined
+  tree: LoaderTree
+}) {
+  const isSegmentViewEnabled =
+    process.env.NODE_ENV === 'development' &&
+    ctx.renderOpts.devtoolSegmentExplorer
+  const dir =
+    process.env.NEXT_RUNTIME === 'edge'
+      ? process.env.__NEXT_EDGE_PROJECT_DIR!
+      : ctx.renderOpts.dir || ''
+  const { SegmentViewNode } = ctx.componentMod
+  const element = Component ? (
+    <>
+      <Component />
+      {styles}
+    </>
+  ) : undefined
+
+  const wrappedElement =
+    isSegmentViewEnabled && element ? (
+      <SegmentViewNode
+        type={conventionName}
+        pagePath={getConventionPathByType(tree, dir, conventionName)!}
+      >
+        {element}
+      </SegmentViewNode>
+    ) : (
+      element
+    )
+
+  return wrappedElement
+}
+
+export function normalizeConventionFilePath(
   projectDir: string,
-  layoutOrPagePath: string | undefined
+  conventionPath: string | undefined
 ) {
-  const relativePath = (layoutOrPagePath || '')
+  const cwd = process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd()
+  const nextInternalPrefixRegex =
+    /^(.*[\\/])?next[\\/]dist[\\/]client[\\/]components[\\/]/
+
+  let relativePath = (conventionPath || '')
     // remove turbopack [project] prefix
     .replace(/^\[project\][\\/]/, '')
-    // remove the process.cwd() prefix
-    .replace(process.cwd() + '/', '')
     // remove the project root from the path
     .replace(projectDir, '')
+    // remove cwd prefix
+    .replace(cwd, '')
     // remove /(src/)?app/ dir prefix
-    .replace(/^[\\/](src[\\/])?app[\\/]/, '')
+    .replace(/^([\\/])*(src[\\/])?app[\\/]/, '')
+
+  // If it's internal file only keep the filename, strip nextjs internal prefix
+  if (nextInternalPrefixRegex.test(relativePath)) {
+    relativePath = relativePath.replace(nextInternalPrefixRegex, '')
+  }
 
   return relativePath
+}
+
+function getConventionPathByType(
+  tree: LoaderTree,
+  dir: string,
+  conventionType:
+    | 'layout'
+    | 'template'
+    | 'page'
+    | 'not-found'
+    | 'error'
+    | 'loading'
+    | 'forbidden'
+    | 'unauthorized'
+    | 'defaultPage'
+) {
+  const modules = tree[2]
+  const conventionPath = modules[conventionType]
+    ? modules[conventionType][1]
+    : undefined
+  if (conventionPath) {
+    return normalizeConventionFilePath(dir, conventionPath)
+  }
+  return undefined
 }

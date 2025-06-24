@@ -342,7 +342,7 @@ pub async fn get_client_module_options_context(
             source_maps,
             ..Default::default()
         },
-        preset_env_versions: Some(env),
+        environment: Some(env),
         execution_context: Some(execution_context),
         tree_shaking_mode: tree_shaking_mode_for_user_code,
         enable_postcss_transform,

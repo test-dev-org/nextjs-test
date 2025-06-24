@@ -83,6 +83,7 @@ export const __next_app__ = {
 }
 
 import * as entryBase from '../../server/app-render/entry-base' with { 'turbopack-transition': 'next-server-utility' }
+import { RedirectStatusCode } from '../../client/components/redirect-status-code'
 
 export * from '../../server/app-render/entry-base' with { 'turbopack-transition': 'next-server-utility' }
 
@@ -997,6 +998,16 @@ export async function handler(
       // behind the experimental PPR flag.
       if (cachedData.status && (!isRSCRequest || !isRoutePPREnabled)) {
         res.statusCode = cachedData.status
+      }
+
+      // Redirect information is encoded in RSC payload, so we don't need to use redirect status codes
+      if (
+        !minimalMode &&
+        cachedData.status &&
+        RedirectStatusCode[cachedData.status] &&
+        isRSCRequest
+      ) {
+        res.statusCode = 200
       }
 
       // Mark that the request did postpone.
