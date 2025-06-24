@@ -7,7 +7,6 @@ const nextConfig = {
     dynamicIO: true,
     enablePrerenderSourceMaps: true,
     serverSourceMaps: true,
-    devtoolNewPanelUI: true,
   },
   serverExternalPackages: ['external-pkg'],
 }
