@@ -24,7 +24,7 @@ export function IssuesTabContentLayout({
   debugInfo: DebugInfo
   children: React.ReactNode
 
-  errorCode?: string
+  errorCode?: string | null
   environmentName?: string
 }) {
   return (

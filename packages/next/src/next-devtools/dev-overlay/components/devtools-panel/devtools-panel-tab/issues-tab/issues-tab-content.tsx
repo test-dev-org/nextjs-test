@@ -79,13 +79,7 @@ function ErrorContent({
   debugInfo: DebugInfo
   errorCode: string | null | undefined
 }) {
-  // If there's an activeError, the rest should have a value.
-  if (
-    !activeError ||
-    errorType === null ||
-    errorCode === null ||
-    errorDetails === null
-  ) {
+  if (!activeError || !errorType) {
     return <IssuesTabEmptyContent />
   }
 
@@ -120,7 +114,7 @@ function ErrorContent({
           </p>
         ) : null}
       </div>
-      {errorDetails.reactOutputComponentDiff ? (
+      {errorDetails?.reactOutputComponentDiff ? (
         <PseudoHtmlDiff
           reactOutputComponentDiff={errorDetails.reactOutputComponentDiff || ''}
         />
