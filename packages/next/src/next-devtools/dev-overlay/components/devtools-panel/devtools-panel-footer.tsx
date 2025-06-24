@@ -1,8 +1,8 @@
 import type { OverlayState } from '../../shared'
 
 import { DevToolsPanelVersionInfo } from './devtools-panel-version-info'
-import { QuestionIcon } from '../../icons/question'
-import { BugIcon } from '../../icons/bug'
+// import { QuestionIcon } from '../../icons/question'
+// import { BugIcon } from '../../icons/bug'
 import { css } from '../../utils/css'
 
 export function DevToolsPanelFooter({
@@ -35,14 +35,15 @@ export function DevToolsPanelFooter({
         </div>
       </div>
       <div data-nextjs-devtools-panel-footer-action-button-group>
-        {/* TODO: Add help feature, details TBD */}
+        {/* Commented out since they are expected to be brought back in the future. */}
+        {/* TODO: Add help feature, details TBD
         <button data-nextjs-devtools-panel-footer-action-button>
           <QuestionIcon width={16} height={16} />
         </button>
-        {/* TODO: Add debugging/report GitHub issue feature, details TBD */}
+        TODO: Add debugging/report GitHub issue feature, details TBD
         <button data-nextjs-devtools-panel-footer-action-button>
           <BugIcon width={16} height={16} />
-        </button>
+        </button> */}
       </div>
     </div>
   )
