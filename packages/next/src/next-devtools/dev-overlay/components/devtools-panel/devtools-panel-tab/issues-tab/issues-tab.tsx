@@ -8,6 +8,7 @@ import { IssuesTabContent } from './issues-tab-content'
 import { css } from '../../../../utils/css'
 import { useActiveRuntimeError } from '../../../../hooks/use-active-runtime-error'
 import { Warning } from '../../../../icons/warning'
+import { IssuesTabContentLayout } from './issues-tab-content-layout'
 
 export function IssuesTab({
   debugInfo,
@@ -59,16 +60,21 @@ export function IssuesTab({
       />
 
       {/* This is the copy of the Error Overlay content. */}
-      <IssuesTabContent
-        buildError={buildError}
-        notes={notes}
-        hydrationWarning={hydrationWarning}
-        errorDetails={errorDetails}
+      <IssuesTabContentLayout
         activeError={activeError}
-        debugInfo={debugInfo}
+        hydrationWarning={hydrationWarning}
         errorCode={errorCode}
         errorType={errorType}
-      />
+        debugInfo={debugInfo}
+      >
+        <IssuesTabContent
+          buildError={buildError}
+          notes={notes}
+          hydrationWarning={hydrationWarning}
+          errorDetails={errorDetails}
+          activeError={activeError}
+        />
+      </IssuesTabContentLayout>
     </div>
   )
 }

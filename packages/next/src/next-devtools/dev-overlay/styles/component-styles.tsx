@@ -37,6 +37,7 @@ import { ISSUE_FEEDBACK_BUTTON_STYLES } from '../components/errors/error-overlay
 import { ERROR_CONTENT_SKELETON_STYLES } from '../container/runtime-error/error-content-skeleton'
 import { SEGMENTS_EXPLORER_TAB_STYLES } from '../components/devtools-panel/devtools-panel-tab/segments-explorer-tab'
 import { SEGMENTS_EXPLORER_STYLES } from '../components/errors/dev-tools-indicator/dev-tools-info/segments-explorer'
+import { DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_LAYOUT_STYLES } from '../components/devtools-panel/devtools-panel-tab/issues-tab/issues-tab-content-layout'
 
 export function ComponentStyles() {
   return (
@@ -77,6 +78,7 @@ export function ComponentStyles() {
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_SIDEBAR_FRAME_SKELETON_STYLES}
         ${DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_STYLES}
+        ${DEVTOOLS_PANEL_TAB_ISSUES_CONTENT_LAYOUT_STYLES}
         ${ISSUE_FEEDBACK_BUTTON_STYLES}
         ${ERROR_CONTENT_SKELETON_STYLES}
         ${SEGMENTS_EXPLORER_TAB_STYLES}
