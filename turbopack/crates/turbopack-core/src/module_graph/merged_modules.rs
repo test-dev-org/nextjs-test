@@ -25,11 +25,17 @@ pub struct MergedModuleInfo {
     /// A map of modules to the merged module containing the module plus additional modules.
     #[allow(clippy::type_complexity)]
     pub replacements: FxHashMap<ResolvedVc<Box<dyn Module>>, ResolvedVc<Box<dyn ChunkableModule>>>,
+    /// A map of replacement modules to their corresponding chunk group info (which is the same as
+    /// the chunk group info of the original module it replaced).
+    #[allow(clippy::type_complexity)]
+    pub replacements_to_original:
+        FxHashMap<ResolvedVc<Box<dyn Module>>, ResolvedVc<Box<dyn Module>>>,
     /// A map of modules that are already contained as values in replacements.
     pub included: FxHashSet<ResolvedVc<Box<dyn Module>>>,
 }
 
 impl MergedModuleInfo {
+    /// Whether the given module should be replaced with a merged module.
     pub fn should_replace_module(
         &self,
         module: ResolvedVc<Box<dyn Module>>,
@@ -37,6 +43,17 @@ impl MergedModuleInfo {
         self.replacements.get(&module).copied()
     }
 
+    /// Returns the original module for the given replacement module (useful for retrieving the
+    /// chunk group info).
+    pub fn get_original_module(
+        &self,
+        module: ResolvedVc<Box<dyn Module>>,
+    ) -> Option<ResolvedVc<Box<dyn Module>>> {
+        self.replacements_to_original.get(&module).copied()
+    }
+
+    // Whether the given module should be skipped during chunking, as it is already included in a
+    // module returned by some `should_replace_module` call.
     pub fn should_create_chunk_item_for(&self, module: ResolvedVc<Box<dyn Module>>) -> bool {
         !self.included.contains(&module)
     }
@@ -528,7 +545,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
                     result,
                     list.into_iter()
                         .take(list_len - 1)
-                        .map(ResolvedVc::upcast)
+                        .map(ResolvedVc::upcast::<Box<dyn Module>>)
                         .collect::<Vec<_>>(),
                 )))
             })
@@ -540,10 +557,16 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
             ResolvedVc<Box<dyn Module>>,
             ResolvedVc<Box<dyn ChunkableModule>>,
         > = Default::default();
+        #[allow(clippy::type_complexity)]
+        let mut replacements_to_original: FxHashMap<
+            ResolvedVc<Box<dyn Module>>,
+            ResolvedVc<Box<dyn Module>>,
+        > = Default::default();
         let mut included: FxHashSet<ResolvedVc<Box<dyn Module>>> = FxHashSet::default();
 
         for (original, replacement, replacement_included) in result.into_iter().flatten() {
             replacements.insert(original, replacement);
+            replacements_to_original.insert(ResolvedVc::upcast(replacement), original);
             included.extend(replacement_included);
         }
 
@@ -552,6 +575,7 @@ pub async fn compute_merged_modules(module_graph: Vc<ModuleGraph>) -> Result<Vc<
 
         Ok(MergedModuleInfo {
             replacements,
+            replacements_to_original,
             included,
         }
         .cell())
