@@ -1,4 +1,11 @@
-import type { OverlayDispatch, OverlayState } from './shared'
+import {
+  ACTION_DEVTOOLS_PANEL_OPEN,
+  ACTION_ERROR_OVERLAY_OPEN,
+  type OverlayDispatch,
+  type OverlayState,
+} from './shared'
+
+import { useState } from 'react'
 
 import { ShadowPortal } from './components/shadow-portal'
 import { Base } from './styles/base'
@@ -24,6 +31,20 @@ export function DevOverlay({
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
   const [scale, setScale] = useDevToolsScale()
+  const [isPrevBuildError, setIsPrevBuildError] = useState(false)
+
+  const isBuildError = state.buildError !== null
+
+  if (isBuildError !== isPrevBuildError) {
+    // If the build error is set, enable the devtools panel as the error overlay mode,
+    // and the rest actions (close, minimize, fullscreen) can be handled by the user.
+    if (isBuildError) {
+      dispatch({ type: ACTION_DEVTOOLS_PANEL_OPEN })
+      dispatch({ type: ACTION_ERROR_OVERLAY_OPEN })
+    }
+    setIsPrevBuildError(isBuildError)
+  }
+
   return (
     <ShadowPortal>
       <CssReset />
@@ -36,7 +57,6 @@ export function DevOverlay({
 
       <RenderError state={state} isAppDir={true}>
         {({ runtimeErrors, totalErrorCount }) => {
-          const isBuildError = state.buildError !== null
           return (
             <>
               {state.showIndicator &&
