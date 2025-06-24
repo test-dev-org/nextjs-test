@@ -7086,9 +7086,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "29.1.3"
+version = "29.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29d946b5f2997c7aa2077f6af4badbe87cc5311ebe0df1434edf5a12303c150f"
+checksum = "652bfb5da2b20fd9d39b767a34df30ae3d66c0bf8b0014c4d56e87fc8024a178"
 dependencies = [
  "binding_macros",
  "par-core",
@@ -7598,9 +7598,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "23.0.2"
+version = "23.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50b6d32c649a7c78973768b629c8d60f06774be2a648b03c9c342200d4fd9f8b"
+checksum = "074576937cf3c1749edd06cd05573fc2fed9570c57e9e28f870c1e525ec97bb1"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
