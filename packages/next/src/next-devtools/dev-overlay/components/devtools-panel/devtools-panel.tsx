@@ -243,6 +243,10 @@ export const DEVTOOLS_PANEL_STYLES = css`
     @media (min-width: 992px) {
       max-width: 960px;
     }
+
+    @media (min-width: 1200px) {
+      max-width: 1140px;
+    }
   }
 
   [data-nextjs-devtools-panel-overlay-backdrop] {
@@ -271,7 +275,7 @@ export const DEVTOOLS_PANEL_STYLES = css`
     box-shadow: var(--shadow-lg);
     position: relative;
     width: 100%;
-    max-height: 50vh;
+    max-height: 75vh;
     min-height: 450px;
   }
 
