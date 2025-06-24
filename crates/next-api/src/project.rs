@@ -1326,8 +1326,10 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            Layer::new(rcstr!("middleware-edge"))
-                .with_user_friendly_name(rcstr!("Edge Middleware")),
+            Layer::new_with_user_friendly_name(
+                rcstr!("middleware-edge"),
+                rcstr!("Edge Middleware"),
+            ),
         )))
     }
 
@@ -1382,7 +1384,7 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            Layer::new(rcstr!("middleware")).with_user_friendly_name(rcstr!("Middleware")),
+            Layer::new_with_user_friendly_name(rcstr!("middleware"), rcstr!("Middleware")),
         )))
     }
 
@@ -1495,8 +1497,10 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            Layer::new(rcstr!("instrumentation"))
-                .with_user_friendly_name(rcstr!("Instrumentation")),
+            Layer::new_with_user_friendly_name(
+                rcstr!("instrumentation"),
+                rcstr!("Instrumentation"),
+            ),
         )))
     }
 
@@ -1552,8 +1556,10 @@ impl Project {
                 self.next_config(),
                 self.execution_context(),
             ),
-            Layer::new(rcstr!("instrumentation"))
-                .with_user_friendly_name(rcstr!("Edge Instrumentation")),
+            Layer::new_with_user_friendly_name(
+                rcstr!("instrumentation"),
+                rcstr!("Edge Instrumentation"),
+            ),
         )))
     }
 

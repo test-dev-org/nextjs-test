@@ -38,10 +38,11 @@ impl Layer {
             user_friendly_name: None,
         }
     }
-    pub fn with_user_friendly_name(self, user_friendly_name: RcStr) -> Self {
+    pub fn new_with_user_friendly_name(name: RcStr, user_friendly_name: RcStr) -> Self {
+        debug_assert!(!name.is_empty());
         debug_assert!(!user_friendly_name.is_empty());
         Self {
-            name: self.name,
+            name,
             user_friendly_name: Some(user_friendly_name),
         }
     }
