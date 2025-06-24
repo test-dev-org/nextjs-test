@@ -22,7 +22,7 @@ use turbo_tasks_fs::{
 };
 use turbopack::{
     ModuleAssetContext,
-    ecmascript::{EcmascriptInputTransform, TreeShakingMode},
+    ecmascript::{EcmascriptInputTransform, TreeShakingMode, chunk::EcmascriptChunkType},
     module_options::{
         CssOptionsContext, EcmascriptOptionsContext, JsxTransformOptions, ModuleOptionsContext,
         ModuleRule, ModuleRuleEffect, RuleCondition,
@@ -32,7 +32,7 @@ use turbopack_browser::BrowserChunkingContext;
 use turbopack_core::{
     asset::Asset,
     chunk::{
-        ChunkingContext, ChunkingContextExt, EvaluatableAsset, EvaluatableAssetExt,
+        ChunkingConfig, ChunkingContext, ChunkingContextExt, EvaluatableAsset, EvaluatableAssetExt,
         EvaluatableAssets, MinifyType, availability_info::AvailabilityInfo,
     },
     compile_time_defines,
@@ -99,6 +99,8 @@ struct SnapshotOptions {
     remove_unused_exports: bool,
     #[serde(default)]
     scope_hoisting: bool,
+    #[serde(default)]
+    production_chunking: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -127,6 +129,7 @@ impl Default for SnapshotOptions {
             tree_shaking_mode: Default::default(),
             remove_unused_exports: false,
             scope_hoisting: false,
+            production_chunking: false,
         }
     }
 }
@@ -354,8 +357,8 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
     let static_root_path = project_path.join(rcstr!("static")).to_resolved().await?;
 
     let chunking_context: Vc<Box<dyn ChunkingContext>> = match options.runtime {
-        Runtime::Browser => Vc::upcast(
-            BrowserChunkingContext::builder(
+        Runtime::Browser => {
+            let mut builder = BrowserChunkingContext::builder(
                 project_root,
                 project_path,
                 project_path_to_project_root,
@@ -365,11 +368,23 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                 env,
                 options.runtime_type,
             )
-            .module_merging(options.scope_hoisting)
-            .build(),
-        ),
-        Runtime::NodeJs => Vc::upcast(
-            NodeJsChunkingContext::builder(
+            .module_merging(options.scope_hoisting);
+
+            if options.production_chunking {
+                builder = builder.chunking_config(
+                    Vc::<EcmascriptChunkType>::default().to_resolved().await?,
+                    ChunkingConfig {
+                        min_chunk_size: 2_000,
+                        max_chunk_count_per_group: 40,
+                        max_merge_chunk_size: 200_000,
+                        ..Default::default()
+                    },
+                )
+            }
+            Vc::upcast(builder.build())
+        }
+        Runtime::NodeJs => {
+            let mut builder = NodeJsChunkingContext::builder(
                 project_root,
                 project_path,
                 project_path_to_project_root,
@@ -380,9 +395,21 @@ async fn run_test_operation(resource: RcStr) -> Result<Vc<FileSystemPath>> {
                 options.runtime_type,
             )
             .minify_type(options.minify_type)
-            .module_merging(options.scope_hoisting)
-            .build(),
-        ),
+            .module_merging(options.scope_hoisting);
+
+            if options.production_chunking {
+                builder = builder.chunking_config(
+                    Vc::<EcmascriptChunkType>::default().to_resolved().await?,
+                    ChunkingConfig {
+                        min_chunk_size: 2_000,
+                        max_chunk_count_per_group: 40,
+                        max_merge_chunk_size: 200_000,
+                        ..Default::default()
+                    },
+                )
+            }
+            Vc::upcast(builder.build())
+        }
     };
 
     let expected_paths = expected(*chunk_root_path)
