@@ -1,6 +1,5 @@
 import { nextTestSetup } from 'e2e-utils'
-import https from 'https'
-import { renderViaHTTP, shouldRunTurboDevTest } from 'next-test-utils'
+import { shouldRunTurboDevTest } from 'next-test-utils'
 
 describe('experimental-https-server OpenGraph image', () => {
   const { next, skipped } = nextTestSetup({
@@ -18,15 +17,14 @@ describe('experimental-https-server OpenGraph image', () => {
     return
   }
 
-  const agent = new https.Agent({
-    rejectUnauthorized: false,
-  })
-
   it('should generate https:// URLs for OpenGraph images when experimental HTTPS is enabled', async () => {
     expect(next.url).toContain('https://')
-    const html = await renderViaHTTP(next.url, '/1', undefined, { agent })
+    const browser = await next.browser('/1', {
+      ignoreHTTPSErrors: true,
+    })
+    const html = await browser.eval('document.documentElement.innerHTML')
     expect(html).toContain('Hello from App')
     expect(html).toMatch(/<meta property="og:image" content="https:\/\//)
-    expect(html).toMatch(/<meta property="twitter:image" content="https:\/\//)
+    expect(html).toMatch(/<meta name="twitter:image" content="https:\/\//)
   })
 })
