@@ -655,8 +655,8 @@ export async function handler(
         pageIsDynamic &&
         (isProduction || !isPrerendered)
       ) {
-        // if the page is dynamicParams: false and this pathname wasn't prerender
-        // trigger the no fallback handling
+        // if the page has dynamicParams: false and this pathname wasn't
+        // prerendered trigger the no fallback handling
         if (
           // In development, fall through to render to handle missing
           // getStaticPaths.
