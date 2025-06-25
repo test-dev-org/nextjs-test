@@ -1,0 +1,564 @@
+import type { StackFrame } from 'next/dist/compiled/stacktrace-parser'
+import type {
+  OriginalStackFramesRequest,
+  OriginalStackFramesResponse,
+} from '../../next-devtools/server/shared'
+import { cyan, red, yellow, blue, white } from '../../lib/picocolors'
+import { parseStack } from '../lib/parse-stack'
+import path, { parse } from 'path'
+import { getOriginalStackFrames as getOriginalStackFramesWebpack } from './middleware-webpack'
+import { getOriginalStackFrames as getOriginalStackFramesTurbopack } from './middleware-turbopack'
+import type { Project } from '../../build/swc/types'
+// is this safe with edge stuff, idk, because the other edge check im sus, but we already used path soo
+import util from 'util'
+
+// todo: share with client
+const UNDEFINED_MARKER = '__next_tagged_undefined'
+
+export function restoreUndefined(x: any): any {
+  if (x === UNDEFINED_MARKER) return undefined
+  if (Array.isArray(x)) return x.map(restoreUndefined)
+  if (x && typeof x === 'object') {
+    for (let k in x) {
+      x[k] = restoreUndefined(x[k])
+    }
+  }
+  return x
+}
+
+// to not get confused if something is a debug log or forwarded log
+const forwardConsole = console
+
+// const levelColors = {
+//   log: white,
+//   info: blue,
+//   warn: yellow,
+//   error: red,
+//   debug: white,
+//   table: white,
+// } as const
+
+// wtf is the point of this file
+// not actually shared fire
+export type LogLevel = 'log' | 'info' | 'warn' | 'debug' | 'table'
+
+export type ConsoleEntry = {
+  kind: 'console'
+  level: LogLevel
+  args: Array<
+    | {
+        kind: 'arg'
+        data: any
+      }
+    | {
+        kind: 'formatted-error-arg'
+        prefix: string
+        stack: string
+      }
+  >
+}
+
+export type ConsoleErrorEntry = {
+  kind: 'console-error'
+  level: 'error'
+  consoleErrorStack: string
+  args: Array<
+    | {
+        kind: 'arg'
+        data: any
+      }
+    | {
+        kind: 'formatted-error-arg'
+        prefix: string
+        stack: string
+      }
+  >
+}
+
+export type FormattedErrorEntry = {
+  kind: 'formatted-error'
+  prefix: string
+  stack: string
+  level: 'error'
+}
+
+export type LogEntry = ConsoleEntry | ConsoleErrorEntry | FormattedErrorEntry
+
+type WebpackMappingContext = {
+  bundler: 'webpack'
+  isServer: boolean
+  isEdgeServer: boolean
+  isAppDirectory: boolean
+  clientStats: () => any
+  serverStats: () => any
+  edgeServerStats: () => any
+  rootDirectory: string
+}
+
+type TurbopackMappingContext = {
+  bundler: 'turbopack'
+  isServer: boolean
+  isEdgeServer: boolean
+  isAppDirectory: boolean
+  project: Project
+  projectPath: string
+}
+
+type MappingContext = WebpackMappingContext | TurbopackMappingContext
+
+async function mapFramesUsingBundler(
+  frames: StackFrame[],
+  ctx: MappingContext
+): Promise<OriginalStackFramesResponse> {
+  switch (ctx.bundler) {
+    case 'webpack': {
+      const {
+        isServer,
+        isEdgeServer,
+        isAppDirectory,
+        clientStats,
+        serverStats,
+        edgeServerStats,
+        rootDirectory,
+      } = ctx
+      return getOriginalStackFramesWebpack({
+        isServer,
+        isEdgeServer,
+        isAppDirectory,
+        frames,
+        clientStats,
+        serverStats,
+        edgeServerStats,
+        rootDirectory,
+      })
+    }
+    case 'turbopack': {
+      const { project, projectPath, isServer, isEdgeServer, isAppDirectory } =
+        ctx
+      return getOriginalStackFramesTurbopack({
+        project,
+        projectPath,
+        frames,
+        isServer,
+        isEdgeServer,
+        isAppDirectory,
+      })
+    }
+  }
+}
+
+// function isStackTrace(str: string): boolean {
+//   return str.includes('    at ')
+// }
+
+// old
+// function cleanFileUrls(text: string): string {
+
+//   return text.replace(/\bfile:\/{1,3}([^)\s\n]+)/g, (_, pathWithLocation) => {
+//     const parts = pathWithLocation.split(':')
+//     const filePath = parts[0]
+//     const location = parts.length > 1 ? ':' + parts.slice(1).join(':') : ''
+
+//     try {
+//       const relativePath = path.relative(process.cwd(), filePath)
+//       const cleanPath = relativePath.startsWith('..') ? filePath : relativePath
+//       return cleanPath + location
+//     } catch {
+//       return pathWithLocation
+//     }
+//   })
+// }
+
+// converts _next/static/chunks/... to file:///.next/static/chunks/... for parseStack
+// todo: where does next dev overlay handle this case and re-use that logic
+function preprocessStackTrace(stackTrace: string, distDir?: string): string {
+  return stackTrace
+    .split('\n')
+    .map((line) => {
+      const match = line.match(/^(\s*at\s+.*?)\s+\(([^)]+)\)$/)
+      if (match) {
+        const [, prefix, location] = match
+
+        if (location.startsWith('_next/static/') && distDir) {
+          const normalizedDistDir = distDir
+            .replace(/\\/g, '/')
+            .replace(/\/$/, '')
+
+          const absolutePath =
+            normalizedDistDir + '/' + location.slice('_next/'.length)
+          const fileUrl = `file://${path.resolve(absolutePath)}`
+
+          return `${prefix} (${fileUrl})`
+        }
+      }
+
+      return line
+    })
+    .join('\n')
+}
+
+async function getSourceMappedStackFrames(
+  stackTrace: string,
+  ctx: MappingContext,
+  distDir?: string
+) {
+  try {
+    const normalizedStack = preprocessStackTrace(stackTrace, distDir)
+    const frames = parseStack(normalizedStack, distDir)
+
+    if (frames.length === 0) {
+      return {
+        kind: 'stack' as const,
+        stack: stackTrace,
+      }
+    }
+
+    const mappingResults = await mapFramesUsingBundler(frames, ctx)
+
+    const processedFrames = mappingResults
+      .map((result, index) => ({
+        result,
+        originalFrame: frames[index],
+      }))
+      .map(({ result, originalFrame }) => {
+        if (result.status === 'rejected') {
+          return {
+            frameText: formatStackFrame(originalFrame),
+            codeFrame: null,
+          }
+        }
+
+        const { originalStackFrame, originalCodeFrame } = result.value
+
+        // ignored frames are internal framework gunk, maybe we want this configurable by user
+        if (!originalStackFrame || originalStackFrame.ignored) {
+          return null
+        }
+
+        return {
+          frameText: formatStackFrame(originalStackFrame),
+          codeFrame: originalCodeFrame,
+        }
+      })
+      .filter((val) => !!val)
+
+    if (processedFrames.length === 0) {
+      return {
+        kind: 'stack' as const,
+        stack: stackTrace,
+      }
+    }
+
+    const stackOutput = processedFrames
+      .map((frame) => frame.frameText)
+      .join('\n')
+    const firstFrameCode = processedFrames.find(
+      (frame) => frame.codeFrame
+    )?.codeFrame
+
+    if (firstFrameCode) {
+      return {
+        kind: 'with-frame-code' as const,
+        frameCode: firstFrameCode,
+        stack: stackOutput,
+      }
+    }
+
+    return {
+      kind: 'stack' as const,
+      stack: stackOutput,
+    }
+  } catch (error) {
+    return {
+      kind: 'stack' as const,
+      stack: stackTrace,
+    }
+  }
+}
+
+function formatStackFrame(frame: StackFrame): string {
+  const functionName = frame.methodName || '<anonymous>'
+  const location =
+    frame.file && frame.lineNumber
+      ? `${frame.file}:${frame.lineNumber}${frame.column ? `:${frame.column}` : ''}`
+      : frame.file || '<unknown>'
+
+  return `    at ${functionName} (${location})`
+}
+
+// async function processErrorArgs(
+//   args: any[],
+//   ctx: MappingContext,
+//   distDir?: string
+// ): Promise<any[]> {
+//   const processedArgs = await Promise.all(
+//     args.map(async (arg) => {
+//       if (typeof arg !== 'string' || !isStackTrace(arg)) {
+//         return arg
+//       }
+
+//       try {
+//         const sourceMapped = await getSourceMappedStackFrames(arg, ctx, distDir)
+//         // return cleanFileUrls(sourceMapped)
+//         return sourceMapped
+//       } catch (error) {
+//         return arg
+//       }
+//     })
+//   )
+
+//   return processedArgs
+// }
+
+function deserializeArgData(arg: any) {
+  // undefined
+  // if (arg === undefined) {
+  //   return undefined
+  // }
+  // console.log('after json parse', JSON.parse(arg));
+
+  try {
+    // we want undefined to be represented as it would be in the browser from the user's perspective
+    const parsed = JSON.parse(arg)
+    if (typeof parsed === 'string' && parsed.includes(UNDEFINED_MARKER)) {
+      console.log('WHAT IS PARSED', parsed, parsed === UNDEFINED_MARKER)
+    }
+
+    return restoreUndefined(JSON.parse(arg))
+  } catch {
+    return arg
+  }
+}
+
+const colorSourceMappedStackFrames = (
+  mapped: Awaited<ReturnType<typeof getSourceMappedStackFrames>>,
+  config?: {
+    prefix?: string
+    applyColor?: boolean
+  }
+) => {
+  const colorFn =
+    config?.applyColor === undefined || config.applyColor ? red : <T>(x: T) => x
+  if (mapped.kind === 'with-frame-code') {
+    return (
+      (config?.prefix ? colorFn(config?.prefix) : '') +
+      `\n${colorFn(mapped.stack)}\n${mapped.frameCode}`
+    )
+  }
+
+  return (
+    (config?.prefix ? colorFn(config?.prefix) : '') +
+    `\n${colorFn(mapped.stack)}`
+  )
+}
+
+async function enhanceErrors(
+  entry: LogEntry,
+  ctx: MappingContext,
+  distDir?: string
+): Promise<Array<any>> {
+  switch (entry.kind) {
+    case 'formatted-error': {
+      const mappedStack = await getSourceMappedStackFrames(
+        entry.stack,
+        ctx,
+        distDir
+      )
+      return [
+        colorSourceMappedStackFrames(mappedStack, { prefix: entry.prefix }),
+      ]
+    }
+    case 'console': {
+      const deserializedArgs = await Promise.all(
+        entry.args.map(async (arg) => {
+          switch (arg.kind) {
+            case 'arg': {
+              return deserializeArgData(arg.data)
+            }
+            case 'formatted-error-arg': {
+              const mappedStack = await getSourceMappedStackFrames(
+                arg.stack,
+                ctx,
+                distDir
+              )
+              return colorSourceMappedStackFrames(mappedStack, {
+                prefix: arg.prefix,
+                applyColor: false,
+              })
+            }
+          }
+        })
+      )
+      return deserializedArgs
+    }
+    case 'console-error': {
+      const deserializedArgs = await Promise.all(
+        entry.args.map(async (arg) => {
+          switch (arg.kind) {
+            case 'arg': {
+              // hm
+              return red(inspectDeep(arg.data))
+            }
+            case 'formatted-error-arg': {
+              const mappedStack = await getSourceMappedStackFrames(
+                arg.stack,
+                ctx,
+                distDir
+              )
+              return colorSourceMappedStackFrames(mappedStack, {
+                prefix: arg.prefix,
+              })
+            }
+          }
+        })
+      )
+
+      if (entry.args.some((arg) => arg.kind === 'formatted-error-arg')) {
+        // then we already are showing the pretty stack, we don't need to show it twice (though the console stack has slightly different info than the error stack)
+        return deserializedArgs
+      }
+      const mappedStack = await getSourceMappedStackFrames(
+        entry.consoleErrorStack,
+        ctx,
+        distDir
+      )
+
+      return [...deserializedArgs, colorSourceMappedStackFrames(mappedStack)]
+    }
+  }
+}
+
+export async function receiveEvent(
+  entries: LogEntry[],
+  ctx: MappingContext,
+  distDir?: string
+): Promise<void> {
+  const browserPrefix = cyan('[browser]')
+
+  for (const entry of entries) {
+    try {
+      switch (entry.kind) {
+        case 'console': {
+          if (entry.level === 'table') {
+            const deserializedArgs = await Promise.all(
+              entry.args.map(async (arg) => {
+                // browser behavior when console.table(new Error) is showing stack in table
+                if (arg.kind === 'formatted-error-arg') {
+                  return {
+                    stack: arg.stack,
+                  }
+                }
+
+                return deserializeArgData(arg.data)
+              })
+            )
+            // can't inline a browser prefix to console table
+            forwardConsole.log(browserPrefix)
+            forwardConsole.table(...deserializedArgs)
+            continue
+          }
+
+          const loggableEntry = await enhanceErrors(entry, ctx, distDir)
+          const consoleMethod =
+            forwardConsole[entry.level] || forwardConsole.log
+          consoleMethod(browserPrefix, ...loggableEntry)
+          break
+        }
+        case 'console-error':
+        case 'formatted-error': {
+          const consoleErrorArgs = await enhanceErrors(entry, ctx, distDir)
+          forwardConsole.error(browserPrefix, ...consoleErrorArgs)
+          break
+        }
+      }
+    } catch {
+      switch (entry.kind) {
+        case 'console-error':
+        case 'console': {
+          const consoleMethod =
+            forwardConsole[entry.level] || forwardConsole.log
+          consoleMethod(browserPrefix, ...entry.args)
+          break
+        }
+        case 'formatted-error': {
+          forwardConsole.error(browserPrefix, `${entry.prefix}\n`, entry.stack)
+          break
+        }
+      }
+    }
+  }
+}
+function inspectDeep(arg: unknown): string {
+  if (typeof arg === 'string') {
+    return arg
+  }
+  return util.inspect(arg, {
+    colors: true,
+    depth: null, // this is configured by user during frontend serialization
+  })
+}
+
+export async function receiveBrowserLogsWebpack(opts: {
+  entries: LogEntry[]
+  router: 'app' | 'pages'
+  sourceType?: 'server' | 'edge-server'
+  clientStats: () => any
+  serverStats: () => any
+  edgeServerStats: () => any
+  rootDirectory: string
+  distDir?: string
+}): Promise<void> {
+  const {
+    entries,
+    router,
+    sourceType,
+    clientStats,
+    serverStats,
+    edgeServerStats,
+    rootDirectory,
+    distDir,
+  } = opts
+
+  const isAppDirectory = router === 'app'
+  const isServer = sourceType === 'server'
+  const isEdgeServer = sourceType === 'edge-server'
+
+  const ctx: MappingContext = {
+    bundler: 'webpack',
+    isServer,
+    isEdgeServer,
+    isAppDirectory,
+    clientStats,
+    serverStats,
+    edgeServerStats,
+    rootDirectory,
+  }
+
+  await receiveEvent(entries, ctx, distDir)
+}
+
+export async function receiveBrowserLogsTurbopack(opts: {
+  entries: LogEntry[]
+  router: 'app' | 'pages'
+  sourceType?: 'server' | 'edge-server'
+  project: Project
+  projectPath: string
+  distDir?: string
+}): Promise<void> {
+  const { entries, router, sourceType, project, projectPath, distDir } = opts
+
+  const isAppDirectory = router === 'app'
+  const isServer = sourceType === 'server'
+  const isEdgeServer = sourceType === 'edge-server'
+
+  const ctx: MappingContext = {
+    bundler: 'turbopack',
+    project,
+    projectPath,
+    isServer,
+    isEdgeServer,
+    isAppDirectory,
+  }
+
+  await receiveEvent(entries, ctx, distDir)
+}

@@ -31,6 +31,7 @@ import reportHmrLatency from '../../report-hmr-latency'
 import { TurbopackHmr } from '../turbopack-hot-reloader-common'
 import { NEXT_HMR_REFRESH_HASH_COOKIE } from '../../../components/app-router-headers'
 import type { GlobalErrorState } from '../../../components/app-router-instance'
+import { useForwardConsoleLog } from '../../../../next-devtools/userspace/app/errors/use-forward-console-log'
 
 let mostRecentCompilationHash: any = null
 let __nextDevClientId = Math.round(Math.random() * 100 + Date.now())
@@ -453,11 +454,16 @@ export default function HotReload({
   children: ReactNode
   globalError: GlobalErrorState
 }) {
+  console.log('hot reload')
+
+  // oh something something
   useErrorHandler(dispatcher.onUnhandledError, dispatcher.onUnhandledRejection)
 
-  const webSocketRef = useWebsocket(assetPrefix)
-  useWebsocketPing(webSocketRef)
-  const sendMessage = useSendMessage(webSocketRef)
+  const socket = useWebsocket(assetPrefix)
+
+  useWebsocketPing(socket)
+  const sendMessage = useSendMessage(socket)
+  useForwardConsoleLog(socket)
   const processTurbopackMessage = useTurbopack(sendMessage, (err) =>
     performFullReload(err, sendMessage)
   )
@@ -505,8 +511,8 @@ export default function HotReload({
   }
 
   useEffect(() => {
-    const websocket = webSocketRef.current
-    if (!websocket) return
+    // this is a bug
+    if (!socket) return
 
     const handler = (event: MessageEvent<any>) => {
       try {
@@ -524,15 +530,9 @@ export default function HotReload({
       }
     }
 
-    websocket.addEventListener('message', handler)
-    return () => websocket.removeEventListener('message', handler)
-  }, [
-    sendMessage,
-    router,
-    webSocketRef,
-    processTurbopackMessage,
-    appIsrManifestRef,
-  ])
+    socket.addEventListener('message', handler)
+    return () => socket.removeEventListener('message', handler)
+  }, [sendMessage, router, socket, processTurbopackMessage, appIsrManifestRef])
 
   return (
     <AppDevOverlayErrorBoundary globalError={globalError}>

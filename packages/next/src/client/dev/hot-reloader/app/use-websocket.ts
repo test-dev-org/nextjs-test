@@ -1,38 +1,42 @@
-import { useCallback, useContext, useEffect, useRef } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { GlobalLayoutRouterContext } from '../../../../shared/lib/app-router-context.shared-runtime'
 import { getSocketUrl } from '../get-socket-url'
 import type { TurbopackMsgToBrowser } from '../../../../server/dev/hot-reloader-types'
 
 export function useWebsocket(assetPrefix: string) {
-  const webSocketRef = useRef<WebSocket>(undefined)
+  // const webSocketRef = useRef<WebSocket>(undefined)
+  const [webSocket, setWebSocket] = useState<WebSocket | null>(null)
+  const didConnect = useRef(false)
 
+  // is this to avoid multiple connects because of strict mode? very odd because this is a bug internally, i don't like that
   useEffect(() => {
-    if (webSocketRef.current) {
+    if (didConnect.current) {
       return
     }
 
+    // why are we putting the socket in a ref?
     const url = getSocketUrl(assetPrefix)
-
-    webSocketRef.current = new window.WebSocket(`${url}/_next/webpack-hmr`)
+    const socket = new window.WebSocket(`${url}/_next/webpack-hmr`)
+    didConnect.current = true
+    setWebSocket(socket)
   }, [assetPrefix])
 
-  return webSocketRef
+  return webSocket
 }
-
-export function useSendMessage(webSocketRef: ReturnType<typeof useWebsocket>) {
+export function useSendMessage(socket: WebSocket | null) {
   const sendMessage = useCallback(
     (data: string) => {
-      const socket = webSocketRef.current
       if (!socket || socket.readyState !== socket.OPEN) {
         return
       }
       return socket.send(data)
     },
-    [webSocketRef]
+    [socket]
   )
   return sendMessage
 }
 
+// mark turbo
 export function useTurbopack(
   sendMessage: ReturnType<typeof useSendMessage>,
   onUpdateError: (err: unknown) => void
@@ -70,6 +74,8 @@ export function useTurbopack(
       '@vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts'
     ).then(({ connect }) => {
       const { current } = turbopackState
+      // console.log('connecting to turbo pack')
+
       connect({
         addMessageListener(cb: (msg: TurbopackMsgToBrowser) => void) {
           current.callback = cb
@@ -89,10 +95,8 @@ export function useTurbopack(
   return processTurbopackMessage
 }
 
-export function useWebsocketPing(
-  websocketRef: ReturnType<typeof useWebsocket>
-) {
-  const sendMessage = useSendMessage(websocketRef)
+export function useWebsocketPing(socket: WebSocket | null) {
+  const sendMessage = useSendMessage(socket)
   const { tree } = useContext(GlobalLayoutRouterContext)
 
   useEffect(() => {

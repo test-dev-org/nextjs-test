@@ -1,9 +1,11 @@
+import { logQueue } from '../../../../next-devtools/userspace/app/term-logs/client'
 import {
   HMR_ACTIONS_SENT_TO_BROWSER,
   type HMR_ACTION_TYPES,
 } from '../../../../server/dev/hot-reloader-types'
 import { getSocketUrl } from '../get-socket-url'
 
+// mark: websocket available here
 let source: WebSocket
 
 type ActionCallback = (action: HMR_ACTION_TYPES) => void
@@ -14,6 +16,10 @@ export function addMessageListener(callback: ActionCallback) {
   eventCallbacks.push(callback)
 }
 
+
+
+
+// mark: sending pages router web socket available here
 export function sendMessage(data: string) {
   if (!source || source.readyState !== source.OPEN) return
   return source.send(data)
@@ -28,6 +34,7 @@ export function connectHMR(options: { path: string; assetPrefix: string }) {
     if (source) source.close()
 
     function handleOnline() {
+      logQueue.onSocketReady(source)
       reconnections = 0
       window.console.log('[HMR] connected')
     }

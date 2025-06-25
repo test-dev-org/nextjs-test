@@ -99,6 +99,7 @@ import { devIndicatorServerState } from './dev-indicator-server-state'
 import { getDisableDevIndicatorMiddleware } from '../../next-devtools/server/dev-indicator-middleware'
 import { getRestartDevServerMiddleware } from '../../next-devtools/server/restart-dev-server-middleware'
 import { backgroundLogCompilationEvents } from '../../shared/lib/turbopack/compilation-events'
+import { receiveBrowserLogsTurbopack, restoreUndefined } from './browser-ingest'
 // import { getSupportedBrowsers } from '../../build/utils'
 
 const wsServer = new ws.Server({ noServer: true })
@@ -757,10 +758,9 @@ export async function createHotReloaderTurbopack(
           clients.delete(client)
         })
 
-        client.addEventListener('message', ({ data }) => {
-          const parsedData = JSON.parse(
-            typeof data !== 'string' ? data.toString() : data
-          )
+        client.addEventListener('message', async ({ data }) => {
+          const stringData = typeof data !== 'string' ? data.toString() : data
+          const parsedData = JSON.parse(stringData)
 
           // Next.js messages
           switch (parsedData.event) {
@@ -785,6 +785,7 @@ export async function createHotReloaderTurbopack(
                 }
               )
               break
+
             case 'client-error': // { errorCount, clientId }
             case 'client-warning': // { warningCount, clientId }
             case 'client-success': // { clientId }
@@ -811,6 +812,17 @@ export async function createHotReloaderTurbopack(
             case 'client-added-page':
               // TODO
               break
+            case 'browser-logs': {
+              await receiveBrowserLogsTurbopack({
+                entries: parsedData.entries,
+                router: parsedData.router,
+                sourceType: parsedData.sourceType,
+                project,
+                projectPath,
+                distDir,
+              })
+              break
+            }
 
             default:
               // Might be a Turbopack message...

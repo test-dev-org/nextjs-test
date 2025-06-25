@@ -10,6 +10,12 @@ import { getComponentStack, getOwnerStack } from '../app/errors/stitched-error'
 import { isRecoverableError } from '../../../client/react-client-callbacks/on-recoverable-error'
 import { getSquashedHydrationErrorDetails } from './hydration-error-state'
 import { PagesDevOverlayErrorBoundary } from './pages-dev-overlay-error-boundary'
+import {
+  patchLogs,
+  forwardUnhandledError,
+  logUnhandledRejection,
+  forwardErrorLog,
+} from '../app/term-logs/client'
 
 const usePagesDevOverlayBridge = () => {
   React.useInsertionEffect(() => {
@@ -76,12 +82,18 @@ function nextJsHandleConsoleError(...args: any[]) {
   storeHydrationErrorStateFromConsoleArgs(...args)
   // TODO: Surfaces non-errors logged via `console.error`.
   handleError(maybeError)
+  // todo: attach hydration state to forwarded logs
+  forwardErrorLog(args)
   origConsoleError.apply(window.console, args)
 }
 
 function onUnhandledError(event: ErrorEvent) {
   const error = event?.error
   handleError(error)
+
+  if (error) {
+    forwardUnhandledError(error as Error)
+  }
 }
 
 function onUnhandledRejection(ev: PromiseRejectionEvent) {
@@ -96,9 +108,12 @@ function onUnhandledRejection(ev: PromiseRejectionEvent) {
   }
 
   dispatcher.onUnhandledRejection(reason)
+  logUnhandledRejection(reason)
 }
 
 export function register() {
+  console.log('registering pages')
+
   if (isRegistered) {
     return
   }
@@ -108,6 +123,9 @@ export function register() {
     Error.stackTraceLimit = 50
   } catch {}
 
+  console.log('patching logs on pages side')
+
+  patchLogs('pages')
   window.addEventListener('error', onUnhandledError)
   window.addEventListener('unhandledrejection', onUnhandledRejection)
   window.console.error = nextJsHandleConsoleError

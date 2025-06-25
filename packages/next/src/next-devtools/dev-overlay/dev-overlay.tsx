@@ -58,6 +58,7 @@ export function DevOverlay({
       <ComponentStyles />
       <DarkTheme />
 
+{/* wait are different devtools rendered per router jfc */}
       <RenderError state={state} isAppDir={true}>
         {({ runtimeErrors, totalErrorCount }) => {
           return (

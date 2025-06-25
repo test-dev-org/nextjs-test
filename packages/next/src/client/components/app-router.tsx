@@ -499,7 +499,7 @@ function Router({
     //  - catch runtime errors and display global-error when necessary
     if (typeof window !== 'undefined') {
       const { DevRootHTTPAccessFallbackBoundary } =
-        require('./dev-root-http-access-fallback-boundary') as typeof import('./dev-root-http-access-fallback-boundary')
+       require('./dev-root-http-access-fallback-boundary') as typeof import('./dev-root-http-access-fallback-boundary')
       content = (
         <DevRootHTTPAccessFallbackBoundary>
           {content}
@@ -510,6 +510,9 @@ function Router({
       (
         require('../dev/hot-reloader/app/hot-reloader-app') as typeof import('../dev/hot-reloader/app/hot-reloader-app')
       ).default
+
+      console.log('hot reloader mounts');
+      
 
     content = (
       <HotReloader assetPrefix={assetPrefix} globalError={globalError}>

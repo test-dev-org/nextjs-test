@@ -745,6 +745,22 @@ export interface ExperimentalConfig {
    * Enable new panel UI for the Next.js DevTools.
    */
   devtoolNewPanelUI?: boolean
+
+  /**
+   * Enable enhanced console logging with source mapping and filtering.
+   * - `false`: Disable enhanced logging (default)
+   * - `true`: Enable with default settings (infinite serialization depth)
+   * - `object`: Enable with custom configuration
+   */
+  terminalLogging?:
+    | boolean
+    | {
+        /**
+         * Maximum depth for object serialization in console logs.
+         * @default Infinity
+         */
+        serializationDepth?: number
+      }
 }
 
 export type ExportPathMap = {

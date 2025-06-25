@@ -7,6 +7,10 @@ import {
 import isError from '../../../../lib/is-error'
 import { createConsoleError } from '../../../shared/console-error'
 import { coerceError, setOwnerStackIfAvailable } from './stitched-error'
+import {
+  forwardUnhandledError,
+  logUnhandledRejection,
+} from '../term-logs/client'
 
 const queueMicroTask =
   globalThis.queueMicrotask || ((cb: () => void) => Promise.resolve().then(cb))
@@ -59,6 +63,8 @@ export function useErrorHandler(
   handleOnUnhandledError: ErrorHandler,
   handleOnUnhandledRejection: ErrorHandler
 ) {
+  console.log('flushing error queue, app?')
+
   useEffect(() => {
     // Handle queued errors.
     errorQueue.forEach(handleOnUnhandledError)
@@ -96,6 +102,8 @@ function onUnhandledError(event: WindowEventMap['error']): void | boolean {
     setOwnerStackIfAvailable(error)
 
     handleClientError(error)
+
+    forwardUnhandledError(error)
   }
 }
 
@@ -113,6 +121,9 @@ function onUnhandledRejection(ev: WindowEventMap['unhandledrejection']): void {
   for (const handler of rejectionHandlers) {
     handler(error)
   }
+
+  // Also send to our term-logs system
+  logUnhandledRejection(reason)
 }
 
 export function handleGlobalErrors() {
