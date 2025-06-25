@@ -2763,7 +2763,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.4.9",
+ "socket2 0.5.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -5938,6 +5938,17 @@ dependencies = [
  "spin",
  "untrusted",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "ringmap"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "963156bc0da83715cf1aa699f60533a20fcd771c4bbb06548d628eccf1c1ac3e"
+dependencies = [
+ "equivalent",
+ "hashbrown 0.15.2",
+ "serde",
 ]
 
 [[package]]
@@ -9217,6 +9228,7 @@ dependencies = [
  "rand 0.9.0",
  "rayon",
  "regex",
+ "ringmap",
  "rstest",
  "rustc-hash 2.1.1",
  "serde",
