@@ -166,7 +166,7 @@ impl BrowserChunkingContextBuilder {
     }
 
     pub fn build(self) -> Vc<BrowserChunkingContext> {
-        BrowserChunkingContext::new(self.chunking_context)
+        BrowserChunkingContext::cell(self.chunking_context)
     }
 }
 
@@ -302,11 +302,6 @@ impl BrowserChunkingContext {
 
 #[turbo_tasks::value_impl]
 impl BrowserChunkingContext {
-    #[turbo_tasks::function]
-    fn new(this: BrowserChunkingContext) -> Vc<Self> {
-        this.cell()
-    }
-
     #[turbo_tasks::function]
     fn generate_evaluate_chunk(
         self: Vc<Self>,
