@@ -108,24 +108,24 @@ async fn apply_includes(
 ) -> Result<BTreeSet<RcStr>> {
     let mut result = BTreeSet::new();
 
-    for include_glob in includes {
-        // Read files matching the glob pattern from the project root
-        // let project_root = project_fs.root();
-        let project_root_path_ref = project_root_path.await?;
-        let glob_result = project_root_path
-            .read_glob(Glob::new(include_glob.clone()), true)
-            .await?;
+    let glob = Glob::alternatives(includes.iter().map(|s| Glob::new(s.clone())).collect());
 
-        // Process the glob results recursively
-        Box::pin(collect_glob_results(
-            &glob_result,
-            "",
-            &mut result,
-            ident_folder,
-            &project_root_path_ref,
-        ))
-        .await?;
-    }
+    // for include_glob in includes {
+    // Read files matching the glob pattern from the project root
+    // let project_root = project_fs.root();
+    let project_root_path_ref = project_root_path.await?;
+    let glob_result = project_root_path.read_glob(glob, true).await?;
+
+    // Process the glob results recursively
+    Box::pin(collect_glob_results(
+        &glob_result,
+        "",
+        &mut result,
+        ident_folder,
+        &project_root_path_ref,
+    ))
+    .await?;
+    // }
 
     Ok(result)
 }
