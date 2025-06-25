@@ -166,7 +166,7 @@ impl BrowserChunkingContextBuilder {
     }
 
     pub fn build(self) -> Vc<BrowserChunkingContext> {
-        BrowserChunkingContext::new(self.chunking_context)
+        BrowserChunkingContext::cell(self.chunking_context)
     }
 }
 
@@ -303,11 +303,6 @@ impl BrowserChunkingContext {
 #[turbo_tasks::value_impl]
 impl BrowserChunkingContext {
     #[turbo_tasks::function]
-    fn new(this: BrowserChunkingContext) -> Vc<Self> {
-        this.cell()
-    }
-
-    #[turbo_tasks::function]
     fn generate_evaluate_chunk(
         self: Vc<Self>,
         ident: Vc<AssetIdent>,
@@ -400,7 +395,7 @@ impl ChunkingContext for BrowserChunkingContext {
     }
 
     #[turbo_tasks::function]
-    async fn chunk_root_path(&self) -> Vc<FileSystemPath> {
+    fn chunk_root_path(&self) -> Vc<FileSystemPath> {
         *self.chunk_root_path
     }
 
@@ -507,7 +502,7 @@ impl ChunkingContext for BrowserChunkingContext {
     }
 
     #[turbo_tasks::function]
-    async fn chunking_configs(&self) -> Result<Vc<ChunkingConfigs>> {
+    fn chunking_configs(&self) -> Result<Vc<ChunkingConfigs>> {
         Ok(Vc::cell(self.chunking_configs.iter().cloned().collect()))
     }
 

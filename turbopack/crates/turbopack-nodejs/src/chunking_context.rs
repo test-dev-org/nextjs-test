@@ -96,7 +96,7 @@ impl NodeJsChunkingContextBuilder {
 
     /// Builds the chunking context.
     pub fn build(self) -> Vc<NodeJsChunkingContext> {
-        NodeJsChunkingContext::new(self.chunking_context)
+        NodeJsChunkingContext::cell(self.chunking_context)
     }
 }
 
@@ -200,11 +200,6 @@ impl NodeJsChunkingContext {
 #[turbo_tasks::value_impl]
 impl NodeJsChunkingContext {
     #[turbo_tasks::function]
-    fn new(this: NodeJsChunkingContext) -> Vc<Self> {
-        this.cell()
-    }
-
-    #[turbo_tasks::function]
     async fn generate_chunk(
         self: Vc<Self>,
         chunk: Vc<Box<dyn Chunk>>,
@@ -285,7 +280,7 @@ impl ChunkingContext for NodeJsChunkingContext {
     }
 
     #[turbo_tasks::function]
-    async fn chunk_root_path(&self) -> Vc<FileSystemPath> {
+    fn chunk_root_path(&self) -> Vc<FileSystemPath> {
         *self.chunk_root_path
     }
 
@@ -326,7 +321,7 @@ impl ChunkingContext for NodeJsChunkingContext {
     }
 
     #[turbo_tasks::function]
-    async fn chunking_configs(&self) -> Result<Vc<ChunkingConfigs>> {
+    fn chunking_configs(&self) -> Result<Vc<ChunkingConfigs>> {
         Ok(Vc::cell(self.chunking_configs.iter().cloned().collect()))
     }
 
