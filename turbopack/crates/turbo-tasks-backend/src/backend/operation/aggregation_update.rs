@@ -11,7 +11,8 @@ use std::{
 
 use anyhow::Result;
 use indexmap::map::Entry;
-use rustc_hash::{FxHashMap, FxHashSet};
+use ringmap::RingSet;
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeSeq};
 use smallvec::{SmallVec, smallvec};
 #[cfg(any(
@@ -33,8 +34,10 @@ use crate::{
         ActivenessState, AggregationNumber, CachedDataItem, CachedDataItemKey, CollectibleRef,
         DirtyContainerCount,
     },
-    utils::{deque_set::DequeSet, swap_retain},
+    utils::swap_retain,
 };
+
+type FxRingSet<T> = RingSet<T, FxBuildHasher>;
 
 pub const LEAF_NUMBER: u32 = 16;
 const MAX_COUNT_BEFORE_YIELD: usize = 1000;
@@ -609,10 +612,10 @@ pub struct AggregationUpdateQueue {
     jobs: VecDeque<AggregationUpdateJobItem>,
     number_updates: FxIndexMap<TaskId, AggregationNumberUpdate>,
     done_number_updates: FxHashMap<TaskId, AggregationNumberUpdate>,
-    find_and_schedule: DequeSet<FindAndScheduleJob>,
+    find_and_schedule: FxRingSet<FindAndScheduleJob>,
     done_find_and_schedule: FxHashSet<TaskId>,
-    balance_queue: DequeSet<BalanceJob>,
-    optimize_queue: DequeSet<OptimizeJob>,
+    balance_queue: FxRingSet<BalanceJob>,
+    optimize_queue: FxRingSet<OptimizeJob>,
 }
 
 impl AggregationUpdateQueue {
@@ -622,10 +625,10 @@ impl AggregationUpdateQueue {
             jobs: VecDeque::with_capacity(0),
             number_updates: FxIndexMap::default(),
             done_number_updates: FxHashMap::default(),
-            find_and_schedule: DequeSet::default(),
+            find_and_schedule: FxRingSet::default(),
             done_find_and_schedule: FxHashSet::default(),
-            balance_queue: DequeSet::default(),
-            optimize_queue: DequeSet::default(),
+            balance_queue: FxRingSet::default(),
+            optimize_queue: FxRingSet::default(),
         }
     }
 
@@ -698,7 +701,7 @@ impl AggregationUpdateQueue {
             }
             AggregationUpdateJob::BalanceEdge { upper_id, task_id } => {
                 self.balance_queue
-                    .insert_back(BalanceJob::new(upper_id, task_id));
+                    .push_back(BalanceJob::new(upper_id, task_id));
             }
             _ => {
                 self.jobs.push_back(AggregationUpdateJobItem::new(job));
@@ -717,7 +720,7 @@ impl AggregationUpdateQueue {
     pub fn push_find_and_schedule_dirty(&mut self, task_id: TaskId) {
         if !self.done_find_and_schedule.contains(&task_id) {
             self.find_and_schedule
-                .insert_back(FindAndScheduleJob::new(task_id));
+                .push_back(FindAndScheduleJob::new(task_id));
         }
     }
 
@@ -733,7 +736,7 @@ impl AggregationUpdateQueue {
 
     /// Pushes a job to optimize a task.
     fn push_optimize_task(&mut self, task_id: TaskId) {
-        self.optimize_queue.insert_back(OptimizeJob::new(task_id));
+        self.optimize_queue.push_back(OptimizeJob::new(task_id));
     }
 
     /// Runs the job and all dependent jobs until it's done. It can persist the operation, so
