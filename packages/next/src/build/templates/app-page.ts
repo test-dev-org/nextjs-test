@@ -311,6 +311,10 @@ export async function handler(
     ssgCacheKey = resolvedPathname
   }
 
+  // the staticPathKey differs from ssgCacheKey since
+  // ssgCacheKey is null in dev since we're always in "dynamic"
+  // mode in dev so bypass the cache but we still need to honor
+  // dynamicParams = false in dev mode
   let staticPathKey = ssgCacheKey
   if (!staticPathKey && routeModule.isDev) {
     staticPathKey = resolvedPathname
