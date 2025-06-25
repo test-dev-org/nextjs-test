@@ -1,6 +1,3 @@
-#[global_allocator]
-static ALLOC: turbo_tasks_malloc::TurboMalloc = turbo_tasks_malloc::TurboMalloc;
-
 use std::{
     env,
     fs::{create_dir_all, write},
