@@ -21,9 +21,10 @@ use crate::{
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, TraceRawVcs, NonLocalValue)]
 pub struct EsmBinding {
-    pub reference: ResolvedVc<EsmAssetReference>,
-    pub export: Option<RcStr>,
-    pub ast_path: AstPath,
+    reference: ResolvedVc<EsmAssetReference>,
+    export: Option<RcStr>,
+    ast_path: AstPath,
+    keep_this: bool,
 }
 
 impl EsmBinding {
@@ -36,6 +37,21 @@ impl EsmBinding {
             reference,
             export,
             ast_path,
+            keep_this: false,
+        }
+    }
+
+    /// Where possible, bind the namespace to `this` when the named import is called.
+    pub fn new_keep_this(
+        reference: ResolvedVc<EsmAssetReference>,
+        export: Option<RcStr>,
+        ast_path: AstPath,
+    ) -> Self {
+        EsmBinding {
+            reference,
+            export,
+            ast_path,
+            keep_this: true,
         }
     }
 
@@ -101,12 +117,13 @@ impl EsmBinding {
                 // Any other expression can be replaced with the import accessor.
                 Some(swc_core::ecma::visit::AstParentKind::Expr(_)) => {
                     ast_path.pop();
-                    let in_call = matches!(
-                        ast_path.last(),
-                        Some(swc_core::ecma::visit::AstParentKind::Callee(
-                            CalleeField::Expr
-                        ))
-                    );
+                    let in_call = !self.keep_this
+                        && matches!(
+                            ast_path.last(),
+                            Some(swc_core::ecma::visit::AstParentKind::Callee(
+                                CalleeField::Expr
+                            ))
+                        );
 
                     visitors.push(
                         create_visitor!(exact ast_path, visit_mut_expr(expr: &mut Expr) {
