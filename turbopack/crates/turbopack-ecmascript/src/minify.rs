@@ -43,6 +43,7 @@ pub fn minify(code: Code, source_maps: bool, mangle: Option<MangleType>) -> Resu
     let (src, mut src_map_buf) = {
         let fm = cm.new_source_file(FileName::Anon.into(), source_code);
 
+        // Collect all comments and pass to the minifier so that `PURE` comments are respected.
         let comments = SingleThreadedComments::default();
 
         let lexer = Lexer::new(
