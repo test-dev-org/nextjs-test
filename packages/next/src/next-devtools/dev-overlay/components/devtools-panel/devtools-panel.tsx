@@ -2,7 +2,7 @@ import type { OverlayDispatch, OverlayState, Corners } from '../../shared'
 import type { ReadyRuntimeError } from '../../utils/get-error-by-type'
 import type { HydrationErrorState } from '../../../shared/hydration-error'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { DevToolsPanelFooter } from './devtools-panel-footer'
 import { DevToolsPanelTab } from './devtools-panel-tab/devtools-panel-tab'
@@ -26,6 +26,33 @@ import { MinimizeIcon } from '../../icons/minimize'
 
 export type DevToolsPanelTabType = 'issues' | 'route' | 'settings'
 
+const STORAGE_KEY_ACTIVE_TAB = 'nextjs-devtools-active-tab'
+
+function useSessionState<T extends string>(
+  key: string,
+  initialValue: T
+): [T, (value: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof sessionStorage !== 'undefined'
+    ) {
+      const stored = sessionStorage.getItem(key)
+      return (stored as T) ?? initialValue
+    }
+    return initialValue
+  })
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof sessionStorage !== 'undefined'
+    ) {
+      sessionStorage.setItem(key, value)
+    }
+  }, [key, value])
+  return [value, setValue]
+}
+
 export function DevToolsPanel({
   state,
   dispatch,
@@ -39,7 +66,12 @@ export function DevToolsPanel({
   runtimeErrors: ReadyRuntimeError[]
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
-  const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
+  // Initialize active tab from session storage, fallback to 'issues'
+  const [activeTab, setActiveTab] = useSessionState<DevToolsPanelTabType>(
+    STORAGE_KEY_ACTIVE_TAB,
+    'issues'
+  )
+
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [prevIsErrorOverlayOpen, setPrevIsErrorOverlayOpen] = useState(false)
 
