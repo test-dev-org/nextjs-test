@@ -205,8 +205,8 @@ impl Asset for NftJsonAsset {
                 if let Some(excludes_obj) = excludes_config.as_object() {
                     for (glob_pattern, exclude_patterns) in excludes_obj {
                         // Check if the route matches the glob pattern
-                        if let Ok(glob) = Glob::parse(glob_pattern)
-                            && glob.matches(route)
+                        let glob = Glob::new(RcStr::from(glob_pattern.clone())).await?;
+                        if glob.matches(route)
                             && let Some(patterns) = exclude_patterns.as_array()
                         {
                             for pattern in patterns {
