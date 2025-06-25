@@ -169,6 +169,9 @@ pub(crate) struct ImportMap {
     /// True if the module is an ESM module due to top-level await.
     has_top_level_await: bool,
 
+    /// True if the module accesses `this` at the top level (which is only really allowed in CJS).
+    pub(crate) uses_top_level_this: bool,
+
     /// Locations of [webpack-style "magic comments"][magic] that override import behaviors.
     ///
     /// Most commonly, these are `/* webpackIgnore: true */` comments. See [ImportAttributes] for
@@ -342,6 +345,7 @@ impl ImportMap {
             data: &mut data,
             source,
             comments,
+            has_bound_this: false,
         };
         m.visit_with(&mut analyzer);
 
@@ -418,6 +422,7 @@ struct Analyzer<'a> {
     data: &'a mut ImportMap,
     source: Option<ResolvedVc<Box<dyn Source>>>,
     comments: Option<&'a dyn Comments>,
+    has_bound_this: bool,
 }
 
 impl Analyzer<'_> {
@@ -607,10 +612,7 @@ impl Visit for Analyzer<'_> {
     fn visit_export_decl(&mut self, n: &ExportDecl) {
         self.data.has_exports = true;
 
-        if self.comments.is_some() {
-            // only visit children if we potentially need to mark import / requires
-            n.visit_children_with(self);
-        }
+        n.visit_children_with(self);
 
         match &n.decl {
             Decl::Class(n) => {
@@ -636,10 +638,7 @@ impl Visit for Analyzer<'_> {
     fn visit_export_default_decl(&mut self, n: &ExportDefaultDecl) {
         self.data.has_exports = true;
 
-        if self.comments.is_some() {
-            // only visit children if we potentially need to mark import / requires
-            n.visit_children_with(self);
-        }
+        n.visit_children_with(self);
 
         self.data.exports.insert(
             rcstr!("default"),
@@ -670,10 +669,7 @@ impl Visit for Analyzer<'_> {
     fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr) {
         self.data.has_exports = true;
 
-        if self.comments.is_some() {
-            // only visit children if we potentially need to mark import / requires
-            n.visit_children_with(self);
-        }
+        n.visit_children_with(self);
 
         self.data.exports.insert(
             rcstr!("default"),
@@ -709,10 +705,15 @@ impl Visit for Analyzer<'_> {
         m.visit_children_with(self);
     }
 
-    fn visit_stmt(&mut self, n: &Stmt) {
-        if self.comments.is_some() {
-            // only visit children if we potentially need to mark import / requires
-            n.visit_children_with(self);
+    fn visit_function(&mut self, n: &Function) {
+        let old_has_bound_this = self.has_bound_this;
+        self.has_bound_this = true;
+        n.visit_children_with(self);
+        self.has_bound_this = old_has_bound_this;
+    }
+    fn visit_this_expr(&mut self, _: &ThisExpr) {
+        if !self.has_bound_this {
+            self.data.uses_top_level_this = true;
         }
     }
 

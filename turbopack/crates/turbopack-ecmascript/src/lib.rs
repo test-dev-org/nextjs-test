@@ -888,6 +888,7 @@ pub struct EcmascriptModuleContent {
     pub inner_code: Rope,
     pub source_map: Option<Rope>,
     pub is_esm: bool,
+    pub uses_top_level_this: bool,
     pub additional_ids: SmallVec<[ResolvedVc<ModuleId>; 1]>,
 }
 
@@ -1144,6 +1145,7 @@ impl EcmascriptModuleContent {
             },
             export_contexts: None,
             is_esm: true,
+            uses_top_level_this: false,
             generate_source_map: options.generate_source_map,
             original_source_map: CodeGenResultOriginalSourceMap::ScopeHoisting(
                 original_source_maps,
@@ -1546,6 +1548,7 @@ struct CodeGenResult {
     /// `eval_context.imports.exports`
     export_contexts: Option<FxHashMap<RcStr, Id>>,
     is_esm: bool,
+    uses_top_level_this: bool,
     generate_source_map: bool,
     original_source_map: CodeGenResultOriginalSourceMap,
     minify: MinifyType,
@@ -1571,12 +1574,13 @@ async fn process_parse_result(
     with_consumed_parse_result(
         parsed,
         async |mut program, source_map, globals, eval_context, comments| -> Result<CodeGenResult> {
-            let (top_level_mark, is_esm, export_contexts) = eval_context
+            let (top_level_mark, is_esm, uses_top_level_this, export_contexts) = eval_context
                 .map_either(
                     |e| {
                         (
                             e.top_level_mark,
                             e.is_esm(specified_module_type),
+                            e.imports.uses_top_level_this,
                             Cow::Owned(e.imports.exports),
                         )
                     },
@@ -1584,6 +1588,7 @@ async fn process_parse_result(
                         (
                             e.top_level_mark,
                             e.is_esm(specified_module_type),
+                            e.imports.uses_top_level_this,
                             Cow::Borrowed(&e.imports.exports),
                         )
                     },
@@ -1725,6 +1730,7 @@ async fn process_parse_result(
                 // TODO ideally don't clone here at all
                 export_contexts: Some(export_contexts.into_owned()),
                 is_esm,
+                uses_top_level_this,
                 generate_source_map,
                 original_source_map: CodeGenResultOriginalSourceMap::Single(original_source_map),
                 minify,
@@ -1760,6 +1766,7 @@ async fn process_parse_result(
                         comments: CodeGenResultComments::Empty,
                         export_contexts: None,
                         is_esm: false,
+                        uses_top_level_this: false,
                         generate_source_map: false,
                         original_source_map: CodeGenResultOriginalSourceMap::Single(None),
                         minify: MinifyType::NoMinify,
@@ -1787,6 +1794,7 @@ async fn process_parse_result(
                         comments: CodeGenResultComments::Empty,
                         export_contexts: None,
                         is_esm: false,
+                        uses_top_level_this: false,
                         generate_source_map: false,
                         original_source_map: CodeGenResultOriginalSourceMap::Single(None),
                         minify: MinifyType::NoMinify,
@@ -1877,6 +1885,7 @@ async fn emit_content(
         source_map,
         comments,
         is_esm,
+        uses_top_level_this,
         generate_source_map,
         original_source_map,
         minify,
@@ -1941,6 +1950,7 @@ async fn emit_content(
         inner_code: bytes.into(),
         source_map,
         is_esm,
+        uses_top_level_this,
         additional_ids,
     }
     .cell())

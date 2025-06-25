@@ -43,7 +43,8 @@ impl EcmascriptChunkItemContent {
         options: Vc<EcmascriptOptions>,
         async_module_options: Vc<OptionAsyncModuleOptions>,
     ) -> Result<Vc<Self>> {
-        let refresh = options.await?.refresh;
+        let options = options.await?;
+        let refresh = options.refresh;
         let externals = *chunking_context
             .environment()
             .supports_commonjs_externals()
@@ -51,6 +52,7 @@ impl EcmascriptChunkItemContent {
 
         let content = content.await?;
         let async_module = async_module_options.owned().await?;
+        let this = content.uses_top_level_this;
 
         Ok(EcmascriptChunkItemContent {
             rewrite_source_path: if *chunking_context.should_use_file_source_map_uris().await? {
@@ -79,9 +81,9 @@ impl EcmascriptChunkItemContent {
                     refresh,
                     externals,
                     // These things are not available in ESM
+                    this,
                     module: true,
                     exports: true,
-                    this: true,
                     ..Default::default()
                 }
             },
@@ -189,6 +191,8 @@ pub struct EcmascriptChunkItemOptions {
     /// Whether this chunk item's module is async (either has a top level await
     /// or is importing async modules).
     pub async_module: Option<AsyncModuleOptions>,
+    /// Whether this chunk item's module accesses this (and thus needs to use a normal function
+    /// instead of an arrow function)
     pub this: bool,
     /// Whether this chunk item's module factory should include
     /// `__turbopack_wasm__` to load WebAssembly.
