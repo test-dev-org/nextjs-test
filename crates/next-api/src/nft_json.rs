@@ -125,7 +125,6 @@ async fn apply_includes(
         &project_root_path_ref,
     ))
     .await?;
-    // }
 
     Ok(result)
 }
