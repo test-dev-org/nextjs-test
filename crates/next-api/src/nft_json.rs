@@ -110,10 +110,7 @@ async fn apply_includes(
 
     let glob = Glob::alternatives(includes.iter().map(|s| Glob::new(s.clone())).collect());
 
-    // for include_glob in includes {
     // Read files matching the glob pattern from the project root
-    // let project_root = project_fs.root();
-    let project_root_path_ref = project_root_path.await?;
     let glob_result = project_root_path.read_glob(glob, true).await?;
 
     // Process the glob results recursively
@@ -122,7 +119,6 @@ async fn apply_includes(
         "",
         &mut result,
         ident_folder,
-        &project_root_path_ref,
     ))
     .await?;
 
@@ -135,7 +131,6 @@ fn collect_glob_results<'a>(
     prefix: &'a str,
     result: &'a mut BTreeSet<RcStr>,
     ident_folder: &'a FileSystemPath,
-    _project_root: &'a FileSystemPath,
 ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
     Box::pin(async move {
         // Process direct results (files and directories at this level)
@@ -160,14 +155,7 @@ fn collect_glob_results<'a>(
                 format!("{prefix}/{dir_name}")
             };
 
-            collect_glob_results(
-                &nested_result_ref,
-                &new_prefix,
-                result,
-                ident_folder,
-                _project_root,
-            )
-            .await?;
+            collect_glob_results(&nested_result_ref, &new_prefix, result, ident_folder).await?;
         }
 
         Ok(())
