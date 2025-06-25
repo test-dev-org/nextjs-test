@@ -209,7 +209,7 @@ impl Asset for NftJsonAsset {
             .chain(std::iter::once(chunk))
             .collect();
 
-        let exclude_globs: Option<Vec<Glob>> = if let Some(route) = &this.page_name {
+        let exclude_glob = if let Some(route) = &this.page_name {
             let project_path = this.project.project_path().await?;
 
             if let Some(excludes_config) = output_file_tracing_excludes {
@@ -231,11 +231,16 @@ impl Asset for NftJsonAsset {
                     }
                 }
 
-                Some(
-                    Globl::parse(format!("{project_path}/{{{}}}", 
+                let glob = Glob::parse(&format!(
+                    "{project_path}/{{{}}}",
                     combined_excludes
-                        .iter().collect::<Vec<_>>().join(","))?
-                )
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ))?;
+
+                Some(glob)
             } else {
                 None
             }
@@ -254,10 +259,8 @@ impl Asset for NftJsonAsset {
                 continue;
             }
 
-            if let Some(ref exclude_globs) = exclude_globs
-                && exclude_globs
-                    .iter()
-                    .any(|glob| glob.matches(&referenced_chunk_path.path.as_str()))
+            if let Some(ref exclude_glob) = exclude_glob
+                && exclude_glob.matches(&referenced_chunk_path.path.as_str())
             {
                 continue;
             }
