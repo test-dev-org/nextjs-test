@@ -51,6 +51,7 @@ impl EcmascriptChunkItemContent {
 
         let content = content.await?;
         let async_module = async_module_options.owned().await?;
+        let strict = content.strict;
 
         Ok(EcmascriptChunkItemContent {
             rewrite_source_path: if *chunking_context.should_use_file_source_map_uris().await? {
@@ -76,6 +77,7 @@ impl EcmascriptChunkItemContent {
                 }
 
                 EcmascriptChunkItemOptions {
+                    strict,
                     refresh,
                     externals,
                     // These things are not available in ESM
