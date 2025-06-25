@@ -186,12 +186,6 @@ export async function handler(
       prerenderManifest.routes[normalizedSrcPage]
   )
 
-  // if the page is dynamicParams: false and this pathname wasn't prerender
-  // trigger the no fallback handling
-  if (isSSG && prerenderInfo?.fallback === false && !isPrerendered) {
-    throw new NoFallbackError()
-  }
-
   const userAgent = req.headers['user-agent'] || ''
   const botType = getBotType(userAgent)
   const isHtmlBot = isHtmlBotRequest(req)
@@ -315,6 +309,12 @@ export async function handler(
     !isDynamicRSCRequest
   ) {
     ssgCacheKey = resolvedPathname
+  }
+
+  // if the page is dynamicParams: false and this pathname wasn't prerender
+  // trigger the no fallback handling
+  if (ssgCacheKey && prerenderInfo?.fallback === false && !isPrerendered) {
+    throw new NoFallbackError()
   }
 
   const ComponentMod = {
