@@ -1,12 +1,10 @@
-use std::{collections::BTreeSet, future::Future, pin::Pin};
+use std::collections::{BTreeSet, VecDeque};
 
 use anyhow::{Result, bail};
 use serde_json::json;
 use turbo_rcstr::RcStr;
 use turbo_tasks::{ResolvedVc, Vc};
-use turbo_tasks_fs::{
-    DirectoryEntry, File, FileSystem, FileSystemPath, ReadGlobResult, glob::Glob,
-};
+use turbo_tasks_fs::{DirectoryEntry, File, FileSystem, FileSystemPath, glob::Glob};
 use turbopack_core::{
     asset::{Asset, AssetContent},
     output::OutputAsset,
@@ -106,33 +104,16 @@ async fn apply_includes(
     includes: &BTreeSet<RcStr>,
     ident_folder: &FileSystemPath,
 ) -> Result<BTreeSet<RcStr>> {
-    let mut result = BTreeSet::new();
-
     let glob = Glob::alternatives(includes.iter().map(|s| Glob::new(s.clone())).collect());
 
     // Read files matching the glob pattern from the project root
     let glob_result = project_root_path.read_glob(glob, true).await?;
 
-    // Process the glob results recursively
-    Box::pin(collect_glob_results(
-        &glob_result,
-        "",
-        &mut result,
-        ident_folder,
-    ))
-    .await?;
-
-    Ok(result)
-}
-
-/// Recursively collect all files from ReadGlobResult and convert to relative paths
-fn collect_glob_results<'a>(
-    glob_result: &'a ReadGlobResult,
-    prefix: &'a str,
-    result: &'a mut BTreeSet<RcStr>,
-    ident_folder: &'a FileSystemPath,
-) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
-    Box::pin(async move {
+    // Walk the full glob_result using an explicit stack to avoid async recursion overheads.
+    let mut result = BTreeSet::new();
+    let mut stack = VecDeque::new();
+    stack.push_back(glob_result);
+    while let Some(glob_result) = stack.pop_back() {
         // Process direct results (files and directories at this level)
         for entry in glob_result.results.values() {
             let DirectoryEntry::File(file_path) = entry else {
@@ -146,20 +127,12 @@ fn collect_glob_results<'a>(
             }
         }
 
-        // Process nested results recursively
-        for (dir_name, nested_result) in &glob_result.inner {
+        for nested_result in glob_result.inner.values() {
             let nested_result_ref = nested_result.await?;
-            let new_prefix = if prefix.is_empty() {
-                dir_name.clone()
-            } else {
-                format!("{prefix}/{dir_name}")
-            };
-
-            collect_glob_results(&nested_result_ref, &new_prefix, result, ident_folder).await?;
+            stack.push_back(nested_result_ref);
         }
-
-        Ok(())
-    })
+    }
+    Ok(result)
 }
 
 #[turbo_tasks::value_impl]
@@ -171,11 +144,11 @@ impl Asset for NftJsonAsset {
 
         let output_root_ref = this.project.output_fs().root().await?;
         let project_root_ref = this.project.project_fs().root().await?;
-        let next_config = this.project.next_config().await?;
+        let next_config = this.project.next_config();
 
         // Parse outputFileTracingIncludes and outputFileTracingExcludes from config
-        let output_file_tracing_includes = next_config.output_file_tracing_includes.clone();
-        let output_file_tracing_excludes = next_config.output_file_tracing_excludes.clone();
+        let output_file_tracing_includes = &*next_config.output_file_tracing_includes().await?;
+        let output_file_tracing_excludes = &*next_config.output_file_tracing_excludes().await?;
 
         let client_root = this.project.client_fs().root();
         let client_root_ref = client_root.await?;
@@ -200,7 +173,7 @@ impl Asset for NftJsonAsset {
             let project_path = this.project.project_path().await?;
 
             if let Some(excludes_config) = output_file_tracing_excludes {
-                let mut combined_excludes: BTreeSet<RcStr> = BTreeSet::new();
+                let mut combined_excludes = BTreeSet::new();
 
                 if let Some(excludes_obj) = excludes_config.as_object() {
                     for (glob_pattern, exclude_patterns) in excludes_obj {
@@ -211,21 +184,25 @@ impl Asset for NftJsonAsset {
                         {
                             for pattern in patterns {
                                 if let Some(pattern_str) = pattern.as_str() {
-                                    combined_excludes.insert(pattern_str.into());
+                                    combined_excludes.insert(pattern_str);
                                 }
                             }
                         }
                     }
                 }
 
-                let glob = Glob::parse(&format!(
-                    "{project_path}/{{{}}}",
-                    combined_excludes
-                        .iter()
-                        .map(|s| s.as_str())
-                        .collect::<Vec<_>>()
-                        .join(",")
-                ))?;
+                let glob = Glob::new(
+                    format!(
+                        "{project_path}/{{{}}}",
+                        combined_excludes
+                            .iter()
+                            .copied()
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                    .into(),
+                )
+                .await?;
 
                 Some(glob)
             } else {
