@@ -432,17 +432,14 @@ export function getOverlayMiddleware({
 
       let openEditorResult
       if (isAppRelativePath) {
-        const relativeFilePath = (searchParams.get('file') || '').replace(
-          '/',
-          path.sep
-        )
-        const filePath = path.join(
+        const relativeFilePath = searchParams.get('file') || ''
+        const absoluteFilePath = path.join(
           projectPath,
           'app',
           isSrcDir ? 'src' : '',
           relativeFilePath
         )
-        openEditorResult = await openFileInEditor(filePath, 1, 1)
+        openEditorResult = await openFileInEditor(absoluteFilePath, 1, 1)
       } else {
         const frame = createStackFrame(searchParams)
         if (!frame) return middlewareResponse.badRequest(res)

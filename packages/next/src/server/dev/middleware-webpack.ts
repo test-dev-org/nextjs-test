@@ -581,17 +581,14 @@ export function getOverlayMiddleware(options: {
       let openEditorResult
       const isAppRelativePath = searchParams.get('isAppRelativePath') === '1'
       if (isAppRelativePath) {
-        const relativeFilePath = (searchParams.get('file') || '').replace(
-          '/',
-          path.sep
-        )
-        const filePath = path.join(
+        const relativeFilePath = searchParams.get('file') || ''
+        const absoluteFilePath = path.join(
           rootDirectory,
           'app',
           isSrcDir ? 'src' : '',
           relativeFilePath
         )
-        openEditorResult = await openFileInEditor(filePath, 1, 1)
+        openEditorResult = await openFileInEditor(absoluteFilePath, 1, 1)
       } else {
         // frame files may start with their webpack layer, like (middleware)/middleware.js
         const filePath = path.resolve(
