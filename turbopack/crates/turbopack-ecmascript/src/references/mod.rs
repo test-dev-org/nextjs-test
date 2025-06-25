@@ -2587,6 +2587,10 @@ async fn handle_free_var_reference(
         } => {
             let esm_reference = analysis
                 .add_esm_reference_free_var(request.clone(), async || {
+                    // There would be no import in the first place if you don't reference the given
+                    // free var (e.g. `process`). This means that it's also fine to remove the
+                    // import again if the variable reference turns out be dead code in some later
+                    // stage of the build, thus mark the import call as /*@__PURE__*/.
                     Ok(EsmAssetReference::new_pure(
                         if let Some(lookup_path) = lookup_path {
                             ResolvedVc::upcast(
