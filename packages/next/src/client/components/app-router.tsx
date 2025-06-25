@@ -36,6 +36,7 @@ import { getSelectedParams } from './router-reducer/compute-changed-path'
 import type { FlightRouterState } from '../../server/app-render/types'
 import { useNavFailureHandler } from './nav-failure-handler'
 import {
+  dispatchNavigateAction,
   dispatchTraverseAction,
   publicAppRouterInstance,
   type AppRouterActionQueue,
@@ -283,12 +284,15 @@ function Router({
         event.preventDefault()
         const url = getURLFromRedirectError(error)
         const redirectType = getRedirectTypeFromError(error)
-        // TODO: This should access the router methods directly, rather than
-        // go through the public interface.
+
         if (redirectType === RedirectType.push) {
-          publicAppRouterInstance.push(url, {})
+          startTransition(() => {
+            dispatchNavigateAction(url, 'push', true, null)
+          })
         } else {
-          publicAppRouterInstance.replace(url, {})
+          startTransition(() => {
+            dispatchNavigateAction(url, 'replace', true, null)
+          })
         }
       }
     }
