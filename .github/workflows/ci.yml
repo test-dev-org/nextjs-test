@@ -1,4 +1,33 @@
-- name: Crypto Timing Safety
-  run: |
-    node test/bench/crypto-timing.js
-    echo "Timing consistency verified"
+name: CI
+
+# Add permissions block here
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+  checks: write
+
+on:
+  pull_request:
+    branches: [main, canary]
+  push:
+    branches: [main, canary]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm test
+      
+  security-checks:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: node test/bench/crypto-timing.js
