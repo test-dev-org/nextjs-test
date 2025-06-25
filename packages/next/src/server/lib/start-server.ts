@@ -115,6 +115,7 @@ export interface StartServerOptions {
   customServer?: boolean
   minimalMode?: boolean
   keepAliveTimeout?: number
+  headersTimeout?: number
   // this is dev-server only
   selfSignedCertificate?: SelfSignedCertificate
 }
@@ -128,6 +129,7 @@ export async function getRequestHandlers({
   hostname,
   minimalMode,
   keepAliveTimeout,
+  headersTimeout,
   experimentalHttpsServer,
   quiet,
 }: {
@@ -139,6 +141,7 @@ export async function getRequestHandlers({
   hostname?: string
   minimalMode?: boolean
   keepAliveTimeout?: number
+  headersTimeout?: number
   experimentalHttpsServer?: boolean
   quiet?: boolean
 }): ReturnType<typeof initialize> {
@@ -151,6 +154,7 @@ export async function getRequestHandlers({
     minimalMode,
     server,
     keepAliveTimeout,
+    headersTimeout,
     experimentalHttpsServer,
     startServerSpan,
     quiet,
@@ -167,6 +171,7 @@ export async function startServer(
     minimalMode,
     allowRetry,
     keepAliveTimeout,
+    headersTimeout,
     selfSignedCertificate,
   } = serverOptions
   let { port } = serverOptions
@@ -258,6 +263,9 @@ export async function startServer(
 
   if (keepAliveTimeout) {
     server.keepAliveTimeout = keepAliveTimeout
+  }
+  if (headersTimeout) {
+    server.headersTimeout = headersTimeout
   }
   server.on('upgrade', async (req, socket, head) => {
     try {
@@ -429,6 +437,7 @@ export async function startServer(
           hostname,
           minimalMode,
           keepAliveTimeout,
+          headersTimeout,
           experimentalHttpsServer: !!selfSignedCertificate,
         })
         requestHandler = initResult.requestHandler
