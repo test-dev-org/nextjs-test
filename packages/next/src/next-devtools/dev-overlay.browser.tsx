@@ -30,8 +30,7 @@ import type { VersionInfo } from '../server/dev/parse-version-info'
 import {
   insertSegmentNode,
   removeSegmentNode,
-  type SegmentNode,
-} from './dev-overlay/segment-explorer'
+} from './dev-overlay/segment-explorer-trie'
 
 export interface Dispatcher {
   onBuildOk(): void
@@ -52,12 +51,14 @@ export interface Dispatcher {
   renderingIndicatorHide(): void
   renderingIndicatorShow(): void
   segmentExplorerNodeAdd(
-    nodeType: SegmentNode['type'],
-    pagePath: SegmentNode['pagePath']
+    nodeState: any
+    // nodeType: SegmentNode['type'],
+    // pagePath: SegmentNode['pagePath']
   ): void
   segmentExplorerNodeRemove(
-    nodeType: SegmentNode['type'],
-    pagePath: SegmentNode['pagePath']
+    nodeState: any
+    // nodeType: SegmentNode['type'],
+    // pagePath: SegmentNode['pagePath']
   ): void
 }
 
@@ -147,19 +148,21 @@ export const dispatcher: Dispatcher = {
   segmentExplorerNodeAdd: createQueuable(
     (
       _: Dispatch,
-      nodeType: SegmentNode['type'],
-      pagePath: SegmentNode['pagePath']
+      nodeState: any
+      // nodeType: SegmentNode['type'],
+      // pagePath: SegmentNode['pagePath']
     ) => {
-      insertSegmentNode({ type: nodeType, pagePath })
+      insertSegmentNode(nodeState)
     }
   ),
   segmentExplorerNodeRemove: createQueuable(
     (
       _: Dispatch,
-      nodeType: SegmentNode['type'],
-      pagePath: SegmentNode['pagePath']
+      nodeState: any
+      // nodeType: SegmentNode['type'],
+      // pagePath: SegmentNode['pagePath']
     ) => {
-      removeSegmentNode({ type: nodeType, pagePath })
+      removeSegmentNode(nodeState)
     }
   ),
 }

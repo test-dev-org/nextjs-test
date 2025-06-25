@@ -1,4 +1,7 @@
-import { useSegmentTree, type SegmentTrieNode } from '../../segment-explorer'
+import {
+  useSegmentTree,
+  type SegmentTrieNode,
+} from '../../segment-explorer-trie'
 import { css } from '../../utils/css'
 import { cx } from '../../utils/cx'
 
@@ -68,6 +71,7 @@ function PageSegmentTreeLayerPresentation({
 
   const folderChildrenKeys: string[] = []
   const filesChildrenKeys: string[] = []
+  let pageChild = null
 
   for (const childKey of sortedChildrenKeys) {
     const childNode = node.children[childKey]
@@ -81,6 +85,20 @@ function PageSegmentTreeLayerPresentation({
 
     // Otherwise, it's a folder node, add it to folderChildrenKeys
     folderChildrenKeys.push(childKey)
+  }
+
+  for (const fileChildSegment of filesChildrenKeys) {
+    const childNode = node.children[fileChildSegment]
+    if (!childNode || !childNode.value) continue
+
+    // If it's a page node, we can use it as the page child
+    if (
+      childNode.value.type !== 'layout' &&
+      childNode.value.type !== 'template'
+    ) {
+      pageChild = childNode
+      break // We only need one page child
+    }
   }
 
   const hasFilesChildren = filesChildrenKeys.length > 0
@@ -146,6 +164,34 @@ function PageSegmentTreeLayerPresentation({
                   })}
                 </span>
               )}
+
+              {/* operations */}
+              {pageChild && (
+                <select
+                  onChange={(e) => {
+                    if (!pageChild || !pageChild.value) return
+                    const nodeState = pageChild.value
+                    const value = e.target.value
+                    if (value === 'not-found') {
+                      nodeState.setBoundaryType('not-found')
+                    } else if (value === 'loading') {
+                      nodeState.setBoundaryType('loading')
+                    } else if (value === 'error') {
+                      nodeState.setBoundaryType('error')
+                    } else {
+                      console.log('reset boundary trigger')
+                      nodeState.setBoundaryType(null)
+                    }
+                  }}
+                  className="segment-explorer-file-label--operations"
+                >
+                  {['reset', 'not-found', 'loading', 'error'].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>
@@ -206,6 +252,11 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
 
   .segment-explorer-filename {
     display: inline-flex;
+    width: 100%;
+  }
+
+  .segment-explorer-filename select {
+    margin-left: auto;
   }
 
   .segment-explorer-filename--path {

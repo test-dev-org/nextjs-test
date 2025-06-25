@@ -61,7 +61,7 @@ function createTrie<Value = string>({
   getCharacters?: (item: Value) => string[]
   compare?: (a: Value | undefined, b: Value | undefined) => boolean
 }): Trie<Value> {
-  const root: TrieNode<Value> = {
+  let root: TrieNode<Value> = {
     value: undefined,
     children: {},
   }
@@ -89,6 +89,7 @@ function createTrie<Value = string>({
 
     currentNode.value = value
 
+    root = { ...root }
     markUpdated()
   }
 
@@ -118,6 +119,7 @@ function createTrie<Value = string>({
       }
     }
 
+    root = { ...root }
     markUpdated()
   }
 
@@ -131,6 +133,8 @@ function createTrie<Value = string>({
 export type SegmentNode = {
   type: string
   pagePath: string
+  boundaryType: string | null
+  setBoundaryType: (type: string | null) => void
 }
 
 export type SegmentTrie = Trie<SegmentNode>

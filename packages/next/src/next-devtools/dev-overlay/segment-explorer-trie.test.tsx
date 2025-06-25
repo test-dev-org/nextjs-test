@@ -4,7 +4,7 @@
 /* eslint-disable @next/internal/typechecked-require -- Not a prod file */
 /* eslint-disable import/no-extraneous-dependencies -- Not a prod file */
 
-import type * as SegmentExplorer from './segment-explorer'
+import type * as SegmentExplorer from './segment-explorer-trie'
 
 describe('Segment Explorer', () => {
   let cleanup: typeof import('@testing-library/react').cleanup
