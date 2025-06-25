@@ -311,10 +311,9 @@ export async function handler(
     ssgCacheKey = resolvedPathname
   }
 
-  // if the page is dynamicParams: false and this pathname wasn't prerender
-  // trigger the no fallback handling
-  if (ssgCacheKey && prerenderInfo?.fallback === false && !isPrerendered) {
-    throw new NoFallbackError()
+  let staticPathKey = ssgCacheKey
+  if (!staticPathKey && routeModule.isDev) {
+    staticPathKey = resolvedPathname
   }
 
   const ComponentMod = {
@@ -650,12 +649,24 @@ export async function handler(
       if (
         !minimalMode &&
         fallbackMode !== FallbackMode.BLOCKING_STATIC_RENDER &&
-        ssgCacheKey &&
+        staticPathKey &&
         !didRespond &&
         !isDraftMode &&
         pageIsDynamic &&
         (isProduction || !isPrerendered)
       ) {
+        // if the page is dynamicParams: false and this pathname wasn't prerender
+        // trigger the no fallback handling
+        if (
+          // In development, fall through to render to handle missing
+          // getStaticPaths.
+          (isProduction || prerenderInfo) &&
+          // When fallback isn't present, abort this render so we 404
+          fallbackMode === FallbackMode.NOT_FOUND
+        ) {
+          throw new NoFallbackError()
+        }
+
         let fallbackResponse: ResponseCacheEntry | null | undefined
 
         if (isRoutePPREnabled && !isRSCRequest) {
