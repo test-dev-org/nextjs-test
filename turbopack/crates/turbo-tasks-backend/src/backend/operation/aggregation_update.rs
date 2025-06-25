@@ -19,7 +19,7 @@ use smallvec::{SmallVec, smallvec};
     feature = "trace_find_and_schedule"
 ))]
 use tracing::{span::Span, trace_span};
-use turbo_tasks::{FxIndexMap, SessionId, TaskId};
+use turbo_tasks::{FxIndexMap, SessionId, TaskExecutionReason, TaskId};
 
 #[cfg(feature = "trace_task_dirty")]
 use crate::backend::operation::invalidate::TaskDirtyCause;
@@ -1217,10 +1217,16 @@ impl AggregationUpdateQueue {
         let session_id = ctx.session_id();
         // Task need to be scheduled if it's dirty or doesn't have output
         let dirty = get!(task, Dirty).map_or(false, |d| d.get(session_id));
-        let should_schedule = dirty || !task.has_key(&CachedDataItemKey::Output {});
-        if should_schedule {
+        let should_schedule = if dirty {
+            Some(TaskExecutionReason::ActivateDirty)
+        } else if !task.has_key(&CachedDataItemKey::Output {}) {
+            Some(TaskExecutionReason::ActivateInitial)
+        } else {
+            None
+        };
+        if let Some(reason) = should_schedule {
             let description = ctx.get_task_desc_fn(task_id);
-            if task.add(CachedDataItem::new_scheduled(description)) {
+            if task.add(CachedDataItem::new_scheduled(reason, description)) {
                 ctx.schedule(task_id);
             }
         }
