@@ -582,7 +582,7 @@ impl ReducedGraphs {
 }
 
 #[turbo_tasks::function(operation)]
-async fn get_reduced_graphs_for_endpoint_inner_operation(
+fn get_reduced_graphs_for_endpoint_inner_operation(
     module_graph: ResolvedVc<ModuleGraph>,
     is_single_page: bool,
 ) -> Vc<ReducedGraphs> {

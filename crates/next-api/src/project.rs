@@ -269,7 +269,7 @@ pub struct ProjectContainer {
 #[turbo_tasks::value_impl]
 impl ProjectContainer {
     #[turbo_tasks::function]
-    pub async fn new(name: RcStr, dev: bool) -> Result<Vc<Self>> {
+    pub fn new(name: RcStr, dev: bool) -> Result<Vc<Self>> {
         Ok(ProjectContainer {
             name,
             // we only need to enable versioning in dev mode, since build
@@ -747,7 +747,7 @@ impl Project {
     }
 
     #[turbo_tasks::function]
-    pub(super) async fn is_watch_enabled(&self) -> Result<Vc<bool>> {
+    pub(super) fn is_watch_enabled(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(self.watch.enable))
     }
 
@@ -986,6 +986,7 @@ impl Project {
         Ok(get_edge_compile_time_info(
             self.project_path(),
             this.define_env.edge(),
+            self.env(),
         ))
     }
 
@@ -1017,6 +1018,7 @@ impl Project {
             self.next_config().turbo_minify(self.next_mode()),
             self.next_config().client_source_maps(self.next_mode()),
             self.no_mangling(),
+            self.next_config().turbo_scope_hoisting(self.next_mode()),
         ))
     }
 
@@ -1038,6 +1040,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_server_chunking_context(
@@ -1050,6 +1053,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         })
     }
@@ -1072,6 +1076,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_edge_chunking_context(
@@ -1084,6 +1089,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         })
     }
@@ -1306,6 +1312,7 @@ impl Project {
                 self.next_config(),
                 NextRuntime::Edge,
                 self.encryption_key(),
+                self.edge_compile_time_info().environment(),
             ),
             get_edge_resolve_options_context(
                 self.project_path(),
@@ -1361,6 +1368,7 @@ impl Project {
                 self.next_config(),
                 NextRuntime::NodeJs,
                 self.encryption_key(),
+                self.server_compile_time_info().environment(),
             ),
             get_server_resolve_options_context(
                 self.project_path(),
@@ -1473,6 +1481,7 @@ impl Project {
                 self.next_config(),
                 NextRuntime::NodeJs,
                 self.encryption_key(),
+                self.server_compile_time_info().environment(),
             ),
             get_server_resolve_options_context(
                 self.project_path(),
@@ -1528,6 +1537,7 @@ impl Project {
                 self.next_config(),
                 NextRuntime::Edge,
                 self.encryption_key(),
+                self.edge_compile_time_info().environment(),
             ),
             get_edge_resolve_options_context(
                 self.project_path(),
@@ -1827,7 +1837,7 @@ async fn get_referenced_output_assets(
 }
 
 #[turbo_tasks::function(operation)]
-async fn all_assets_from_entries_operation(
+fn all_assets_from_entries_operation(
     operation: OperationVc<OutputAssets>,
 ) -> Result<Vc<OutputAssets>> {
     let assets = operation.connect();

@@ -624,6 +624,9 @@ name = "bitflags"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitreader"
@@ -3605,12 +3608,13 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.66"
+version = "1.0.0-alpha.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a73ffa17de66534e4b527232f44aa0a89fad22c4f4e0735f9be35494f058e54"
+checksum = "798fba4e1205eed356b8ed7754cc3f7f04914e27855ca641409f4a532e992149"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.9.0",
+ "browserslist-rs",
  "const-str",
  "cssparser",
  "cssparser-color",
@@ -6838,9 +6842,9 @@ dependencies = [
 
 [[package]]
 name = "styled_jsx"
-version = "0.93.0"
+version = "0.93.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c237ae48a09c98ea27451e4cd9578c8e89985971617e2a4c0c9d15960b878db"
+checksum = "61a00e432196d7f7779b5ba6e296680b8f3190d5885823d42bd1af528b9529f1"
 dependencies = [
  "anyhow",
  "lightningcss",
@@ -7090,9 +7094,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "29.1.2"
+version = "29.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5ea5991cb2874f57c0c7bff4cf8f66b6b49f2e17595efa9781fbabac63ca6ef"
+checksum = "652bfb5da2b20fd9d39b767a34df30ae3d66c0bf8b0014c4d56e87fc8024a178"
 dependencies = [
  "binding_macros",
  "par-core",
@@ -7531,9 +7535,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_lexer"
-version = "17.0.3"
+version = "17.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c284f6251b5e475549491d7e2b473b83f746e3c3ea49a02e87d9862c46563a"
+checksum = "0a257fda06cb2aa3f6c0d0d13b534e3376d542d1d84b83c7eda95fbc0729844a"
 dependencies = [
  "arrayvec 0.7.4",
  "ascii",
@@ -7602,9 +7606,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "23.0.2"
+version = "23.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50b6d32c649a7c78973768b629c8d60f06774be2a648b03c9c342200d4fd9f8b"
+checksum = "074576937cf3c1749edd06cd05573fc2fed9570c57e9e28f870c1e525ec97bb1"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
@@ -7640,9 +7644,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "17.0.2"
+version = "17.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3c0c2fc27655ed52958f39156af28407257c51c48551932d94a7e7bd973b2b1"
+checksum = "e746147b3638778a3bc3665f933f62de2d2a5a7fb6b578cc2d6ef72c76bf0191"
 dependencies = [
  "arrayvec 0.7.4",
  "bitflags 2.9.0",
@@ -8202,9 +8206,9 @@ dependencies = [
 
 [[package]]
 name = "swc_sourcemap"
-version = "9.3.1"
+version = "9.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604e837ad12213d381dea886a184e06b4e09fd502e5d1a4db9d4b7341eb85105"
+checksum = "9755c673c6a83c461e98fa018f681adb8394a3f44f89a06f27e80fd4fe4fa1e4"
 dependencies = [
  "base64-simd 0.8.0",
  "bitvec",
@@ -9678,6 +9682,7 @@ dependencies = [
  "either",
  "indexmap 2.7.1",
  "indoc",
+ "itertools 0.10.5",
  "num-bigint",
  "num-traits",
  "once_cell",
