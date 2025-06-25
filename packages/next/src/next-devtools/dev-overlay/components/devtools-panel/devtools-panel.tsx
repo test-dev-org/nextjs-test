@@ -14,6 +14,7 @@ import {
   ACTION_DEVTOOLS_SCALE,
   STORAGE_KEY_SCALE,
   STORAGE_KEY_POSITION,
+  ACTION_ERROR_OVERLAY_CLOSE,
 } from '../../shared'
 import { css } from '../../utils/css'
 import { OverlayBackdrop } from '../overlay'
@@ -40,10 +41,20 @@ export function DevToolsPanel({
 }) {
   const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [prevIsErrorOverlayOpen, setPrevIsErrorOverlayOpen] = useState(false)
+
+  if (state.isErrorOverlayOpen !== prevIsErrorOverlayOpen) {
+    if (state.isErrorOverlayOpen) {
+      setIsFullscreen(true)
+    }
+    setPrevIsErrorOverlayOpen(state.isErrorOverlayOpen)
+  }
+
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const onCloseDevToolsPanel = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   const handlePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -64,6 +75,7 @@ export function DevToolsPanel({
 
   const handleFullscreenToggle = () => {
     setIsFullscreen((prev) => !prev)
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   return (
@@ -98,6 +110,7 @@ export function DevToolsPanel({
           })
         }}
         dragHandleSelector="[data-nextjs-devtools-panel-header], [data-nextjs-devtools-panel-footer]"
+        disableDrag={isFullscreen}
       >
         <>
           <Dialog
@@ -108,7 +121,10 @@ export function DevToolsPanel({
           >
             <DialogContent data-nextjs-devtools-panel-dialog-content>
               <DialogHeader data-nextjs-devtools-panel-dialog-header>
-                <div data-nextjs-devtools-panel-header>
+                <div
+                  data-nextjs-devtools-panel-header
+                  data-nextjs-devtools-panel-draggable={!isFullscreen}
+                >
                   <div data-nextjs-devtools-panel-header-tab-group>
                     <button
                       data-nextjs-devtools-panel-header-tab={
@@ -175,7 +191,10 @@ export function DevToolsPanel({
                 />
               </DialogBody>
             </DialogContent>
-            <DevToolsPanelFooter versionInfo={state.versionInfo} />
+            <DevToolsPanelFooter
+              versionInfo={state.versionInfo}
+              isDraggable={!isFullscreen}
+            />
           </Dialog>
         </>
       </Draggable>
@@ -261,15 +280,6 @@ export const DEVTOOLS_PANEL_STYLES = css`
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--color-gray-400);
-
-    /* For draggable */
-    cursor: move;
-    user-select: none;
-    & > * {
-      cursor: auto;
-      /* user-select: auto; follows the parent (parent none -> child none), so reset the direct child to text */
-      user-select: text;
-    }
   }
 
   [data-nextjs-devtools-panel-header-tab-group] {
@@ -343,6 +353,16 @@ export const DEVTOOLS_PANEL_STYLES = css`
 
     &:active {
       background-color: var(--color-gray-300);
+    }
+  }
+
+  [data-nextjs-devtools-panel-draggable='true'] {
+    cursor: move;
+    user-select: none;
+    & > * {
+      cursor: auto;
+      /* user-select: auto; follows the parent (parent none -> child none), so reset the direct child to text */
+      user-select: text;
     }
   }
 `
