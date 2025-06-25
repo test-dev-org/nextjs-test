@@ -96,7 +96,7 @@ impl NodeJsChunkingContextBuilder {
 
     /// Builds the chunking context.
     pub fn build(self) -> Vc<NodeJsChunkingContext> {
-        NodeJsChunkingContext::new(self.chunking_context)
+        NodeJsChunkingContext::cell(self.chunking_context)
     }
 }
 
@@ -199,11 +199,6 @@ impl NodeJsChunkingContext {
 
 #[turbo_tasks::value_impl]
 impl NodeJsChunkingContext {
-    #[turbo_tasks::function]
-    fn new(this: NodeJsChunkingContext) -> Vc<Self> {
-        this.cell()
-    }
-
     #[turbo_tasks::function]
     async fn generate_chunk(
         self: Vc<Self>,

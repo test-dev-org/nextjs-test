@@ -427,8 +427,8 @@ pub async fn get_client_chunking_context(
     root_path: ResolvedVc<FileSystemPath>,
     client_root: ResolvedVc<FileSystemPath>,
     client_root_to_root_path: RcStr,
-    asset_prefix: Option<RcStr>,
-    chunk_suffix_path: Option<RcStr>,
+    asset_prefix: ResolvedVc<Option<RcStr>>,
+    chunk_suffix_path: ResolvedVc<Option<RcStr>>,
     environment: ResolvedVc<Environment>,
     mode: Vc<NextMode>,
     module_id_strategy: ResolvedVc<Box<dyn ModuleIdStrategy>>,
@@ -438,6 +438,8 @@ pub async fn get_client_chunking_context(
     scope_hoisting: Vc<bool>,
 ) -> Result<Vc<Box<dyn ChunkingContext>>> {
     let next_mode = mode.await?;
+    let asset_prefix = asset_prefix.owned().await?;
+    let chunk_suffix_path = chunk_suffix_path.owned().await?;
     let mut builder = BrowserChunkingContext::builder(
         root_path,
         client_root,

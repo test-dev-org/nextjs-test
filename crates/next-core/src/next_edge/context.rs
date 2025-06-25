@@ -223,9 +223,9 @@ pub async fn get_edge_chunking_context_with_client_assets(
     mode: Vc<NextMode>,
     root_path: ResolvedVc<FileSystemPath>,
     node_root: ResolvedVc<FileSystemPath>,
-    output_root_to_root_path: RcStr,
+    output_root_to_root_path: ResolvedVc<RcStr>,
     client_root: ResolvedVc<FileSystemPath>,
-    asset_prefix: Option<RcStr>,
+    asset_prefix: ResolvedVc<Option<RcStr>>,
     environment: ResolvedVc<Environment>,
     module_id_strategy: ResolvedVc<Box<dyn ModuleIdStrategy>>,
     turbo_minify: Vc<bool>,
@@ -238,7 +238,7 @@ pub async fn get_edge_chunking_context_with_client_assets(
     let mut builder = BrowserChunkingContext::builder(
         root_path,
         output_root,
-        output_root_to_root_path,
+        output_root_to_root_path.owned().await?,
         client_root,
         output_root.join(rcstr!("chunks/ssr")).to_resolved().await?,
         client_root
@@ -248,7 +248,7 @@ pub async fn get_edge_chunking_context_with_client_assets(
         environment,
         next_mode.runtime_type(),
     )
-    .asset_base_path(asset_prefix)
+    .asset_base_path(asset_prefix.owned().await?)
     .minify_type(if *turbo_minify.await? {
         MinifyType::Minify {
             // React needs deterministic function names to work correctly.
@@ -291,7 +291,7 @@ pub async fn get_edge_chunking_context(
     mode: Vc<NextMode>,
     root_path: ResolvedVc<FileSystemPath>,
     node_root: ResolvedVc<FileSystemPath>,
-    node_root_to_root_path: RcStr,
+    node_root_to_root_path: ResolvedVc<RcStr>,
     environment: ResolvedVc<Environment>,
     module_id_strategy: ResolvedVc<Box<dyn ModuleIdStrategy>>,
     turbo_minify: Vc<bool>,
@@ -304,7 +304,7 @@ pub async fn get_edge_chunking_context(
     let mut builder = BrowserChunkingContext::builder(
         root_path,
         output_root,
-        node_root_to_root_path,
+        node_root_to_root_path.owned().await?,
         output_root,
         output_root.join(rcstr!("chunks")).to_resolved().await?,
         output_root.join(rcstr!("assets")).to_resolved().await?,
