@@ -244,7 +244,7 @@ impl EcmascriptInputTransform {
                     program,
                     helpers,
                     preset_env::transform_from_env::<&'_ dyn Comments>(
-                        top_level_mark,
+                        unresolved_mark,
                         Some(&comments),
                         config,
                         Assumptions::default(),

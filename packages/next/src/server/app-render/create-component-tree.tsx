@@ -25,6 +25,7 @@ import type {
   UseCacheLayoutComponentProps,
   UseCachePageComponentProps,
 } from '../use-cache/use-cache-wrapper'
+import { DEFAULT_SEGMENT_KEY } from '../../shared/lib/segment'
 
 /**
  * Use the provided loader tree to create the React Component tree.
@@ -431,8 +432,6 @@ async function createComponentTreeInternal({
     tree,
   })
 
-  const nodeName = modType ?? 'page'
-
   // TODO: Combine this `map` traversal with the loop below that turns the array
   // into an object.
   const parallelRouteMap = await Promise.all(
@@ -544,18 +543,26 @@ async function createComponentTreeInternal({
           </Template>
         )
 
-        const templateFilePath = getConventionPathByType(
-          parallelRoute,
-          dir,
-          'template'
-        )
+        const templateFilePath = getConventionPathByType(tree, dir, 'template')
+
+        const errorFilePath = getConventionPathByType(tree, dir, 'error')
+
+        const wrappedErrorStyles =
+          isSegmentViewEnabled && errorFilePath ? (
+            <SegmentViewNode type="error" pagePath={errorFilePath}>
+              {errorStyles}
+            </SegmentViewNode>
+          ) : (
+            errorStyles
+          )
+
         return [
           parallelRouteKey,
           <LayoutRouter
             parallelRouterKey={parallelRouteKey}
             // TODO-APP: Add test for loading returning `undefined`. This currently can't be tested as the `webdriver()` tab will wait for the full page to load before returning.
             error={ErrorComponent}
-            errorStyles={errorStyles}
+            errorStyles={wrappedErrorStyles}
             errorScripts={errorScripts}
             template={
               // Only render SegmentViewNode when there's an actual template
@@ -593,8 +600,20 @@ async function createComponentTreeInternal({
     parallelRouteCacheNodeSeedData[parallelRouteKey] = flightData
   }
 
-  const loadingData: LoadingModuleData = Loading
-    ? [<Loading key="l" />, loadingStyles, loadingScripts]
+  let loadingElement = Loading ? <Loading key="l" /> : null
+  if (isSegmentViewEnabled && loadingElement) {
+    const loadingFilePath = getConventionPathByType(tree, dir, 'loading')
+    if (loadingFilePath) {
+      loadingElement = (
+        <SegmentViewNode type="loading" pagePath={loadingFilePath}>
+          {loadingElement}
+        </SegmentViewNode>
+      )
+    }
+  }
+
+  const loadingData: LoadingModuleData = loadingElement
+    ? [loadingElement, loadingStyles, loadingScripts]
     : null
 
   // When the segment does not have a layout or page we still have to add the layout router to ensure the path holds the loading component
@@ -723,10 +742,16 @@ async function createComponentTreeInternal({
       }
     }
 
-    const pageFilePath = getConventionPathByType(tree, dir, 'page')
+    const isDefaultSegment = segment === DEFAULT_SEGMENT_KEY
+    const pageFilePath =
+      getConventionPathByType(tree, dir, 'page') ??
+      getConventionPathByType(tree, dir, 'defaultPage')
     const wrappedPageElement =
       isSegmentViewEnabled && pageFilePath ? (
-        <SegmentViewNode type={nodeName} pagePath={pageFilePath}>
+        <SegmentViewNode
+          type={isDefaultSegment ? 'default' : 'page'}
+          pagePath={pageFilePath}
+        >
           {pageElement}
         </SegmentViewNode>
       ) : (
@@ -911,7 +936,7 @@ async function createComponentTreeInternal({
     const layoutFilePath = getConventionPathByType(tree, dir, 'layout')
     const wrappedSegmentNode =
       isSegmentViewEnabled && layoutFilePath ? (
-        <SegmentViewNode type={nodeName} pagePath={layoutFilePath}>
+        <SegmentViewNode type="layout" pagePath={layoutFilePath}>
           {segmentNode}
         </SegmentViewNode>
       ) : (
@@ -1116,6 +1141,7 @@ function getConventionPathByType(
     | 'loading'
     | 'forbidden'
     | 'unauthorized'
+    | 'defaultPage'
 ) {
   const modules = tree[2]
   const conventionPath = modules[conventionType]

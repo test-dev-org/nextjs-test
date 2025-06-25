@@ -21,6 +21,7 @@ import { Telemetry } from '../../telemetry/storage'
 import { setGlobal } from '../../trace'
 import { isCI } from '../../server/ci-info'
 import { backgroundLogCompilationEvents } from '../../shared/lib/turbopack/compilation-events'
+import { getSupportedBrowsers } from '../utils'
 
 export async function turbopackBuild(): Promise<{
   duration: number
@@ -47,10 +48,7 @@ export async function turbopackBuild(): Promise<{
   const bindings = await loadBindings(config?.experimental?.useWasmBinary)
   const dev = false
 
-  // const supportedBrowsers = await getSupportedBrowsers(dir, dev)
-  const supportedBrowsers = [
-    'last 1 Chrome versions, last 1 Firefox versions, last 1 Safari versions, last 1 Edge versions',
-  ]
+  const supportedBrowsers = await getSupportedBrowsers(dir, dev)
 
   const persistentCaching = isPersistentCachingEnabled(config)
   const project = await bindings.turbo.createProject(

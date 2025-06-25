@@ -1,5 +1,6 @@
 import type { SupportedErrorEvent } from '../container/runtime-error/render-error'
 import type { ReadyRuntimeError } from '../utils/get-error-by-type'
+import { lorem } from '../utils/lorem'
 
 const originalCodeFrame = (message: string) => {
   return `\u001b[0m \u001b[90m 1 \u001b[39m \u001b[36mexport\u001b[39m \u001b[36mdefault\u001b[39m \u001b[36mfunction\u001b[39m \u001b[33mHome\u001b[39m() {\u001b[0m
@@ -103,7 +104,7 @@ export const runtimeErrors: ReadyRuntimeError[] = [
   {
     id: 1,
     runtime: true,
-    error: new Error('First error message'),
+    error: new Error(lorem),
     frames: () =>
       Promise.resolve([
         frame,
@@ -180,5 +181,47 @@ export const runtimeErrors: ReadyRuntimeError[] = [
         },
       ]),
     type: 'runtime',
+  },
+  {
+    id: 5,
+    runtime: true,
+    error: new Error('Very long stack frame file name.'),
+    frames: () =>
+      Promise.resolve([
+        {
+          error: true,
+          reason: 'Fifth error message',
+          external: false,
+          ignored: false,
+          sourceStackFrame: {
+            ...sourceStackFrame,
+            file: 'foo/bar/baz/qux/quux/quuz/corge/grault/garply/waldo/fred/plugh/xyzzy/thud.tsx',
+          },
+          originalStackFrame: {
+            ...originalStackFrame,
+            file: 'foo/bar/baz/qux/quux/quuz/corge/grault/garply/waldo/fred/plugh/xyzzy/thud.tsx (0:0)',
+          },
+          originalCodeFrame: originalCodeFrame('Fifth error message'),
+        },
+      ]),
+    type: 'console',
+  },
+  {
+    id: 6,
+    runtime: true,
+    error: new Error('Sixth error message'),
+    frames: () =>
+      Promise.resolve([
+        {
+          error: true,
+          reason: 'Sixth error message',
+          external: false,
+          ignored: false,
+          sourceStackFrame,
+          originalStackFrame,
+          originalCodeFrame: originalCodeFrame('Sixth error message'),
+        },
+      ]),
+    type: 'recoverable',
   },
 ]

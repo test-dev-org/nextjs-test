@@ -160,4 +160,50 @@ describe('segment-explorer', () => {
      unauthorized.tsx"
     `)
   })
+
+  it('should show the loading boundary when it is present', async () => {
+    const browser = await next.browser('/search')
+    const input = await browser.elementByCss('input[name="q"]')
+    await input.fill('abc')
+    await browser.elementByCss('button').click() // submit the form
+
+    await retry(async () => {
+      expect(await browser.elementByCss('#loading').text()).toBe('Loading...')
+    })
+
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     search/
+     layout.tsx
+     loading.tsx"
+    `)
+  })
+
+  it('should show the custom error boundary when present', async () => {
+    const browser = await next.browser('/runtime-error/boundary')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     runtime-error / boundary/
+     error.tsx"
+    `)
+  })
+
+  it('should display parallel routes default page when present', async () => {
+    const browser = await next.browser('/parallel-default/subroute')
+    expect(await getSegmentExplorerContent(browser)).toMatchInlineSnapshot(`
+     "app/
+     layout.tsx
+     parallel-default/
+     layout.tsx
+     default.tsx
+     @bar/
+     layout.tsx
+     subroute/
+     page.tsx
+     @foo/
+     default.tsx"
+    `)
+  })
 })
