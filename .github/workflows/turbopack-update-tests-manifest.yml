@@ -1,5 +1,8 @@
 # A recurring workflow which updates the passing/failing/skipped integration tests for Turbopack.
 name: Update Turbopack test manifest
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   schedule:
