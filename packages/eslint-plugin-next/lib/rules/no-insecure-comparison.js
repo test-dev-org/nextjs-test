@@ -33,7 +33,7 @@ module.exports = {
               const [a, b] = [node.left, node.right];
               return fixer.replaceText(
                 node,
-                `!crypto.timingSafeEqual(Buffer.from(${context.getSourceCode().getText(a)}, ` +
+                `crypto.timingSafeEqual(Buffer.from(${context.getSourceCode().getText(a)}), ` +
                 `Buffer.from(${context.getSourceCode().getText(b)}))`
               );
             }
