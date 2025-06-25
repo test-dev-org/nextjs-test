@@ -2587,7 +2587,7 @@ async fn handle_free_var_reference(
         } => {
             let esm_reference = analysis
                 .add_esm_reference_free_var(request.clone(), async || {
-                    Ok(EsmAssetReference::new(
+                    Ok(EsmAssetReference::new_pure(
                         if let Some(lookup_path) = lookup_path {
                             ResolvedVc::upcast(
                                 PlainResolveOrigin::new(
