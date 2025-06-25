@@ -98,6 +98,10 @@ pub struct NextConfig {
     pub output: Option<OutputType>,
     pub turbopack: Option<TurbopackConfig>,
     production_browser_source_maps: bool,
+    pub output_file_tracing_includes: Option<serde_json::Value>,
+    pub output_file_tracing_excludes: Option<serde_json::Value>,
+    // TODO: This option is not respected, it uses Turbopack's root instead.
+    output_file_tracing_root: Option<RcStr>,
 
     /// Enables the bundling of node_modules packages (externals) for pages
     /// server-side bundles.
@@ -763,9 +767,6 @@ pub struct ExperimentalConfig {
     /// Automatically apply the "modularize_imports" optimization to imports of
     /// the specified packages.
     optimize_package_imports: Option<Vec<RcStr>>,
-    output_file_tracing_ignores: Option<Vec<RcStr>>,
-    output_file_tracing_includes: Option<serde_json::Value>,
-    output_file_tracing_root: Option<RcStr>,
     /// Using this feature will enable the `react@experimental` for the `app`
     /// directory.
     ppr: Option<ExperimentalPartialPrerendering>,
