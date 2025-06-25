@@ -43,11 +43,13 @@ pub fn minify(code: Code, source_maps: bool, mangle: Option<MangleType>) -> Resu
     let (src, mut src_map_buf) = {
         let fm = cm.new_source_file(FileName::Anon.into(), source_code);
 
+        let comments = SingleThreadedComments::default();
+
         let lexer = Lexer::new(
             Syntax::default(),
             EsVersion::latest(),
             StringInput::from(&*fm),
-            None,
+            Some(&comments),
         );
         let mut parser = Parser::new_from(lexer);
 
@@ -60,7 +62,6 @@ pub fn minify(code: Code, source_maps: bool, mangle: Option<MangleType>) -> Resu
                         bail!("failed to parse source code\n{}", fm.src)
                     }
                 };
-                let comments = SingleThreadedComments::default();
                 let unresolved_mark = Mark::new();
                 let top_level_mark = Mark::new();
 
