@@ -37,6 +37,11 @@ use crate::{
 
 #[turbo_tasks::value]
 #[derive(Clone)]
+/// A CSS module asset.
+///
+/// Module in this case refers to both the fact that this asset implements the `Module` trait,
+/// and is a true CSS module. If you want to create a global CSS asset, use [`CssModuleAsset`]
+/// instead.
 pub struct ModuleCssAsset {
     pub source: ResolvedVc<Box<dyn Source>>,
     pub asset_context: ResolvedVc<Box<dyn AssetContext>>,
