@@ -101,11 +101,9 @@ fn get_output_specifier(
 /// Apply outputFileTracingIncludes patterns to find additional files
 async fn apply_includes(
     project_root_path: Vc<FileSystemPath>,
-    includes: &BTreeSet<RcStr>,
+    glob: Vc<Glob>,
     ident_folder: &FileSystemPath,
 ) -> Result<BTreeSet<RcStr>> {
-    let glob = Glob::alternatives(includes.iter().map(|s| Glob::new(s.clone())).collect());
-
     // Read files matching the glob pattern from the project root
     let glob_result = project_root_path.read_glob(glob, true).await?;
 
@@ -224,7 +222,7 @@ impl Asset for NftJsonAsset {
             }
 
             if let Some(ref exclude_glob) = exclude_glob
-                && exclude_glob.matches(&referenced_chunk_path.path.as_str())
+                && exclude_glob.matches(referenced_chunk_path.path.as_str())
             {
                 continue;
             }
@@ -255,13 +253,13 @@ impl Asset for NftJsonAsset {
             {
                 for (glob_pattern, include_patterns) in includes_obj {
                     // Check if the route matches the glob pattern
-                    if let Ok(glob) = Glob::parse(glob_pattern)
-                        && glob.matches(route)
+                    let glob = Glob::new(glob_pattern.as_str().into()).await?;
+                    if glob.matches(route)
                         && let Some(patterns) = include_patterns.as_array()
                     {
                         for pattern in patterns {
                             if let Some(pattern_str) = pattern.as_str() {
-                                combined_includes.insert(pattern_str.into());
+                                combined_includes.insert(pattern_str);
                             }
                         }
                     }
@@ -270,14 +268,19 @@ impl Asset for NftJsonAsset {
 
             // Apply includes - find additional files that match the include patterns
             if !combined_includes.is_empty() {
-                let additional_files = apply_includes(
-                    project_path,
-                    &combined_includes,
-                    &ident_folder_in_project_fs,
-                )
-                .await?;
-                let mut additional_files = additional_files.into_iter().collect::<Vec<_>>();
-                additional_files.sort();
+                let glob = Glob::new(
+                    format!(
+                        "{{{}}}",
+                        combined_includes
+                            .iter()
+                            .copied()
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                    .into(),
+                );
+                let additional_files =
+                    apply_includes(project_path, glob, &ident_folder_in_project_fs).await?;
                 result.extend(additional_files);
             }
         }
