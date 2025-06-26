@@ -7,14 +7,19 @@ import { css } from '../../utils/css'
 
 export function DevToolsPanelFooter({
   versionInfo,
+  isDraggable,
 }: {
   versionInfo: OverlayState['versionInfo']
+  isDraggable: boolean
 }) {
   const bundlerName = (
     process.env.__NEXT_BUNDLER || 'WEBPACK'
   ).toUpperCase() as 'WEBPACK' | 'TURBOPACK' | 'RSPACK'
   return (
-    <div data-nextjs-devtools-panel-footer>
+    <div
+      data-nextjs-devtools-panel-footer
+      data-nextjs-devtools-panel-draggable={isDraggable}
+    >
       <div data-nextjs-devtools-panel-footer-tab-group>
         <DevToolsPanelVersionInfo versionInfo={versionInfo} />
         <div data-nextjs-devtools-panel-footer-tab>
@@ -49,7 +54,6 @@ export const DEVTOOLS_PANEL_FOOTER_STYLES = css`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: auto;
     border-top: 1px solid var(--color-gray-400);
     border-radius: 0 0 var(--rounded-xl) var(--rounded-xl);
   }
