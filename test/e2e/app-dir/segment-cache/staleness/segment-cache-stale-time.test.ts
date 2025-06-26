@@ -110,10 +110,10 @@ describe('segment cache (staleness)', () => {
 
     await browser.back()
 
-    // Fast forward 29 seconds. staleTimes.dynamic is configured as 30s, so if
+    // Fast forward 28 seconds. staleTimes.dynamic is configured as 30s, so if
     // we navigate to the same link again, the old data should be reused without
     // a new network request.
-    await page.clock.fastForward(29 * 1000)
+    await page.clock.fastForward(28 * 1000)
 
     await act(async () => {
       const toggle = await browser.elementByCss(
@@ -130,9 +130,9 @@ describe('segment cache (staleness)', () => {
 
     await browser.back()
 
-    // Fast forward an additional second. This time, if we navigate to the link
-    // again, the data is stale, so we issue a new request.
-    await page.clock.fastForward(1 * 1000)
+    // Fast forward an additional 4 seconds. This time, if we navigate to the
+    // link again, the data is stale, so we issue a new request.
+    await page.clock.fastForward(4 * 1000)
 
     await act(
       async () => {
