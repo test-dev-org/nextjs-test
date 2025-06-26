@@ -217,11 +217,6 @@ pub mod tests {
                 .unwrap()
                 .write_all(b"bar")
                 .unwrap();
-            // Add a dotfile
-            File::create_new(path.join("sub/.gitignore"))
-                .unwrap()
-                .write_all(b"ignore")
-                .unwrap();
         }
         let tt = turbo_tasks::TurboTasks::new(TurboTasksBackend::new(
             BackendOptions::default(),
@@ -333,33 +328,53 @@ pub mod tests {
     }
 
     #[turbo_tasks::function(operation)]
+    pub async fn write(path: ResolvedVc<FileSystemPath>, contents: RcStr) -> anyhow::Result<()> {
+        path.write(
+            FileContent::Content(crate::File::from_bytes(contents.to_string().into_bytes())).cell(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[turbo_tasks::function(operation)]
     pub fn track_star_star_glob(path: ResolvedVc<FileSystemPath>) -> Vc<Completion> {
         path.track_glob(Glob::new("**".into()), false)
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn track_glob_invalidations() {
+        use std::os::unix::fs::symlink;
         crate::register();
         let scratch = tempfile::tempdir().unwrap();
 
         // Create a simple directory with 2 files, a subdirectory and a dotfile
         let path = scratch.path();
-        File::create_new(path.join("foo"))
+        let dir = path.join("dir");
+        create_dir(&dir).unwrap();
+        File::create_new(dir.join("foo"))
             .unwrap()
             .write_all(b"foo")
             .unwrap();
-        create_dir(path.join("sub")).unwrap();
-        File::create_new(path.join("sub/bar"))
+        create_dir(dir.join("sub")).unwrap();
+        File::create_new(dir.join("sub/bar"))
             .unwrap()
             .write_all(b"bar")
             .unwrap();
         // Add a dotfile
-        create_dir(path.join("sub/.vim")).unwrap();
-        let gitignore = path.join("sub/.vim/.gitignore");
+        create_dir(dir.join("sub/.vim")).unwrap();
+        let gitignore = dir.join("sub/.vim/.gitignore");
         File::create_new(&gitignore)
             .unwrap()
             .write_all(b"ignore")
             .unwrap();
+        // put a link in the dir that points at a file in the root.
+        let link_target = path.join("link_target.js");
+        File::create_new(&link_target)
+            .unwrap()
+            .write_all(b"link_target")
+            .unwrap();
+        symlink(&link_target, dir.join("link.js")).unwrap();
 
         let tt = turbo_tasks::TurboTasks::new(TurboTasksBackend::new(
             BackendOptions::default(),
@@ -372,35 +387,103 @@ pub mod tests {
                 path,
                 Vec::new(),
             ));
-            let read_dir = track_star_star_glob(fs.root().to_resolved().await?)
-                .read_strongly_consistent()
-                .await?;
+            let dir = fs.root().join("dir".into()).to_resolved().await?;
+            let read_dir = track_star_star_glob(dir).read_strongly_consistent().await?;
 
             // Delete a file that we shouldn't be tracking
             let delete_result = delete(
                 fs.root()
-                    .join("sub/.vim/.gitignore".into())
+                    .join("dir/sub/.vim/.gitignore".into())
                     .to_resolved()
                     .await?,
             );
             delete_result.read_strongly_consistent().await?;
             apply_effects(delete_result).await?;
 
-            let read_dir2 = track_star_star_glob(fs.root().to_resolved().await?)
-                .read_strongly_consistent()
-                .await?;
+            let read_dir2 = track_star_star_glob(dir).read_strongly_consistent().await?;
             assert!(ReadRef::ptr_eq(&read_dir, &read_dir2));
 
             // Delete a file that we should be tracking
-            let delete_result = delete(fs.root().join("foo".into()).to_resolved().await?);
+            let delete_result = delete(fs.root().join("dir/foo".into()).to_resolved().await?);
             delete_result.read_strongly_consistent().await?;
             apply_effects(delete_result).await?;
 
-            let read_dir2 = track_star_star_glob(fs.root().to_resolved().await?)
-                .read_strongly_consistent()
-                .await?;
+            let read_dir2 = track_star_star_glob(dir).read_strongly_consistent().await?;
 
             assert!(!ReadRef::ptr_eq(&read_dir, &read_dir2));
+
+            // Modify a symlink target file
+            let write_result = write(
+                fs.root()
+                    .join("link_target.js".into())
+                    .to_resolved()
+                    .await?,
+                "new_contents".into(),
+            );
+            write_result.read_strongly_consistent().await?;
+            apply_effects(write_result).await?;
+            let read_dir3 = track_star_star_glob(dir).read_strongly_consistent().await?;
+
+            assert!(!ReadRef::ptr_eq(&read_dir3, &read_dir2));
+
+            anyhow::Ok(())
+        })
+        .await
+        .unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn track_glob_symlinks_loop() {
+        crate::register();
+        let scratch = tempfile::tempdir().unwrap();
+        {
+            use std::os::unix::fs::symlink;
+
+            // Create a simple directory with 1 file and a symlink pointing at at a file in a
+            // subdirectory
+            let path = scratch.path();
+            let sub = &path.join("sub");
+            create_dir(sub).unwrap();
+            let foo = sub.join("foo.js");
+            File::create_new(&foo).unwrap().write_all(b"foo").unwrap();
+            // put a link in sub that points back at its parent director
+            symlink(sub, sub.join("link")).unwrap();
+        }
+        let tt = turbo_tasks::TurboTasks::new(TurboTasksBackend::new(
+            BackendOptions::default(),
+            noop_backing_storage(),
+        ));
+        let path: RcStr = scratch.path().to_str().unwrap().into();
+        tt.run_once(async {
+            let fs = Vc::upcast::<Box<dyn FileSystem>>(DiskFileSystem::new(
+                "temp".into(),
+                path,
+                Vec::new(),
+            ));
+            let err = fs
+                .root()
+                .track_glob(Glob::new("**".into()), false)
+                .await
+                .expect_err("Should have detected an infinite loop");
+
+            assert_eq!(
+                "'sub/link' is a symlink causes that causes an infinite loop!",
+                format!("{}", err.root_cause())
+            );
+
+            // Same when calling track glob
+            let err = fs
+                .root()
+                .track_glob(Glob::new("**".into()), false)
+                .await
+                .expect_err("Should have detected an infinite loop");
+
+            assert_eq!(
+                "'sub/link' is a symlink causes that causes an infinite loop!",
+                format!("{}", err.root_cause())
+            );
+
             anyhow::Ok(())
         })
         .await
