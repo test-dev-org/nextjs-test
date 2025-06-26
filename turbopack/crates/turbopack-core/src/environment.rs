@@ -12,7 +12,7 @@ use turbo_tasks_env::ProcessEnv;
 
 use crate::target::CompileTarget;
 
-static DEFAULT_NODEJS_VERSION: &str = "16.0.0";
+static DEFAULT_NODEJS_VERSION: &str = "18.0.0";
 
 #[turbo_tasks::value]
 #[derive(Clone, Copy, Default, Hash, TaskInput, Debug)]
@@ -261,15 +261,15 @@ pub struct NodeJsEnvironment {
     pub cwd: ResolvedVc<Option<RcStr>>,
 }
 
-// impl Default for NodeJsEnvironment {
-//     fn default() -> Self {
-//         NodeJsEnvironment {
-//             compile_target: CompileTarget::current_raw().resolved_cell(),
-//             node_version: NodeJsVersion::default().resolved_cell(),
-//             cwd: ResolvedVc::cell(None),
-//         }
-//     }
-// }
+impl Default for NodeJsEnvironment {
+    fn default() -> Self {
+        NodeJsEnvironment {
+            compile_target: CompileTarget::current_raw().resolved_cell(),
+            node_version: NodeJsVersion::default().resolved_cell(),
+            cwd: ResolvedVc::cell(None),
+        }
+    }
+}
 
 #[turbo_tasks::value_impl]
 impl NodeJsEnvironment {
@@ -326,6 +326,9 @@ pub struct BrowserEnvironment {
 
 #[turbo_tasks::value(shared)]
 pub struct EdgeWorkerEnvironment {
+    // This isn't actually the Edge's worker environment, but we have to use some kind of version
+    // for transpiling ECMAScript features. No tool supports Edge Workers as a separate
+    // environment.
     pub node_version: ResolvedVc<NodeJsVersion>,
 }
 

@@ -205,6 +205,7 @@ impl HmrBenchmark {
                 },
                 browserslist_query: RcStr::from("last 2 versions"),
                 no_mangling: false,
+                current_node_js_version: RcStr::from("18.0.0"),
             };
 
             container.initialize(options).await?;
