@@ -283,10 +283,7 @@ impl ModuleResolveResultBuilder {
 #[turbo_tasks::value_impl]
 impl ModuleResolveResult {
     #[turbo_tasks::function]
-    pub async fn with_affecting_source(
-        &self,
-        source: ResolvedVc<Box<dyn Source>>,
-    ) -> Result<Vc<Self>> {
+    pub fn with_affecting_source(&self, source: ResolvedVc<Box<dyn Source>>) -> Result<Vc<Self>> {
         Ok(Self {
             primary: self.primary.clone(),
             affecting_sources: self
@@ -300,7 +297,7 @@ impl ModuleResolveResult {
     }
 
     #[turbo_tasks::function]
-    pub async fn with_affecting_sources(
+    pub fn with_affecting_sources(
         &self,
         sources: Vec<ResolvedVc<Box<dyn Source>>>,
     ) -> Result<Vc<Self>> {
@@ -477,6 +474,7 @@ pub enum ExternalType {
     Url,
     CommonJs,
     EcmaScriptModule,
+    Global,
 }
 
 impl Display for ExternalType {
@@ -485,6 +483,7 @@ impl Display for ExternalType {
             ExternalType::CommonJs => write!(f, "commonjs"),
             ExternalType::EcmaScriptModule => write!(f, "esm"),
             ExternalType::Url => write!(f, "url"),
+            ExternalType::Global => write!(f, "global"),
         }
     }
 }
@@ -897,10 +896,7 @@ impl ResolveResult {
     }
 
     #[turbo_tasks::function]
-    pub async fn with_affecting_source(
-        &self,
-        source: ResolvedVc<Box<dyn Source>>,
-    ) -> Result<Vc<Self>> {
+    pub fn with_affecting_source(&self, source: ResolvedVc<Box<dyn Source>>) -> Result<Vc<Self>> {
         Ok(Self {
             primary: self.primary.clone(),
             affecting_sources: self
@@ -914,7 +910,7 @@ impl ResolveResult {
     }
 
     #[turbo_tasks::function]
-    pub async fn with_affecting_sources(
+    pub fn with_affecting_sources(
         &self,
         sources: Vec<ResolvedVc<Box<dyn Source>>>,
     ) -> Result<Vc<Self>> {
@@ -2791,6 +2787,7 @@ async fn resolve_import_map_result(
                         ExternalType::EcmaScriptModule => {
                             node_esm_resolve_options(alias_lookup_path.root())
                         }
+                        ExternalType::Global => options,
                     },
                 )
                 .await?

@@ -5,7 +5,7 @@ use indoc::formatdoc;
 use lightningcss::css_modules::CssModuleReference;
 use swc_core::common::{BytePos, FileName, LineCol, SourceMap};
 use turbo_rcstr::{RcStr, rcstr};
-use turbo_tasks::{FxIndexMap, ResolvedVc, ValueToString, Vc};
+use turbo_tasks::{FxIndexMap, IntoTraitRef, ResolvedVc, ValueToString, Vc};
 use turbo_tasks_fs::{FileSystemPath, rope::Rope};
 use turbopack_core::{
     asset::{Asset, AssetContent},
@@ -64,7 +64,7 @@ impl Module for ModuleCssAsset {
             .source
             .ident()
             .with_modifier(rcstr!("css module"))
-            .with_layer(self.asset_context.layer().owned().await?))
+            .with_layer(self.asset_context.into_trait_ref().await?.layer()))
     }
 
     #[turbo_tasks::function]
@@ -423,7 +423,7 @@ fn generate_minimal_source_map(filename: String, source: String) -> Result<Rope>
     }
     let sm: Arc<SourceMap> = Default::default();
     sm.new_source_file(FileName::Custom(filename).into(), source);
-    let map = generate_js_source_map(sm, mappings, None, true)?;
+    let map = generate_js_source_map(&*sm, mappings, None, true, true)?;
     Ok(map)
 }
 
