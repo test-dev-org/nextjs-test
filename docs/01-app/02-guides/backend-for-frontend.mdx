@@ -67,7 +67,7 @@ export function POST(request: Request) {
 ```js filename="/app/api/route.js" switcher
 import { submit } from '@/lib/submit'
 
-export function POST(request) {
+export async function POST(request) {
   try {
     await submit(request)
     return new Response(null, { status: 204 })
