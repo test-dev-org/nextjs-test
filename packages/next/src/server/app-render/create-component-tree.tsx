@@ -1109,7 +1109,7 @@ export function normalizeConventionFilePath(
 ) {
   const cwd = process.env.NEXT_RUNTIME === 'edge' ? '' : process.cwd()
   const nextInternalPrefixRegex =
-    /^(.*[\\/])?next[\\/]dist[\\/]client[\\/]components[\\/]/
+    /^(.*[\\/])?next[\\/]dist[\\/]client[\\/]components[\\/]builtin[\\/]/
 
   let relativePath = (conventionPath || '')
     // remove turbopack [project] prefix

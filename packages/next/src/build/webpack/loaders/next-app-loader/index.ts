@@ -59,9 +59,9 @@ const HTTP_ACCESS_FALLBACKS = {
   unauthorized: 'unauthorized',
 } as const
 const defaultHTTPAccessFallbackPaths = {
-  'not-found': 'next/dist/client/components/builtin/not-found',
-  forbidden: 'next/dist/client/components/builtin/forbidden',
-  unauthorized: 'next/dist/client/components/builtin/unauthorized',
+  'not-found': 'next/dist/client/components/builtin/not-found.js',
+  forbidden: 'next/dist/client/components/builtin/forbidden.js',
+  unauthorized: 'next/dist/client/components/builtin/unauthorized.js',
 } as const
 
 const FILE_TYPES = {
