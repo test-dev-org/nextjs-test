@@ -6,6 +6,21 @@
 
 import type * as SegmentExplorer from './segment-explorer-trie'
 
+const createSegmentNode = ({
+  pagePath,
+  type,
+}: {
+  pagePath: string
+  type: string
+}): SegmentExplorer.SegmentNode => {
+  return {
+    pagePath,
+    type,
+    boundaryType: null,
+    setBoundaryType: () => {},
+  }
+}
+
 describe('Segment Explorer', () => {
   let cleanup: typeof import('@testing-library/react').cleanup
   let renderHook: typeof import('@testing-library/react').renderHook
@@ -31,9 +46,15 @@ describe('Segment Explorer', () => {
   })
 
   test('add complex structure', () => {
-    insertSegmentNode({ pagePath: '/a/page.js', type: 'page' })
-    insertSegmentNode({ pagePath: '/a/layout.js', type: 'layout' })
-    insertSegmentNode({ pagePath: '/layout.js', type: 'layout' })
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/page.js', type: 'page' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/layout.js', type: 'layout' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/layout.js', type: 'layout' })
+    )
 
     const { result } = renderHook(useSegmentTree)
 
@@ -76,11 +97,21 @@ describe('Segment Explorer', () => {
   })
 
   test('remove node in the middle', () => {
-    insertSegmentNode({ pagePath: '/a/b/@sidebar/page.js', type: 'page' })
-    insertSegmentNode({ pagePath: '/a/b/page.js', type: 'page' })
-    insertSegmentNode({ pagePath: '/a/b/layout.js', type: 'layout' })
-    insertSegmentNode({ pagePath: '/a/layout.js', type: 'layout' })
-    insertSegmentNode({ pagePath: '/layout.js', type: 'layout' })
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/b/@sidebar/page.js', type: 'page' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/b/page.js', type: 'page' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/b/layout.js', type: 'layout' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/a/layout.js', type: 'layout' })
+    )
+    insertSegmentNode(
+      createSegmentNode({ pagePath: '/layout.js', type: 'layout' })
+    )
 
     const { result } = renderHook(useSegmentTree)
 
@@ -145,7 +176,9 @@ describe('Segment Explorer', () => {
       value: undefined,
     })
 
-    removeSegmentNode({ pagePath: '/a/b/layout.js', type: 'layout' })
+    removeSegmentNode(
+      createSegmentNode({ pagePath: '/a/b/layout.js', type: 'layout' })
+    )
 
     expect(result.current).toEqual({
       children: {
