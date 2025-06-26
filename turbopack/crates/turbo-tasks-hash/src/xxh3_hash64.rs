@@ -2,13 +2,20 @@ use std::hash::Hasher;
 
 use twox_hash::{XxHash3_64, XxHash3_128};
 
-use crate::{DeterministicHash, DeterministicHasher};
+use crate::{
+    DeterministicHash, DeterministicHasher,
+    deterministic_hash::{DeterministicBytes, DeterministicOneshotHasher},
+};
 
 /// Hash some content with the Xxh3Hash64 non-cryptographic hash function.
 pub fn hash_xxh3_hash64<T: DeterministicHash>(input: T) -> u64 {
     let mut hasher = Xxh3Hash64Hasher::new();
     input.deterministic_hash(&mut hasher);
     hasher.finish()
+}
+
+pub fn hash_xxh3_hash64_oneshot<T: DeterministicBytes>(input: T) -> u64 {
+    Xxh3Hash64OneshotHasher::oneshot_u64(input.as_deterministic_bytes())
 }
 
 /// Hash some content with the Xxh3Hash128 non-cryptographic hash function. This longer hash is
@@ -31,6 +38,16 @@ pub fn hash_xxh3_hash128<T: DeterministicHash>(input: T) -> u128 {
     let mut hasher = Xxh3Hash128Hasher(XxHash3_128::with_seed(0));
     input.deterministic_hash(&mut hasher);
     hasher.0.finish_128()
+}
+
+pub fn hash_xxh3_hash128_oneshot<T: DeterministicBytes>(input: T) -> u128 {
+    // this isn't fully compatible with the 64-bit Hasher/DeterministicHasher APIs, so just use a
+    // private impl for this
+    struct Xxh3Hash128OneshotHasher;
+
+    impl DeterministicOneshotHasher for Xxh3Hash128OneshotHasher {}
+
+    Xxh3Hash128OneshotHasher::oneshot_u128(input.as_deterministic_bytes())
 }
 
 /// Xxh3Hash64 hasher.
@@ -73,5 +90,15 @@ impl DeterministicHasher for Xxh3Hash64Hasher {
 impl Default for Xxh3Hash64Hasher {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct Xxh3Hash64OneshotHasher;
+
+impl DeterministicOneshotHasher for Xxh3Hash64OneshotHasher {}
+
+impl Default for Xxh3Hash64OneshotHasher {
+    fn default() -> Self {
+        Self
     }
 }

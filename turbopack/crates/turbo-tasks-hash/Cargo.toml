@@ -13,6 +13,7 @@ bench = false
 workspace = true
 
 [dependencies]
+zerocopy = "0.8.26"
 turbo-tasks-macros = { workspace = true }
 twox-hash = { workspace = true, features = [
   "xxhash3_64",

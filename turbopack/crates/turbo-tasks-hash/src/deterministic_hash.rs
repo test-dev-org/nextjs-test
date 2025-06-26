@@ -1,6 +1,8 @@
 use std::mem::Discriminant;
 
 pub use turbo_tasks_macros::DeterministicHash;
+use twox_hash::{XxHash3_64, XxHash3_128};
+use zerocopy::IntoBytes;
 
 macro_rules! deterministic_hash_number {
     ($(($ty:ident, $meth:ident),)*) => {$(
@@ -20,6 +22,16 @@ macro_rules! impl_write_number {
             // Apple silicon and Intel chips both use little endian, so this should be fast.
             let little_endian = i.to_le_bytes();
             self.write_bytes(&little_endian);
+        }
+    )*}
+}
+
+macro_rules! deterministic_bytes_number {
+    ($($ty:ident)*) => {$(
+        impl DeterministicBytes for $ty {
+            fn as_deterministic_bytes(&self) -> &[u8] {
+                self.as_bytes()
+            }
         }
     )*}
 }
@@ -198,5 +210,35 @@ impl<T> DeterministicHash for Discriminant<T> {
         // allow us to Hash it.
         let mut wrapper = HasherWrapper(state);
         std::hash::Hash::hash(self, &mut wrapper);
+    }
+}
+
+pub trait DeterministicBytes {
+    /// Adds `self`'s bytes to the [`DeterministicHasher`]'s state, in a way that is replicatable on
+    /// any platform or process run.
+    fn as_deterministic_bytes(&self) -> &[u8];
+}
+
+deterministic_bytes_number! {
+  i8
+  i16
+  i32
+  i64
+  i128
+  u8
+  u16
+  u32
+  u64
+  u128
+  isize
+  usize
+}
+
+pub trait DeterministicOneshotHasher {
+    fn oneshot_u64(input: &[u8]) -> u64 {
+        XxHash3_64::oneshot(input)
+    }
+    fn oneshot_u128(input: &[u8]) -> u128 {
+        XxHash3_128::oneshot(input)
     }
 }
