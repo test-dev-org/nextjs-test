@@ -5,6 +5,7 @@ export type LogLevel = 'log' | 'info' | 'warn'  | 'debug' | 'table'
 export type ConsoleEntry = {
   kind: 'console'
   level: LogLevel
+  consoleLogStack: string| null
   args: Array<
     | {
         kind: 'arg'
@@ -31,7 +32,7 @@ export type ConsoleErrorEntry = {
     | {
         kind: 'formatted-error-arg'
         prefix: string
-        stack: string
+        stack: string | null
       }
   >
 }

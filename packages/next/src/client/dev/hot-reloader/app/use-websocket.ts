@@ -19,6 +19,11 @@ export function useWebsocket(assetPrefix: string) {
     const socket = new window.WebSocket(`${url}/_next/webpack-hmr`)
     didConnect.current = true
     setWebSocket(socket)
+
+    /**
+     * this is a speculative comment, was that the intention of storing the socket in a ref before?
+     */
+    // we should cleanup, but we don't want to open another socket, and since we guard with a ref and expect this to run once, its fine
   }, [assetPrefix])
 
   return webSocket
@@ -74,6 +79,7 @@ export function useTurbopack(
       '@vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts'
     ).then(({ connect }) => {
       const { current } = turbopackState
+
       // console.log('connecting to turbo pack')
 
       connect({

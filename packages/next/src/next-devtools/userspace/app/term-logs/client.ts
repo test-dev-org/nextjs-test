@@ -82,18 +82,23 @@ export const logQueue: {
       return
     }
 
+    // incase an existing timeout was going to run with a stale socket
     clearTimeout(logQueue.timer)
     logQueue.socket = socket
-    const payload = JSON.stringify({
-      event: 'browser-logs',
-      entries: logQueue.entries,
-      router: logQueue.router,
-      sourceType: logQueue.sourceType,
-    })
+    try {
+      const payload = JSON.stringify({
+        event: 'browser-logs',
+        entries: logQueue.entries,
+        router: logQueue.router,
+        sourceType: logQueue.sourceType,
+      })
 
-    socket.send(payload)
-    logQueue.entries = []
-    logQueue.sourceType = undefined
+      socket.send(payload)
+      logQueue.entries = []
+      logQueue.sourceType = undefined
+    } catch {
+      /** noop just incase */
+    }
   },
 }
 
@@ -110,8 +115,18 @@ const createErrorArg = (error: Error) => {
 }
 
 const createLogEntry = (level: LogLevel, args: any[]) => {
+  // do not abstract this, it implicitly relies on which functions call it. forcing the inlined implementation makes you think about callers
+  const stack = stackWithOwners(new Error())
+  const stackLines = stack?.split('\n')
+  // @ts-expect-error
+  window._logstuff = window._logstuff ?? []
+  // @ts-expect-error
+  window._logstuff.push(stack)
+
+  const cleanStack = stackLines?.slice(2).join('\n')
   const entry: ConsoleEntry = {
     kind: 'console',
+    consoleLogStack: cleanStack ?? null, // depending on browser we might not have stack
     level,
     args: args.map((arg) => {
       if (arg instanceof Error) {
@@ -127,6 +142,9 @@ const createLogEntry = (level: LogLevel, args: any[]) => {
   logQueue.scheduleLogSend(entry)
 }
 
+// const getStackForConsoleMethod = () => {
+
+// }
 export const forwardErrorLog = (args: any[]) => {
   const errorObjects = args.filter((arg) => arg instanceof Error)
   const first = errorObjects.at(0)
@@ -137,9 +155,8 @@ export const forwardErrorLog = (args: any[]) => {
     }
   }
   // browser shows stack regardless of data in error, so we should do the same
-  const stack = new Error().stack
+  const stack = stackWithOwners(new Error())
   const stackLines = stack?.split('\n')
-  // remove the new Error().stack line and our internal createErrorLogEntry call
   const cleanStack = stackLines?.slice(2).join('\n')
 
   const entry: ConsoleErrorEntry = {
@@ -180,13 +197,16 @@ const createUncaughtErrorEntry = (
   logQueue.scheduleLogSend(entry)
 }
 
+const stackWithOwners = (error: Error) => {
+  setOwnerStackIfAvailable(error)
+  const ownerStack = getOwnerStack(error)
+  const stack = (error.stack || '') + (ownerStack || '')
+  return stack
+}
+
 export function logUnhandledRejection(reason: unknown) {
   if (reason instanceof Error) {
-    setOwnerStackIfAvailable(reason)
-    const ownerStack = getOwnerStack(reason)
-    const fullStack = (reason.stack || '') + (ownerStack || '')
-
-    createUnhandledRejectionErrorEntry(reason, fullStack)
+    createUnhandledRejectionErrorEntry(reason, stackWithOwners(reason))
     return
   }
   createUnhandledRejectionNonErrorEntry(reason)
@@ -264,15 +284,8 @@ const createConsoleMethod = (
   }
 }
 
-
-
-
 export function forwardUnhandledError(error: Error) {
-  setOwnerStackIfAvailable(error)
-  const ownerStack = getOwnerStack(error)
-  const fullStack = (error.stack || '') + (ownerStack || '')
-
-  createUncaughtErrorEntry(error.name, error.message, fullStack)
+  createUncaughtErrorEntry(error.name, error.message, stackWithOwners(error))
 }
 
 // todo: this router check is brittle, we need to update based on the current router the user is using

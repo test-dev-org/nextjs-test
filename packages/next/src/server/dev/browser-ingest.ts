@@ -1,6 +1,6 @@
 import type { StackFrame } from 'next/dist/compiled/stacktrace-parser'
 import type { OriginalStackFramesResponse } from '../../next-devtools/server/shared'
-import { cyan, red } from '../../lib/picocolors'
+import { blue, cyan, gray, magenta, red, yellow } from '../../lib/picocolors'
 import { parseStack } from '../lib/parse-stack'
 import path from 'path'
 import { getOriginalStackFrames as getOriginalStackFramesWebpack } from './middleware-webpack'
@@ -56,6 +56,7 @@ export type LogLevel = 'log' | 'info' | 'warn' | 'debug' | 'table'
 export type ConsoleEntry = {
   kind: 'console'
   level: LogLevel
+  consoleLogStack: string | null
   args: Array<
     | {
         kind: 'arg'
@@ -63,8 +64,8 @@ export type ConsoleEntry = {
       }
     | {
         kind: 'formatted-error-arg'
+        stack: string | null
         prefix: string
-        stack: string
       }
   >
 }
@@ -82,7 +83,7 @@ export type ConsoleErrorEntry = {
     | {
         kind: 'formatted-error-arg'
         prefix: string
-        stack: string
+        stack: string | null
       }
   >
 }
@@ -133,7 +134,6 @@ async function mapFramesUsingBundler(
         edgeServerStats,
         rootDirectory,
       } = ctx
-      // webpack is the problem
       const res = await getOriginalStackFramesWebpack({
         isServer,
         isEdgeServer,
@@ -275,12 +275,14 @@ async function getSourceMappedStackFrames(
         kind: 'with-frame-code' as const,
         frameCode: firstFrameCode,
         stack: stackOutput,
+        frames: filteredFrames,
       }
     }
-
+    // i don't think this a real case, but good for exhaustion
     return {
-      kind: 'stack' as const,
+      kind: 'mapped-stack' as const,
       stack: stackOutput,
+      frames: filteredFrames,
     }
   } catch (error) {
     return {
@@ -312,7 +314,7 @@ async function deserializeArgData(arg: any) {
   }
 }
 
-const colorSourceMappedStackFrames = (
+const colorError = (
   mapped: Awaited<ReturnType<typeof getSourceMappedStackFrames>>,
   config?: {
     prefix?: string
@@ -321,11 +323,8 @@ const colorSourceMappedStackFrames = (
 ) => {
   const colorFn =
     config?.applyColor === undefined || config.applyColor ? red : <T>(x: T) => x
-  // console.log('WHAT IS THIS', {
-  //   config,
-  //   mapped,
-  // })
   switch (mapped.kind) {
+    case 'mapped-stack':
     case 'stack': {
       return (
         (config?.prefix ? colorFn(config?.prefix) : '') +
@@ -347,7 +346,47 @@ const colorSourceMappedStackFrames = (
   mapped satisfies never
 }
 
-async function enhanceErrors(
+const TODO_CONFIG_BASED_SOURCE_LOG = true
+
+const withStack = async (
+  {
+    original,
+    stack,
+  }: {
+    original: any[]
+    stack: string | null
+  },
+  ctx: MappingContext,
+  distDir: string
+) => {
+  if (!TODO_CONFIG_BASED_SOURCE_LOG) {
+    return original
+  }
+  if (!stack) {
+    return original
+  }
+
+  const res = await getSourceMappedStackFrames(stack, ctx, distDir)
+
+  if (res.kind !== 'mapped-stack' && res.kind !== 'with-frame-code') {
+    return original
+  }
+
+  const first = res.frames.at(0)
+
+  if (!first) {
+
+    return original
+  }
+
+
+  // we don't want to show the name of parent function, just source location for minimal noise
+  const match = first.frameText.match(/\(([^)]+)\)/)
+  const locationText = match ? match[1] : first.frameText
+  return [...original, gray(`(${locationText})`)]
+}
+
+async function prepareArgs(
   entry: LogEntry,
   ctx: MappingContext,
   distDir: string
@@ -359,24 +398,29 @@ async function enhanceErrors(
         ctx,
         distDir
       )
-      return [
-        colorSourceMappedStackFrames(mappedStack, { prefix: entry.prefix }),
-      ]
+      return [colorError(mappedStack, { prefix: entry.prefix })]
     }
     case 'console': {
       const deserializedArgs = await Promise.all(
         entry.args.map(async (arg) => {
           switch (arg.kind) {
             case 'arg': {
-              return deserializeArgData(arg.data)
+              const deserialized = await deserializeArgData(arg.data)
+              if (entry.level === 'warn' && typeof deserialized === 'string') {
+                return yellow(deserialized)
+              }
+              return deserialized
             }
             case 'formatted-error-arg': {
+              if (!arg.stack) {
+                return red(arg.prefix)
+              }
               const mappedStack = await getSourceMappedStackFrames(
                 arg.stack,
                 ctx,
                 distDir
               )
-              return colorSourceMappedStackFrames(mappedStack, {
+              return colorError(mappedStack, {
                 prefix: arg.prefix,
                 applyColor: false,
               })
@@ -394,18 +438,21 @@ async function enhanceErrors(
               // hm
               if (arg.isRejectionMessage) {
                 // if we want it to look like our server output we would just color the red x, idk todo i kinda like the full red, but maybe should sync other message then?
-                return red(arg.data)
+                return red(arg.data) // already a string
               }
               // return red(inspectDeep(arg.data))
               return deserializeArgData(arg.data)
             }
             case 'formatted-error-arg': {
+              if (!arg.stack) {
+                return red(arg.prefix)
+              }
               const mappedStack = await getSourceMappedStackFrames(
                 arg.stack,
                 ctx,
                 distDir
               )
-              return colorSourceMappedStackFrames(mappedStack, {
+              return colorError(mappedStack, {
                 prefix: arg.prefix,
               })
             }
@@ -423,7 +470,7 @@ async function enhanceErrors(
         distDir
       )
 
-      return [...deserializedArgs, colorSourceMappedStackFrames(mappedStack)]
+      return [...deserializedArgs, colorError(mappedStack)]
     }
   }
   entry satisfies never
@@ -434,12 +481,14 @@ export async function receiveEvent(
   ctx: MappingContext,
   distDir: string
 ): Promise<void> {
-  const browserPrefix = cyan('[browser]')
+  const baseBrowserPrefix = cyan('[browser]')
 
   for (const entry of entries) {
     try {
       switch (entry.kind) {
         case 'console': {
+          const browserPrefix = baseBrowserPrefix
+
           if (entry.level === 'table') {
             const deserializedArgs = await Promise.all(
               entry.args.map(async (arg) => {
@@ -459,17 +508,25 @@ export async function receiveEvent(
             continue
           }
 
-          const loggableEntry = await enhanceErrors(entry, ctx, distDir)
+          const loggableEntry = await prepareArgs(entry, ctx, distDir)
+          const loggableEntryWithStack = await withStack(
+            {
+              original: loggableEntry,
+              stack: entry.consoleLogStack,
+            },
+            ctx,
+            distDir
+          )
           const consoleMethod =
             forwardConsole[entry.level] || forwardConsole.log
-          console.log('we are logging this data', JSON.stringify(loggableEntry))
 
-          consoleMethod(browserPrefix, ...loggableEntry)
+          consoleMethod(browserPrefix, ...loggableEntryWithStack)
           break
         }
         case 'console-error':
         case 'formatted-error': {
-          const consoleErrorArgs = await enhanceErrors(entry, ctx, distDir)
+          const browserPrefix = baseBrowserPrefix
+          const consoleErrorArgs = await prepareArgs(entry, ctx, distDir)
           forwardConsole.error(browserPrefix, ...consoleErrorArgs)
           break
         }
@@ -478,12 +535,14 @@ export async function receiveEvent(
       switch (entry.kind) {
         case 'console-error':
         case 'console': {
+          const browserPrefix = baseBrowserPrefix
           const consoleMethod =
             forwardConsole[entry.level] || forwardConsole.log
           consoleMethod(browserPrefix, ...entry.args)
           break
         }
         case 'formatted-error': {
+          const browserPrefix = baseBrowserPrefix
           forwardConsole.error(browserPrefix, `${entry.prefix}\n`, entry.stack)
           break
         }

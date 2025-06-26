@@ -63,7 +63,6 @@ export function useErrorHandler(
   handleOnUnhandledError: ErrorHandler,
   handleOnUnhandledRejection: ErrorHandler
 ) {
-  console.log('flushing error queue, app?')
 
   useEffect(() => {
     // Handle queued errors.
