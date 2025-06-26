@@ -512,48 +512,6 @@ The following examples demonstrate how to use the `<Link>` component in differen
 
 <AppOnly>
 
-### Linking to dynamic segments
-
-When linking to [dynamic segments](/docs/app/api-reference/file-conventions/dynamic-routes), you can use [template literals and interpolation](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Template_literals) to generate a list of links. For example, to generate a list of blog posts:
-
-```tsx filename="app/blog/post-list.tsx" switcher
-import Link from 'next/link'
-
-interface Post {
-  id: number
-  title: string
-  slug: string
-}
-
-export default function PostList({ posts }: { posts: Post[] }) {
-  return (
-    <ul>
-      {posts.map((post) => (
-        <li key={post.id}>
-          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-        </li>
-      ))}
-    </ul>
-  )
-}
-```
-
-```jsx filename="app/blog/post-list.js" switcher
-import Link from 'next/link'
-
-export default function PostList({ posts }) {
-  return (
-    <ul>
-      {posts.map((post) => (
-        <li key={post.id}>
-          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-        </li>
-      ))}
-    </ul>
-  )
-}
-```
-
 ### Checking active links
 
 You can use [`usePathname()`](/docs/app/api-reference/functions/use-pathname) to determine if a link is active. For example, to add a class to the active link, you can check if the current `pathname` matches the `href` of the link:
@@ -629,7 +587,7 @@ If you'd like to scroll to a specific `id` on navigation, you can append your UR
 
 ### Linking to dynamic route segments
 
-For [dynamic route segments](/docs/app/api-reference/file-conventions/dynamic-routes), it can be handy to use template literals to create the link's path.
+For [dynamic route segments](/docs/app/api-reference/file-conventions/dynamic-routes), it can be handy to use [template literals and interpolation](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Template_literals) to create the link's path.
 
 <PagesOnly>
 
