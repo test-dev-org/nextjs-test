@@ -159,8 +159,8 @@ async function createTreeCodeFromPath(
   const pages: string[] = []
 
   let rootLayout: string | undefined
-  let globalError: string = defaultGlobalErrorPath
-  let globalNotFound: string = defaultNotFoundPath
+  let globalError: string | undefined
+  let globalNotFound: string | undefined
 
   async function resolveAdjacentParallelSegments(
     segmentPath: string
@@ -523,7 +523,7 @@ async function createTreeCodeFromPath(
     treeCode: `${treeCode}.children;`,
     pages: `${JSON.stringify(pages)};`,
     rootLayout,
-    globalError,
+    globalError: globalError ?? defaultGlobalErrorPath,
     globalNotFound: globalNotFound ?? defaultNotFoundPath,
   }
 }
