@@ -1,11 +1,11 @@
 // wtf is the point of this file
 // not actually shared fire
-export type LogLevel = 'log' | 'info' | 'warn'  | 'debug' | 'table'
+export type LogLevel = 'log' | 'info' | 'warn' | 'debug' | 'table' | 'error' | 'assert' | 'dir' | 'dirxml' | 'group' | 'groupCollapsed' | 'groupEnd' | 'trace' | "warn"
 
 export type ConsoleEntry = {
   kind: 'console'
   level: LogLevel
-  consoleLogStack: string| null
+  consoleLogStack: string| null // fix name
   args: Array<
     | {
         kind: 'arg'

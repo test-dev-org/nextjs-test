@@ -22,7 +22,32 @@ export function restoreUndefined(x: any): any {
   }
   return x
 }
-const levels: Array<LogLevel> = ['log', 'info', 'warn', 'debug', 'table']
+
+// todo: use react impl sebbie posted
+const levels: Array<LogLevel> = [
+  'log',
+  'info',
+  'warn',
+  'debug',
+  'table',
+  'error',
+  'assert',
+  'dir',
+  'dirxml',
+  'group',
+  'groupCollapsed',
+  'groupEnd',
+]
+
+const methodsToSkipInspect = new Set([
+  'table',
+  'dir',
+  'dirxml',
+  'group',
+  'groupCollapsed',
+  'groupEnd',
+])
+
 const forwardConsole: typeof console = {
   ...console,
   ...Object.fromEntries(
@@ -31,9 +56,11 @@ const forwardConsole: typeof console = {
       (...args: Array<any>) =>
         (console[method] as any)(
           ...args.map((arg) =>
-            typeof arg === 'object' && arg !== null
-              ? util.inspect(arg, { depth: Infinity, colors: true })
-              : arg
+            methodsToSkipInspect.has(method) ||
+            typeof arg !== 'object' ||
+            arg === null
+              ? arg
+              : util.inspect(arg, { depth: Infinity, colors: true })
           )
         ),
     ])
@@ -51,7 +78,20 @@ const forwardConsole: typeof console = {
 
 // wtf is the point of this file
 // not actually shared fire
-export type LogLevel = 'log' | 'info' | 'warn' | 'debug' | 'table'
+export type LogLevel =
+  | 'log'
+  | 'info'
+  | 'warn'
+  | 'debug'
+  | 'table'
+  | 'error'
+  | 'assert'
+  | 'dir'
+  | 'dirxml'
+  | 'group'
+  | 'groupCollapsed'
+  | 'groupEnd'
+  | 'trace'
 
 export type ConsoleEntry = {
   kind: 'console'
@@ -190,11 +230,12 @@ function preprocessStackTrace(stackTrace: string, distDir?: string): string {
     })
     .join('\n')
 }
-
+// todo: add cache for sourcemap lookup incase we do it twice
 async function getSourceMappedStackFrames(
   stackTrace: string,
   ctx: MappingContext,
-  distDir?: string
+  distDir: string,
+  ignore = true
 ) {
   try {
     const normalizedStack = preprocessStackTrace(stackTrace, distDir)
@@ -224,7 +265,7 @@ async function getSourceMappedStackFrames(
         }
 
         const { originalStackFrame, originalCodeFrame } = result.value
-        if (originalStackFrame?.ignored) {
+        if (originalStackFrame?.ignored && ignore) {
           return {
             kind: 'ignored' as const,
           }
@@ -367,23 +408,32 @@ const withStack = async (
   }
 
   const res = await getSourceMappedStackFrames(stack, ctx, distDir)
+  const location = getConsoleLocation(res)
 
-  if (res.kind !== 'mapped-stack' && res.kind !== 'with-frame-code') {
+  if (!location) {
     return original
   }
 
-  const first = res.frames.at(0)
+  return [...original, location]
+}
+
+const getConsoleLocation = (
+  mapped: Awaited<ReturnType<typeof getSourceMappedStackFrames>>
+) => {
+  if (mapped.kind !== 'mapped-stack' && mapped.kind !== 'with-frame-code') {
+    return null
+  }
+
+  const first = mapped.frames.at(0)
 
   if (!first) {
-
-    return original
+    return null
   }
-
 
   // we don't want to show the name of parent function (at <fn> thing in stack), just source location for minimal noise
   const match = first.frameText.match(/\(([^)]+)\)/)
   const locationText = match ? match[1] : first.frameText
-  return [...original, gray(`(${locationText})`)]
+  return gray(`(${locationText})`)
 }
 
 async function prepareArgs(
@@ -489,6 +539,7 @@ export async function receiveEvent(
           const browserPrefix = baseBrowserPrefix
 
           if (entry.level === 'table') {
+            // i would rather this processing be one thing incase we have to handle the browser prefix case twice, ug thats annoying
             const deserializedArgs = await Promise.all(
               entry.args.map(async (arg) => {
                 // browser behavior when console.table(new Error) is showing stack in table
@@ -503,8 +554,68 @@ export async function receiveEvent(
             )
             // can't inline a browser prefix to console table
             forwardConsole.log(browserPrefix)
+            // console.table({ name: 'Test', value: 123 })
+            // console.log('console tabling', deserializedArgs);
+            // console.log("what", JSON.stringify({ name: 'Test', value: 123 }) === JSON.stringify(deserializedArgs[0]))
+
+            // FORWARD CONSOLE TABLE IS BROKEN TBD
             forwardConsole.table(...deserializedArgs)
+            // console.table(...deserializedArgs)
             continue
+          }
+
+          if (entry.level === 'trace') {
+            const deserializedArgs = await Promise.all(
+              entry.args.map(async (arg) => {
+                // browser behavior when console.table(new Error) is showing stack in table
+                if (arg.kind === 'formatted-error-arg') {
+                  if (!arg.stack) {
+                    return red(arg.prefix)
+                  }
+                  const mappedStack = await getSourceMappedStackFrames(
+                    arg.stack,
+                    ctx,
+                    distDir
+                  )
+                  return colorError(mappedStack, {
+                    prefix: arg.prefix,
+                  })
+                }
+                return deserializeArgData(arg.data)
+              })
+            )
+
+            if (!entry.consoleLogStack) {
+              forwardConsole.log(
+                browserPrefix,
+                ...deserializedArgs,
+                '[Trace unavailable]'
+              )
+              break
+            }
+
+            // this is pretty bad but its fine
+            // i should see how expensive this fn is :think
+            const [mapped, mappedIgnored] = await Promise.all([
+              getSourceMappedStackFrames(
+                entry.consoleLogStack,
+                ctx,
+                distDir,
+                false
+              ),
+              getSourceMappedStackFrames(entry.consoleLogStack, ctx, distDir),
+            ])
+
+            const location = getConsoleLocation(mappedIgnored)
+
+            // console.trace on server will show the trace of console.trace, which is useless to the user and not whats shown in browser
+            forwardConsole.log(
+              browserPrefix,
+              ...deserializedArgs,
+              `\n${mapped.stack}`,
+              ...(location ? [`\n${location}`] : [])
+            )
+            break
           }
 
           const loggableEntry = await prepareArgs(entry, ctx, distDir)
@@ -518,6 +629,42 @@ export async function receiveEvent(
           )
           const consoleMethod =
             forwardConsole[entry.level] || forwardConsole.log
+
+          // this is getting refactored
+          /**
+           * the things we need to fix is:
+           * - composing source map stuff
+           * - handling cases where we can't just spread values and apply extra info
+           * - special transforms we have to do
+           *
+           * i think id rather explicitly define handling cases for each, and share as much logic when we can
+           * easier to declare behavior of each than have random if statements for everything
+           *
+           *
+           * this is so bad lol
+           *
+           * ug have to rethink this
+           */
+          if (entry.level === 'dir') {
+            process.stdout.write(browserPrefix)
+            consoleMethod(...loggableEntry)
+
+            if (entry.consoleLogStack) {
+              const mapped = await getSourceMappedStackFrames(
+                entry.consoleLogStack,
+                ctx,
+                distDir
+              )
+              const location = getConsoleLocation(mapped)
+              if (location) {
+                process.stdout.write('\x1b[1A')
+                process.stdout.write(' ' + location + '\n')
+                break
+              }
+            }
+
+            break
+          }
 
           consoleMethod(browserPrefix, ...loggableEntryWithStack)
           break
@@ -537,6 +684,7 @@ export async function receiveEvent(
           const browserPrefix = baseBrowserPrefix
           const consoleMethod =
             forwardConsole[entry.level] || forwardConsole.log
+          // @ts-expect-error todo fix this its wrong, its completely random data and type erroring
           consoleMethod(browserPrefix, ...entry.args)
           break
         }

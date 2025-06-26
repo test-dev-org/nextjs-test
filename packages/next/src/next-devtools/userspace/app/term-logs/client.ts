@@ -15,14 +15,19 @@ import {
 } from '../errors/stitched-error'
 import { getErrorSource } from '../../../../shared/lib/error-source'
 const UNDEFINED_MARKER = '__next_tagged_undefined'
-const replacer = (_key: string, value: unknown) => {
-  return value === undefined ? UNDEFINED_MARKER : value
+const replacer = (_k: string, v: unknown) => {
+  return v === undefined ? UNDEFINED_MARKER : v
 }
 
 const stringify = configure({ maximumDepth: Number.MAX_SAFE_INTEGER }) // todo: allow user to config
 // ternary since stringify(undefined) wont be handled by the replacer
-const logStringify = (data: unknown) =>
-  data === undefined ? UNDEFINED_MARKER : stringify(data, replacer)
+const logStringify = (data: unknown) => {
+  try {
+    return data === undefined ? UNDEFINED_MARKER : stringify(data, replacer)
+  } catch {
+    return '[unable to serialize]'
+  }
+}
 
 let isPatched = false
 
@@ -145,9 +150,6 @@ const createLogEntry = (level: LogLevel, args: any[]) => {
   logQueue.scheduleLogSend(entry)
 }
 
-// const getStackForConsoleMethod = () => {
-
-// }
 export const forwardErrorLog = (args: any[]) => {
   const errorObjects = args.filter((arg) => arg instanceof Error)
   const first = errorObjects.at(0)
@@ -286,6 +288,19 @@ const createConsoleMethod = (
     original(...args)
   }
 }
+//  return (...args: any[]) => {
+//     try {
+//       // we already have HMR logs on server, so information is redundant
+//       if (isHMR(args)) {
+//         original(...args)
+//         return
+//       }
+//       createLogEntry(level, args)
+//       original(...args)
+//     } catch {
+//       original(...args)
+//     }
+//   }
 
 export function forwardUnhandledError(error: Error) {
   createUncaughtErrorEntry(error.name, error.message, stackWithOwners(error))
@@ -299,7 +314,21 @@ export const patchLogs = (router: 'app' | 'pages'): void => {
     return
   }
 
-  const levels: Array<LogLevel> = ['log', 'info', 'warn', 'debug', 'table']
+  const levels: Array<LogLevel> = [
+    'log',
+    'info',
+    'warn',
+    'debug',
+    'table',
+    'error',
+    'assert',
+    'dir',
+    'dirxml',
+    'group',
+    'groupCollapsed',
+    'groupEnd',
+    'trace',
+  ]
 
   levels.forEach((level) => {
     ;(console as any)[level] = createConsoleMethod(
