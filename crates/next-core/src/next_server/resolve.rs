@@ -459,13 +459,12 @@ struct ExternalizeIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for ExternalizeIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        IssueSeverity::Warning.cell()
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Warning
     }
 
     #[turbo_tasks::function]
-    async fn title(&self) -> Vc<StyledString> {
+    fn title(&self) -> Vc<StyledString> {
         StyledString::Line(vec![
             StyledString::Text("Package ".into()),
             StyledString::Code(self.package.clone()),
@@ -485,7 +484,7 @@ impl Issue for ExternalizeIssue {
     }
 
     #[turbo_tasks::function]
-    async fn description(&self) -> Result<Vc<OptionStyledString>> {
+    fn description(&self) -> Result<Vc<OptionStyledString>> {
         Ok(Vc::cell(Some(
             StyledString::Stack(vec![
                 StyledString::Line(vec![

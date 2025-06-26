@@ -157,8 +157,8 @@ use crate::{
         util::InlineSourceMap,
     },
     runtime_functions::{
-        TUBROPACK_RUNTIME_FUNCTION_SHORTCUTS, TURBOPACK_EXPORT_NAMESPACE, TURBOPACK_EXPORT_VALUE,
-        TURBOPACK_REQUIRE_REAL, TURBOPACK_REQUIRE_STUB,
+        TURBOPACK_EXPORT_NAMESPACE, TURBOPACK_EXPORT_VALUE, TURBOPACK_REQUIRE_REAL,
+        TURBOPACK_REQUIRE_STUB, TURBOPACK_RUNTIME_FUNCTION_SHORTCUTS,
     },
     tree_shake::{find_turbopack_part_id_in_asserts, part_of_module, split},
     utils::{AstPathRange, module_value_to_well_known_object},
@@ -761,7 +761,7 @@ pub(crate) async fn analyse_ecmascript_module_internal(
                         ImportedSymbol::Part(part_id) => Some(ModulePart::internal(*part_id)),
                         ImportedSymbol::Exports => Some(ModulePart::exports()),
                     },
-                    Some(TreeShakingMode::ReexportsOnly) => match &r.imported_symbol {
+                    _ => match &r.imported_symbol {
                         ImportedSymbol::ModuleEvaluation => {
                             should_add_evaluation = true;
                             Some(ModulePart::evaluation())
@@ -777,10 +777,6 @@ pub(crate) async fn analyse_ecmascript_module_internal(
                         }
                         ImportedSymbol::Exports => None,
                     },
-                    None => {
-                        should_add_evaluation = true;
-                        None
-                    }
                 },
                 import_externals,
             )
@@ -1370,28 +1366,31 @@ pub(crate) async fn analyse_ecmascript_module_internal(
                             options.tree_shaking_mode,
                             Some(TreeShakingMode::ReexportsOnly)
                         ) {
-                            let r_ref = r.await?;
-                            if r_ref.export_name.is_none()
+                            let original_reference = r.await?;
+                            if original_reference.export_name.is_none()
                                 && export.is_some()
                                 && let Some(export) = export
                             {
-                                let r = analysis.add_esm_reference_namespace_resolved(
-                                    esm_reference_index,
-                                    export.clone(),
-                                    || {
-                                        EsmAssetReference::new(
-                                            r_ref.origin,
-                                            r_ref.request,
-                                            r_ref.issue_source.clone(),
-                                            r_ref.annotations.clone(),
-                                            Some(ModulePart::export(export.clone())),
-                                            r_ref.import_externals,
-                                        )
-                                        .resolved_cell()
-                                    },
-                                );
-                                analysis.add_code_gen(EsmBinding::new(
-                                    r,
+                                // Rewrite `import * as ns from 'foo'; foo.bar()` to behave like
+                                // `import {bar} from 'foo'; bar()` for tree shaking purposes.
+                                let named_reference = analysis
+                                    .add_esm_reference_namespace_resolved(
+                                        esm_reference_index,
+                                        export.clone(),
+                                        || {
+                                            EsmAssetReference::new(
+                                                original_reference.origin,
+                                                original_reference.request,
+                                                original_reference.issue_source.clone(),
+                                                original_reference.annotations.clone(),
+                                                Some(ModulePart::export(export.clone())),
+                                                original_reference.import_externals,
+                                            )
+                                            .resolved_cell()
+                                        },
+                                    );
+                                analysis.add_code_gen(EsmBinding::new_keep_this(
+                                    named_reference,
                                     Some(export),
                                     ast_path.into(),
                                 ));
@@ -1530,7 +1529,7 @@ async fn compile_time_info_for_module_type(
         .entry(vec![DefineableNameSegment::Name(global)])
         .or_insert(FreeVarReference::Ident("globalThis".into()));
 
-    free_var_references.extend(TUBROPACK_RUNTIME_FUNCTION_SHORTCUTS.into_iter().map(
+    free_var_references.extend(TURBOPACK_RUNTIME_FUNCTION_SHORTCUTS.into_iter().map(
         |(name, shortcut)| {
             (
                 vec![DefineableNameSegment::Name(name.into())],

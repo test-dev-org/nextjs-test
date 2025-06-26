@@ -28,7 +28,7 @@ pub enum ProcessResult {
 #[turbo_tasks::value_impl]
 impl ProcessResult {
     #[turbo_tasks::function]
-    pub async fn module(&self) -> Result<Vc<Box<dyn Module>>> {
+    pub fn module(&self) -> Result<Vc<Box<dyn Module>>> {
         match *self {
             ProcessResult::Module(m) => Ok(*m),
             ProcessResult::Ignore => {
@@ -64,8 +64,7 @@ pub trait AssetContext {
     fn compile_time_info(self: Vc<Self>) -> Vc<CompileTimeInfo>;
 
     /// Gets the layer of the asset context.
-    #[turbo_tasks::function]
-    fn layer(self: Vc<Self>) -> Vc<RcStr>;
+    fn layer(&self) -> RcStr;
 
     /// Gets the resolve options for a given path.
     #[turbo_tasks::function]
