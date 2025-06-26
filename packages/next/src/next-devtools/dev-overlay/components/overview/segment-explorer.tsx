@@ -168,12 +168,14 @@ function PageSegmentTreeLayerPresentation({
                   })}
                 </span>
               )}
-
-              {pageChild && pageChild.value && (
-                <SegmentBoundaryTrigger
-                  onSelectBoundary={pageChild.value.setBoundaryType}
-                />
-              )}
+              {/* TODO: only show triggers in dev panel remove this once the new panel UI is stable */}
+              {process.env.__NEXT_DEVTOOL_NEW_PANEL_UI &&
+                pageChild &&
+                pageChild.value && (
+                  <SegmentBoundaryTrigger
+                    onSelectBoundary={pageChild.value.setBoundaryType}
+                  />
+                )}
             </div>
           </div>
         </div>
