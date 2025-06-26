@@ -616,7 +616,7 @@ export function Links() {
 
 ### Linking to dynamic route segments
 
-For [dynamic route segments](/docs/pages/api-reference/file-conventions/dynamic-routes), it can be handy to use template literals to create the link's path.
+For [dynamic route segments](/docs/pages/building-your-application/routing/dynamic-routes#convention), it can be handy to use template literals to create the link's path.
 
 For example, you can generate a list of links to the dynamic route `pages/blog/[slug].js`
 
@@ -1192,7 +1192,7 @@ export default function Home() {
 }
 ```
 
-> **Good to know**: If you're using [Dynamic Routes](/docs/pages/api-reference/file-conventions/dynamic-routes), you'll need to adapt your `as` and `href` props. For example, if you have a Dynamic Route like `/dashboard/authed/[user]` that you want to present differently via middleware, you would write: `<Link href={{ pathname: '/dashboard/authed/[user]', query: { user: username } }} as="/dashboard/[user]">Profile</Link>`.
+> **Good to know**: If you're using [Dynamic Routes](/docs/pages/building-your-application/routing/dynamic-routes#convention), you'll need to adapt your `as` and `href` props. For example, if you have a Dynamic Route like `/dashboard/authed/[user]` that you want to present differently via middleware, you would write: `<Link href={{ pathname: '/dashboard/authed/[user]', query: { user: username } }} as="/dashboard/[user]">Profile</Link>`.
 
 </PagesOnly>
 
