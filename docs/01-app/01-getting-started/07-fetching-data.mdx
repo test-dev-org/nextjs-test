@@ -234,7 +234,7 @@ export default function BlogPage() {
 }
 ```
 
-## Deduplicate Requests and Cache Data
+## Deduplicate requests and cache data
 
 One way to deduplicate `fetch` requests is with [request memoization](/docs/app/guides/caching#request-memoization). With this mechanism, `fetch` calls using `GET` or `HEAD` with the same URL and options in a single render pass are combined into one request. This happens automatically, and you can [opt out](/docs/app/guides/caching#opting-out) by passing an Abort signal to `fetch`.
 
