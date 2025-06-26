@@ -104,9 +104,9 @@ describe.each([
                at m (<next-dist-dir>)
                at n (<anonymous>)
                at o (<next-dist-dir>)
-               at p (<anonymous>)
-               at q (<anonymous>)
-               at r (<anonymous>)
+               at main (<anonymous>)
+               at body (<anonymous>)
+               at html (<anonymous>)
            Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
            Export encountered an error on /page: /, exiting the build."
           `)
@@ -163,9 +163,9 @@ describe.each([
                at m (<next-dist-dir>)
                at n (<anonymous>)
                at o (<next-dist-dir>)
-               at p (<anonymous>)
-               at q (<anonymous>)
-               at r (<anonymous>)
+               at main (<anonymous>)
+               at body (<anonymous>)
+               at html (<anonymous>)
            Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
            Export encountered an error on /page: /, exiting the build."
           `)

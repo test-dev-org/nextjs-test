@@ -171,7 +171,8 @@ describe.each([
           expect(output).toMatchInlineSnapshot(`
            "Error: Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense
                at a (<anonymous>)
-               at b (<anonymous>)
+               at main (<anonymous>)
+               at b (<next-dist-dir>)
                at c (<next-dist-dir>)
                at d (<next-dist-dir>)
                at e (<next-dist-dir>)
@@ -180,12 +181,11 @@ describe.each([
                at h (<next-dist-dir>)
                at i (<next-dist-dir>)
                at j (<next-dist-dir>)
-               at k (<next-dist-dir>)
-               at l (<anonymous>)
-               at m (<next-dist-dir>)
-               at n (<anonymous>)
-               at o (<anonymous>)
-               at p (<anonymous>)
+               at k (<anonymous>)
+               at l (<next-dist-dir>)
+               at main (<anonymous>)
+               at body (<anonymous>)
+               at html (<anonymous>)
            Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
            Export encountered an error on /page: /, exiting the build."
           `)
@@ -226,7 +226,8 @@ describe.each([
           expect(output).toMatchInlineSnapshot(`
            "Error: Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense
                at a (<anonymous>)
-               at b (<anonymous>)
+               at main (<anonymous>)
+               at b (<next-dist-dir>)
                at c (<next-dist-dir>)
                at d (<next-dist-dir>)
                at e (<next-dist-dir>)
@@ -235,12 +236,11 @@ describe.each([
                at h (<next-dist-dir>)
                at i (<next-dist-dir>)
                at j (<next-dist-dir>)
-               at k (<next-dist-dir>)
-               at l (<anonymous>)
-               at m (<next-dist-dir>)
-               at n (<anonymous>)
-               at o (<anonymous>)
-               at p (<anonymous>)
+               at k (<anonymous>)
+               at l (<next-dist-dir>)
+               at main (<anonymous>)
+               at body (<anonymous>)
+               at html (<anonymous>)
            Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
            Export encountered an error on /page: /, exiting the build."
           `)

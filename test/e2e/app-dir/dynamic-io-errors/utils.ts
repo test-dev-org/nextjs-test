@@ -1,5 +1,6 @@
 // Used to deterministically stub out minified local names in stack traces.
 const abc = 'abcdefghijklmnopqrstuvwxyz'
+const hostElementsUsedInFixtures = ['html', 'body', 'main', 'div']
 
 export function getPrerenderOutput(
   cliOutput: string,
@@ -12,8 +13,13 @@ export function getPrerenderOutput(
   const replaceNextDistStackFrame = () =>
     `at ${abc[i++ % abc.length]} (<next-dist-dir>)`
 
-  const replaceAnonymousStackFrame = () =>
-    `at ${abc[i++ % abc.length]} (<anonymous>)`
+  const replaceAnonymousStackFrame = (_m, name) => {
+    const deterministicName = hostElementsUsedInFixtures.includes(name)
+      ? name
+      : abc[i++ % abc.length]
+
+    return `at ${deterministicName} (<anonymous>)`
+  }
 
   for (const line of cliOutput.split('\n')) {
     if (line.includes('Collecting page data')) {
@@ -30,7 +36,10 @@ export function getPrerenderOutput(
         isMinified
           ? line
               .replace(/at [\w.]+ \(.next[^)]+\)/, replaceNextDistStackFrame)
-              .replace(/at [\w.]+ \(<anonymous>\)/, replaceAnonymousStackFrame)
+              .replace(
+                /at ([\w.]+) \(<anonymous>\)/,
+                replaceAnonymousStackFrame
+              )
           : line.replace(
               /at ([\w.]+) \((webpack:\/\/)\/src[^)]+\)/,
               `at $1 ($2<next-src>)`
