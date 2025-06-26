@@ -220,6 +220,11 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     user-select: none;
     cursor: pointer;
   }
+
+  .segment-explorer-file-label:hover {
+    filter: brightness(1.05);
+  }
+
   .segment-explorer-file-label--layout,
   .segment-explorer-file-label--template,
   .segment-explorer-file-label--default {
