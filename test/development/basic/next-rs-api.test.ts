@@ -197,9 +197,7 @@ describe('next.rs api', () => {
       '.next'
     )
     project = await bindings.turbo.createProject({
-      env: {
-        PATH: process.env.PATH,
-      },
+      env: {},
       jsConfig: {
         compilerOptions: {},
       },
