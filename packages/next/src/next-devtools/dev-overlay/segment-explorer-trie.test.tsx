@@ -4,6 +4,7 @@
 /* eslint-disable @next/internal/typechecked-require -- Not a prod file */
 /* eslint-disable import/no-extraneous-dependencies -- Not a prod file */
 
+import type { SegmentNodeState } from '../userspace/app/segment-explorer-node'
 import type * as SegmentExplorer from './segment-explorer-trie'
 
 const createSegmentNode = ({
@@ -12,7 +13,7 @@ const createSegmentNode = ({
 }: {
   pagePath: string
   type: string
-}): SegmentExplorer.SegmentNode => {
+}): SegmentNodeState => {
   function placeholder() {}
   return {
     type,
