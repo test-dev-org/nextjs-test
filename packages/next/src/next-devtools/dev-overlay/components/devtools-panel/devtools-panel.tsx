@@ -2,7 +2,7 @@ import type { OverlayDispatch, OverlayState, Corners } from '../../shared'
 import type { ReadyRuntimeError } from '../../utils/get-error-by-type'
 import type { HydrationErrorState } from '../../../shared/hydration-error'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import { DevToolsPanelFooter } from './devtools-panel-footer'
 import { DevToolsPanelTab } from './devtools-panel-tab/devtools-panel-tab'
@@ -14,6 +14,7 @@ import {
   ACTION_DEVTOOLS_SCALE,
   STORAGE_KEY_SCALE,
   STORAGE_KEY_POSITION,
+  ACTION_ERROR_OVERLAY_CLOSE,
 } from '../../shared'
 import { css } from '../../utils/css'
 import { OverlayBackdrop } from '../overlay'
@@ -24,6 +25,33 @@ import { Cross } from '../../icons/cross'
 import { MinimizeIcon } from '../../icons/minimize'
 
 export type DevToolsPanelTabType = 'issues' | 'route' | 'settings'
+
+const STORAGE_KEY_ACTIVE_TAB = 'nextjs-devtools-active-tab'
+
+function useSessionState<T extends string>(
+  key: string,
+  initialValue: T
+): [T, (value: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof sessionStorage !== 'undefined'
+    ) {
+      const stored = sessionStorage.getItem(key)
+      return (stored as T) ?? initialValue
+    }
+    return initialValue
+  })
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof sessionStorage !== 'undefined'
+    ) {
+      sessionStorage.setItem(key, value)
+    }
+  }, [key, value])
+  return [value, setValue]
+}
 
 export function DevToolsPanel({
   state,
@@ -38,12 +66,27 @@ export function DevToolsPanel({
   runtimeErrors: ReadyRuntimeError[]
   getSquashedHydrationErrorDetails: (error: Error) => HydrationErrorState | null
 }) {
-  const [activeTab, setActiveTab] = useState<DevToolsPanelTabType>('issues')
+  // Initialize active tab from session storage, fallback to 'issues'
+  const [activeTab, setActiveTab] = useSessionState<DevToolsPanelTabType>(
+    STORAGE_KEY_ACTIVE_TAB,
+    'issues'
+  )
+
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [prevIsErrorOverlayOpen, setPrevIsErrorOverlayOpen] = useState(false)
+
+  if (state.isErrorOverlayOpen !== prevIsErrorOverlayOpen) {
+    if (state.isErrorOverlayOpen) {
+      setIsFullscreen(true)
+    }
+    setPrevIsErrorOverlayOpen(state.isErrorOverlayOpen)
+  }
+
   const [vertical, horizontal] = state.devToolsPosition.split('-', 2)
 
   const onCloseDevToolsPanel = () => {
     dispatch({ type: ACTION_DEVTOOLS_PANEL_CLOSE })
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   const handlePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -64,6 +107,7 @@ export function DevToolsPanel({
 
   const handleFullscreenToggle = () => {
     setIsFullscreen((prev) => !prev)
+    dispatch({ type: ACTION_ERROR_OVERLAY_CLOSE })
   }
 
   return (
@@ -98,6 +142,7 @@ export function DevToolsPanel({
           })
         }}
         dragHandleSelector="[data-nextjs-devtools-panel-header], [data-nextjs-devtools-panel-footer]"
+        disableDrag={isFullscreen}
       >
         <>
           <Dialog
@@ -108,7 +153,10 @@ export function DevToolsPanel({
           >
             <DialogContent data-nextjs-devtools-panel-dialog-content>
               <DialogHeader data-nextjs-devtools-panel-dialog-header>
-                <div data-nextjs-devtools-panel-header>
+                <div
+                  data-nextjs-devtools-panel-header
+                  data-nextjs-devtools-panel-draggable={!isFullscreen}
+                >
                   <div data-nextjs-devtools-panel-header-tab-group>
                     <button
                       data-nextjs-devtools-panel-header-tab={
@@ -117,9 +165,13 @@ export function DevToolsPanel({
                       onClick={() => setActiveTab('issues')}
                     >
                       Issues
-                      <span data-nextjs-devtools-panel-header-tab-issues-badge>
-                        {issueCount}
-                      </span>
+                      {issueCount > 0 ? (
+                        <span
+                          data-nextjs-devtools-panel-header-tab-issues-badge
+                        >
+                          {issueCount}
+                        </span>
+                      ) : null}
                     </button>
                     <button
                       data-nextjs-devtools-panel-header-tab={
@@ -175,7 +227,10 @@ export function DevToolsPanel({
                 />
               </DialogBody>
             </DialogContent>
-            <DevToolsPanelFooter versionInfo={state.versionInfo} />
+            <DevToolsPanelFooter
+              versionInfo={state.versionInfo}
+              isDraggable={!isFullscreen}
+            />
           </Dialog>
         </>
       </Draggable>
@@ -224,14 +279,20 @@ export const DEVTOOLS_PANEL_STYLES = css`
     @media (min-width: 992px) {
       max-width: 960px;
     }
+
+    @media (min-width: 1200px) {
+      max-width: 1140px;
+    }
   }
 
   [data-nextjs-devtools-panel-overlay-backdrop] {
     opacity: 0;
+    visibility: hidden;
   }
 
   [data-nextjs-devtools-panel-overlay-backdrop='true'] {
     opacity: 1;
+    visibility: visible;
   }
 
   [data-nextjs-devtools-panel-draggable] {
@@ -250,7 +311,7 @@ export const DEVTOOLS_PANEL_STYLES = css`
     box-shadow: var(--shadow-lg);
     position: relative;
     width: 100%;
-    max-height: 50vh;
+    max-height: 75vh;
     min-height: 450px;
   }
 
@@ -259,15 +320,6 @@ export const DEVTOOLS_PANEL_STYLES = css`
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--color-gray-400);
-
-    /* For draggable */
-    cursor: move;
-    user-select: none;
-    & > * {
-      cursor: auto;
-      /* user-select: auto; follows the parent (parent none -> child none), so reset the direct child to text */
-      user-select: text;
-    }
   }
 
   [data-nextjs-devtools-panel-header-tab-group] {
@@ -303,7 +355,9 @@ export const DEVTOOLS_PANEL_STYLES = css`
   }
 
   [data-nextjs-devtools-panel-header-tab-issues-badge] {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-left: 8px;
     background-color: var(--color-red-400);
     color: var(--color-red-900);
@@ -341,6 +395,16 @@ export const DEVTOOLS_PANEL_STYLES = css`
 
     &:active {
       background-color: var(--color-gray-300);
+    }
+  }
+
+  [data-nextjs-devtools-panel-draggable='true'] {
+    cursor: move;
+    user-select: none;
+    & > * {
+      cursor: auto;
+      /* user-select: auto; follows the parent (parent none -> child none), so reset the direct child to text */
+      user-select: text;
     }
   }
 `

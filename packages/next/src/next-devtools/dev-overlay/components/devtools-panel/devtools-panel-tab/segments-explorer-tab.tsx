@@ -1,4 +1,3 @@
-import { useSegmentTree } from '../../../segment-explorer'
 import { PageSegmentTree } from '../../overview/segment-explorer'
 
 function SegmentsExplorer({
@@ -6,9 +5,8 @@ function SegmentsExplorer({
 }: React.HTMLProps<HTMLDivElement> & {
   routerType: 'app' | 'pages'
 }) {
-  const tree = useSegmentTree()
   const isAppRouter = routerType === 'app'
-  return <PageSegmentTree tree={tree} isAppRouter={isAppRouter} />
+  return <PageSegmentTree isAppRouter={isAppRouter} />
 }
 
 export function SegmentsExplorerTab({

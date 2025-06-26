@@ -453,6 +453,11 @@ export interface ExperimentalConfig {
   turbopackMinify?: boolean
 
   /**
+   * Enable scope hoisting. Defaults to true in build mode. Always disabled in development mode.
+   */
+  turbopackScopeHoisting?: boolean
+
+  /**
    * Enable persistent caching for the turbopack dev server and build.
    */
   turbopackPersistentCaching?: boolean
@@ -1350,6 +1355,7 @@ export const defaultConfig = {
       static: process.env.NEXT_STATIC_CACHE_HANDLER_PATH,
     },
     cssChunking: true,
+    devtoolNewPanelUI: process.env.__NEXT_DEVTOOL_NEW_PANEL_UI === 'true',
     multiZoneDraftMode: false,
     appNavFailHandling: false,
     prerenderEarlyExit: true,

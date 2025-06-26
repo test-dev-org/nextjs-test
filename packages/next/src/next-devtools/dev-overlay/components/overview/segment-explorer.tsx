@@ -1,21 +1,13 @@
-import type { HTMLProps } from 'react'
-import { css } from '../../utils/css'
-import type { DevToolsInfoPropsCore } from '../errors/dev-tools-indicator/dev-tools-info/dev-tools-info'
-import { DevToolsInfo } from '../errors/dev-tools-indicator/dev-tools-info/dev-tools-info'
 import { useSegmentTree, type SegmentTrieNode } from '../../segment-explorer'
+import { css } from '../../utils/css'
 import { cx } from '../../utils/cx'
 
 const isFileNode = (node: SegmentTrieNode) => {
   return !!node.value?.type && !!node.value?.pagePath
 }
 
-export function PageSegmentTree({
-  tree,
-  isAppRouter,
-}: {
-  tree: SegmentTrieNode
-  isAppRouter: boolean
-}) {
+export function PageSegmentTree({ isAppRouter }: { isAppRouter: boolean }) {
+  const tree = useSegmentTree()
   return (
     <div
       className="segment-explorer-content"
@@ -122,11 +114,14 @@ function PageSegmentTreeLayerPresentation({
                     if (!childNode || !childNode.value) {
                       return null
                     }
-                    const fileName =
-                      childNode.value.pagePath.split('/').pop() || ''
+                    const filePath = childNode.value.pagePath
+                    const fileName = filePath.split('/').pop() || ''
                     return (
                       <span
                         key={fileChildSegment}
+                        onClick={() => {
+                          openInEditor({ filePath })
+                        }}
                         className={cx(
                           'segment-explorer-file-label',
                           `segment-explorer-file-label--${childNode.value.type}`
@@ -167,26 +162,9 @@ function PageSegmentTreeLayerPresentation({
   )
 }
 
-export function SegmentsExplorer({
-  routerType,
-  ...props
-}: DevToolsInfoPropsCore &
-  HTMLProps<HTMLDivElement> & {
-    routerType: 'app' | 'pages'
-  }) {
-  const tree = useSegmentTree()
-  const isAppRouter = routerType === 'app'
-  return (
-    <DevToolsInfo title="Route Info" {...props}>
-      <PageSegmentTree tree={tree} isAppRouter={isAppRouter} />
-    </DevToolsInfo>
-  )
-}
-
 export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
   .segment-explorer-content {
     font-size: var(--size-14);
-    margin: -12px -8px;
   }
 
   .segment-explorer-item {
@@ -194,7 +172,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     border-radius: 6px;
   }
 
-  .segment-explorer-item:nth-child(odd) {
+  .segment-explorer-item:nth-child(even) {
     background-color: var(--color-background-200);
   }
 
@@ -240,6 +218,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     font-size: var(--size-12);
     font-weight: 500;
     user-select: none;
+    cursor: pointer;
   }
   .segment-explorer-file-label--layout,
   .segment-explorer-file-label--template,
@@ -267,3 +246,17 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     color: var(--color-red-900);
   }
 `
+
+function openInEditor({ filePath }: { filePath: string }) {
+  const params = new URLSearchParams({
+    file: filePath,
+    // Mark the file path is relative to the app directory,
+    // The editor launcher will complete the full path for it.
+    isAppRelativePath: '1',
+  })
+  fetch(
+    `${
+      process.env.__NEXT_ROUTER_BASEPATH || ''
+    }/__nextjs_launch-editor?${params.toString()}`
+  )
+}

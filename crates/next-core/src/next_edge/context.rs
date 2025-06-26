@@ -223,21 +223,22 @@ pub async fn get_edge_chunking_context_with_client_assets(
     mode: Vc<NextMode>,
     root_path: ResolvedVc<FileSystemPath>,
     node_root: ResolvedVc<FileSystemPath>,
-    output_root_to_root_path: RcStr,
+    output_root_to_root_path: ResolvedVc<RcStr>,
     client_root: ResolvedVc<FileSystemPath>,
-    asset_prefix: Option<RcStr>,
+    asset_prefix: ResolvedVc<Option<RcStr>>,
     environment: ResolvedVc<Environment>,
     module_id_strategy: ResolvedVc<Box<dyn ModuleIdStrategy>>,
     turbo_minify: Vc<bool>,
     turbo_source_maps: Vc<bool>,
     no_mangling: Vc<bool>,
+    scope_hoisting: Vc<bool>,
 ) -> Result<Vc<Box<dyn ChunkingContext>>> {
     let output_root = node_root.join(rcstr!("server/edge")).to_resolved().await?;
     let next_mode = mode.await?;
     let mut builder = BrowserChunkingContext::builder(
         root_path,
         output_root,
-        output_root_to_root_path,
+        output_root_to_root_path.owned().await?,
         client_root,
         output_root.join(rcstr!("chunks/ssr")).to_resolved().await?,
         client_root
@@ -247,7 +248,7 @@ pub async fn get_edge_chunking_context_with_client_assets(
         environment,
         next_mode.runtime_type(),
     )
-    .asset_base_path(asset_prefix)
+    .asset_base_path(asset_prefix.owned().await?)
     .minify_type(if *turbo_minify.await? {
         MinifyType::Minify {
             // React needs deterministic function names to work correctly.
@@ -264,20 +265,22 @@ pub async fn get_edge_chunking_context_with_client_assets(
     .module_id_strategy(module_id_strategy);
 
     if !next_mode.is_development() {
-        builder = builder.chunking_config(
-            Vc::<EcmascriptChunkType>::default().to_resolved().await?,
-            ChunkingConfig {
-                min_chunk_size: 20_000,
-                ..Default::default()
-            },
-        );
-        builder = builder.chunking_config(
-            Vc::<CssChunkType>::default().to_resolved().await?,
-            ChunkingConfig {
-                max_merge_chunk_size: 100_000,
-                ..Default::default()
-            },
-        );
+        builder = builder
+            .chunking_config(
+                Vc::<EcmascriptChunkType>::default().to_resolved().await?,
+                ChunkingConfig {
+                    min_chunk_size: 20_000,
+                    ..Default::default()
+                },
+            )
+            .chunking_config(
+                Vc::<CssChunkType>::default().to_resolved().await?,
+                ChunkingConfig {
+                    max_merge_chunk_size: 100_000,
+                    ..Default::default()
+                },
+            )
+            .module_merging(*scope_hoisting.await?);
     }
 
     Ok(Vc::upcast(builder.build()))
@@ -288,19 +291,20 @@ pub async fn get_edge_chunking_context(
     mode: Vc<NextMode>,
     root_path: ResolvedVc<FileSystemPath>,
     node_root: ResolvedVc<FileSystemPath>,
-    node_root_to_root_path: RcStr,
+    node_root_to_root_path: ResolvedVc<RcStr>,
     environment: ResolvedVc<Environment>,
     module_id_strategy: ResolvedVc<Box<dyn ModuleIdStrategy>>,
     turbo_minify: Vc<bool>,
     turbo_source_maps: Vc<bool>,
     no_mangling: Vc<bool>,
+    scope_hoisting: Vc<bool>,
 ) -> Result<Vc<Box<dyn ChunkingContext>>> {
     let output_root = node_root.join(rcstr!("server/edge")).to_resolved().await?;
     let next_mode = mode.await?;
     let mut builder = BrowserChunkingContext::builder(
         root_path,
         output_root,
-        node_root_to_root_path,
+        node_root_to_root_path.owned().await?,
         output_root,
         output_root.join(rcstr!("chunks")).to_resolved().await?,
         output_root.join(rcstr!("assets")).to_resolved().await?,
@@ -327,20 +331,22 @@ pub async fn get_edge_chunking_context(
     .module_id_strategy(module_id_strategy);
 
     if !next_mode.is_development() {
-        builder = builder.chunking_config(
-            Vc::<EcmascriptChunkType>::default().to_resolved().await?,
-            ChunkingConfig {
-                min_chunk_size: 20_000,
-                ..Default::default()
-            },
-        );
-        builder = builder.chunking_config(
-            Vc::<CssChunkType>::default().to_resolved().await?,
-            ChunkingConfig {
-                max_merge_chunk_size: 100_000,
-                ..Default::default()
-            },
-        );
+        builder = builder
+            .chunking_config(
+                Vc::<EcmascriptChunkType>::default().to_resolved().await?,
+                ChunkingConfig {
+                    min_chunk_size: 20_000,
+                    ..Default::default()
+                },
+            )
+            .chunking_config(
+                Vc::<CssChunkType>::default().to_resolved().await?,
+                ChunkingConfig {
+                    max_merge_chunk_size: 100_000,
+                    ..Default::default()
+                },
+            )
+            .module_merging(*scope_hoisting.await?);
     }
 
     Ok(Vc::upcast(builder.build()))
