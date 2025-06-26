@@ -29,8 +29,6 @@ opt-level = 1
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
 [profile.dev.package."*"]
-# This is a workaround for wasm timeout issue
-debug-assertions = false
 opt-level = 1
 
 # Set the settings for build scripts and proc-macros.
