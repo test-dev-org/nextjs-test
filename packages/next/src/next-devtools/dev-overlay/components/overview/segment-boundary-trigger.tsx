@@ -11,7 +11,7 @@ export function SegmentBoundaryTrigger({
   const triggerOptions = [
     { label: 'Trigger Loading', value: 'loading', icon: <LoadingIcon /> },
     { label: 'Trigger Error', value: 'error', icon: <ErrorIcon /> },
-    { label: 'Trigger  Not Found', value: 'not-found', icon: <NotFoundIcon /> },
+    { label: 'Trigger Not Found', value: 'not-found', icon: <NotFoundIcon /> },
   ]
 
   const resetOption = {
