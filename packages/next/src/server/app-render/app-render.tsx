@@ -199,7 +199,7 @@ import {
   trackPendingModules,
 } from './module-loading/track-module-loading.external'
 import { isReactLargeShellError } from './react-large-shell-error'
-import type { GlobalErrorComponent } from '../../client/components/global-error'
+import type { GlobalErrorComponent } from '../../client/components/builtin/global-error'
 
 export type GetDynamicParamFromSegment = (
   // [slug] / [[slug]] / [...slug]

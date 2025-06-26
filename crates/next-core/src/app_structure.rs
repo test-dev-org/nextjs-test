@@ -1130,7 +1130,7 @@ async fn default_route_tree(
             AppDirModules {
                 default: Some(
                     get_next_package(app_dir)
-                        .join(rcstr!("dist/client/components/parallel-route-default.js"))
+                        .join(rcstr!("dist/client/components/builtin/default.js"))
                         .to_resolved()
                         .await?,
                 ),
