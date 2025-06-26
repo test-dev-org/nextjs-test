@@ -1,5 +1,6 @@
 import { nextTestSetup } from 'e2e-utils'
 import { createRouterAct } from '../router-act'
+import { Page } from 'playwright'
 
 describe('segment cache (incremental opt in)', () => {
   const { next, isNextDeploy, isNextDev } = nextTestSetup({
@@ -20,21 +21,22 @@ describe('segment cache (incremental opt in)', () => {
     // that occur. Then at the end we confirm there are no duplicates.
     const prefetches = new Map()
     const duplicatePrefetches = new Map()
+    const unexpectedResponse = []
 
-    let act
+    let currentPage: Page
     const browser = await next.browser('/', {
       async beforePageLoad(page) {
-        act = createRouterAct(page)
+        currentPage = page
         await page.route('**/*', async (route) => {
           const request = route.request()
+          const headers = await request.allHeaders()
           const isPrefetch =
-            request.headerValue('rsc') !== null &&
-            request.headerValue('next-router-prefetch') !== null
+            headers['rsc'] !== undefined &&
+            headers['next-router-prefetch'] !== undefined
           if (isPrefetch) {
-            const request = route.request()
-            const headers = await request.allHeaders()
+            const url = request.url()
             const prefetchInfo = {
-              href: new URL(request.url()).pathname,
+              href: new URL(url).pathname,
               segment: headers['Next-Router-Segment-Prefetch'.toLowerCase()],
               base: headers['Next-Router-State-Tree'.toLowerCase()] ?? null,
             }
@@ -48,20 +50,12 @@ describe('segment cache (incremental opt in)', () => {
               maxRedirects: 0,
             })
             const status = response.status()
-            const responseHeaders = response.headers()
             if (status !== 200) {
-              await page.unrouteAll({ behavior: 'ignoreErrors' })
-              return page.close({
-                reason: `
-Received an unexpected prefetch response.
-
-Status: ${status}
-URL: ${request.url()}
-Headers: ${JSON.stringify(responseHeaders)}
-
-Response:
-${await response.body()}
-`,
+              unexpectedResponse.push({
+                status,
+                url,
+                headers: response.headers(),
+                response: await response.text(),
               })
             }
             return route.fulfill({ response })
@@ -80,10 +74,8 @@ ${await response.body()}
     expect(await checkbox.isChecked()).toBe(false)
 
     // Click the checkbox to reveal the link and trigger a prefetch
-    await act(async () => {
-      await checkbox.click()
-      await browser.elementByCss(`a[href="${linkHref}"]`)
-    })
+    await checkbox.click()
+    await browser.elementByCss(`a[href="${linkHref}"]`)
 
     // Toggle the visibility of the link. Prefetches are initiated on viewport,
     // so if the cache does not dedupe then properly, this test will detect it.
@@ -98,9 +90,14 @@ ${await response.body()}
     await browser.elementById('page-content')
     expect(new URL(await browser.url()).pathname).toBe(linkHref)
 
-    // Finally, assert there were no duplicate prefetches
-    expect(prefetches.size).not.toBe(0)
-    expect(duplicatePrefetches.size).toBe(0)
+    // Wait for all pending requests to complete.
+    await currentPage.unrouteAll({ behavior: 'wait' })
+
+    // Finally, assert there were no duplicate prefetches and no unexpected
+    // responses.
+    expect(prefetches).not.toBeEmpty()
+    expect(duplicatePrefetches).toBeEmpty()
+    expect(unexpectedResponse).toBeEmpty()
   }
 
   describe('multiple prefetches to same link are deduped', () => {
