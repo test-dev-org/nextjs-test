@@ -104,6 +104,7 @@
     "@swc/helpers": "0.5.15",
     "caniuse-lite": "^1.0.30001579",
     "postcss": "8.4.31",
+    "safe-stable-stringify": "2.5.0",
     "styled-jsx": "5.1.6"
   },
   "peerDependencies": {

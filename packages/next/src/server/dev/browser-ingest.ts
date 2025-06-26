@@ -28,7 +28,7 @@ const forwardConsole: typeof console = {
   ...Object.fromEntries(
     levels.map((method) => [
       method,
-      (...args: any[]) =>
+      (...args: Array<any>) =>
         (console[method] as any)(
           ...args.map((arg) =>
             typeof arg === 'object' && arg !== null
@@ -353,7 +353,7 @@ const withStack = async (
     original,
     stack,
   }: {
-    original: any[]
+    original: Array<any>
     stack: string | null
   },
   ctx: MappingContext,
@@ -380,7 +380,7 @@ const withStack = async (
   }
 
 
-  // we don't want to show the name of parent function, just source location for minimal noise
+  // we don't want to show the name of parent function (at <fn> thing in stack), just source location for minimal noise
   const match = first.frameText.match(/\(([^)]+)\)/)
   const locationText = match ? match[1] : first.frameText
   return [...original, gray(`(${locationText})`)]
@@ -435,7 +435,6 @@ async function prepareArgs(
         entry.args.map(async (arg) => {
           switch (arg.kind) {
             case 'arg': {
-              // hm
               if (arg.isRejectionMessage) {
                 // if we want it to look like our server output we would just color the red x, idk todo i kinda like the full red, but maybe should sync other message then?
                 return red(arg.data) // already a string

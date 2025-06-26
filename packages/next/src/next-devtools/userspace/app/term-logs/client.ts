@@ -1,4 +1,7 @@
-import { configure } from './safe-stable-serialize'
+// import { configure } from './safe-stable-serialize'
+
+import { configure } from 'next/dist/compiled/safe-stable-stringify'
+
 import type {
   ConsoleEntry,
   ConsoleErrorEntry,
