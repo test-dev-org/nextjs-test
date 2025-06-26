@@ -8,7 +8,7 @@ use turbo_tasks_fs::{FileContent, FileSystem, VirtualFileSystem, glob::Glob, rop
 use turbopack_core::{
     asset::{Asset, AssetContent},
     chunk::{AsyncModuleInfo, ChunkItem, ChunkType, ChunkableModule, ChunkingContext},
-    ident::AssetIdent,
+    ident::{AssetIdent, Layer},
     module::Module,
     module_graph::ModuleGraph,
     reference::{ModuleReference, ModuleReferences},
@@ -44,6 +44,7 @@ pub enum CachedExternalType {
     CommonJs,
     EcmaScriptViaRequire,
     EcmaScriptViaImport,
+    Global,
 }
 
 impl Display for CachedExternalType {
@@ -52,6 +53,7 @@ impl Display for CachedExternalType {
             CachedExternalType::CommonJs => write!(f, "cjs"),
             CachedExternalType::EcmaScriptViaRequire => write!(f, "esm_require"),
             CachedExternalType::EcmaScriptViaImport => write!(f, "esm_import"),
+            CachedExternalType::Global => write!(f, "global"),
         }
     }
 }
@@ -82,19 +84,33 @@ impl CachedExternalModule {
     pub fn content(&self) -> Result<Vc<EcmascriptModuleContent>> {
         let mut code = RopeBuilder::default();
 
-        if self.external_type == CachedExternalType::EcmaScriptViaImport {
-            writeln!(
-                code,
-                "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
-                StringifyJs(&self.request)
-            )?;
-        } else {
-            writeln!(
-                code,
-                "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
-                StringifyJs(&self.request),
-                StringifyJs(&self.request)
-            )?;
+        match self.external_type {
+            CachedExternalType::EcmaScriptViaImport => {
+                writeln!(
+                    code,
+                    "const mod = await {TURBOPACK_EXTERNAL_IMPORT}({});",
+                    StringifyJs(&self.request)
+                )?;
+            }
+            CachedExternalType::Global => {
+                if self.request.is_empty() {
+                    writeln!(code, "const mod = {{}};")?;
+                } else {
+                    writeln!(
+                        code,
+                        "const mod = globalThis[{}];",
+                        StringifyJs(&self.request)
+                    )?;
+                }
+            }
+            CachedExternalType::EcmaScriptViaRequire | CachedExternalType::CommonJs => {
+                writeln!(
+                    code,
+                    "const mod = {TURBOPACK_EXTERNAL_REQUIRE}({}, () => require({}));",
+                    StringifyJs(&self.request),
+                    StringifyJs(&self.request)
+                )?;
+            }
         }
 
         writeln!(code)?;
@@ -109,6 +125,7 @@ impl CachedExternalModule {
             inner_code: code.build(),
             source_map: None,
             is_esm: self.external_type != CachedExternalType::CommonJs,
+            additional_ids: Default::default(),
         }
         .cell())
     }
@@ -121,18 +138,18 @@ impl Module for CachedExternalModule {
         let fs = VirtualFileSystem::new_with_name(rcstr!("externals"));
 
         AssetIdent::from_path(fs.root().join(self.request.clone()))
-            .with_layer(rcstr!("external"))
+            .with_layer(Layer::new(rcstr!("external")))
             .with_modifier(self.request.clone())
             .with_modifier(self.external_type.to_string().into())
     }
 
     #[turbo_tasks::function]
-    async fn references(&self) -> Result<Vc<ModuleReferences>> {
+    fn references(&self) -> Result<Vc<ModuleReferences>> {
         Ok(Vc::cell(self.additional_references.clone()))
     }
 
     #[turbo_tasks::function]
-    async fn is_self_async(&self) -> Result<Vc<bool>> {
+    fn is_self_async(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(
             self.external_type == CachedExternalType::EcmaScriptViaImport,
         ))
