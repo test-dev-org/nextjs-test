@@ -4,21 +4,24 @@ use anyhow::Result;
 use async_trait::async_trait;
 use rustc_hash::FxHashMap;
 use swc_core::{
-    atoms::{atom, Atom},
+    atoms::{Atom, atom},
     base::SwcComments,
-    common::{comments::Comments, util::take::Take, Mark, SourceMap},
+    common::{Mark, SourceMap, comments::Comments},
     ecma::{
-        ast::{Module, ModuleItem, Program, Script},
+        ast::{ModuleItem, Pass, Program},
         preset_env::{self, Targets},
         transforms::{
-            base::{assumptions::Assumptions, feature::FeatureFlag, helpers::inject_helpers},
-            optimization::inline_globals2,
+            base::{
+                assumptions::Assumptions,
+                helpers::{HELPERS, HelperData, Helpers},
+            },
+            optimization::inline_globals,
             react::react,
         },
     },
     quote,
 };
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{ResolvedVc, Vc};
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
@@ -26,10 +29,9 @@ use turbopack_core::{
     issue::{Issue, IssueSeverity, IssueStage, StyledString},
 };
 
-#[turbo_tasks::value(serialization = "auto_for_input")]
+#[turbo_tasks::value]
 #[derive(Debug, Clone, Hash)]
 pub enum EcmascriptInputTransform {
-    CommonJs,
     Plugin(ResolvedVc<TransformPlugin>),
     PresetEnv(ResolvedVc<Environment>),
     React {
@@ -89,7 +91,7 @@ impl CustomTransformer for TransformPlugin {
     }
 }
 
-#[turbo_tasks::value(transparent, serialization = "auto_for_input")]
+#[turbo_tasks::value(transparent)]
 #[derive(Debug, Clone, Hash)]
 pub struct EcmascriptInputTransforms(Vec<EcmascriptInputTransform>);
 
@@ -121,7 +123,12 @@ pub struct TransformContext<'a> {
 }
 
 impl EcmascriptInputTransform {
-    pub async fn apply(&self, program: &mut Program, ctx: &TransformContext<'_>) -> Result<()> {
+    pub async fn apply(
+        &self,
+        program: &mut Program,
+        ctx: &TransformContext<'_>,
+        helpers: HelperData,
+    ) -> Result<HelperData> {
         let &TransformContext {
             comments,
             source_map,
@@ -129,17 +136,23 @@ impl EcmascriptInputTransform {
             unresolved_mark,
             ..
         } = ctx;
-        match self {
+
+        Ok(match self {
             EcmascriptInputTransform::GlobalTypeofs { window_value } => {
                 let mut typeofs: FxHashMap<Atom, Atom> = Default::default();
                 typeofs.insert(Atom::from("window"), Atom::from(&**window_value));
 
-                program.mutate(inline_globals2(
-                    Default::default(),
-                    Default::default(),
-                    Default::default(),
-                    Arc::new(typeofs),
-                ));
+                apply_transform(
+                    program,
+                    helpers,
+                    inline_globals(
+                        unresolved_mark,
+                        Default::default(),
+                        Default::default(),
+                        Default::default(),
+                        Arc::new(typeofs),
+                    ),
+                )
             }
             EcmascriptInputTransform::React {
                 development,
@@ -156,7 +169,7 @@ impl EcmascriptInputTransform {
                             return Err(anyhow::anyhow!(
                                 "Invalid value for swc.jsc.transform.react.runtime: {}",
                                 runtime
-                            ))
+                            ));
                         }
                     }
                 } else {
@@ -182,13 +195,17 @@ impl EcmascriptInputTransform {
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                program.mutate(react::<&dyn Comments>(
-                    source_map.clone(),
-                    Some(&comments),
-                    config,
-                    top_level_mark,
-                    unresolved_mark,
-                ));
+                let helpers = apply_transform(
+                    program,
+                    helpers,
+                    react::<&dyn Comments>(
+                        source_map.clone(),
+                        Some(&comments),
+                        config,
+                        top_level_mark,
+                        unresolved_mark,
+                    ),
+                );
 
                 if *refresh {
                     let stmt = quote!(
@@ -208,60 +225,31 @@ impl EcmascriptInputTransform {
                         }
                     }
                 }
-            }
-            EcmascriptInputTransform::CommonJs => {
-                // Explicit type annotation to ensure that we don't duplicate transforms in the
-                // final binary
-                program.mutate(swc_core::ecma::transforms::module::common_js(
-                    swc_core::ecma::transforms::module::path::Resolver::Default,
-                    unresolved_mark,
-                    swc_core::ecma::transforms::module::util::Config {
-                        allow_top_level_this: true,
-                        import_interop: Some(
-                            swc_core::ecma::transforms::module::util::ImportInterop::Swc,
-                        ),
-                        ..Default::default()
-                    },
-                    swc_core::ecma::transforms::base::feature::FeatureFlag::all(),
-                ));
+
+                helpers
             }
             EcmascriptInputTransform::PresetEnv(env) => {
                 let versions = env.runtime_versions().await?;
-                let config = swc_core::ecma::preset_env::Config {
-                    targets: Some(Targets::Versions(*versions)),
-                    mode: None, // Don't insert core-js polyfills
-                    ..Default::default()
-                };
-
-                let module_program = std::mem::replace(program, Program::Module(Module::dummy()));
-
-                let module_program = if let Program::Script(Script {
-                    span,
-                    mut body,
-                    shebang,
-                }) = module_program
-                {
-                    Program::Module(Module {
-                        span,
-                        body: body.drain(..).map(ModuleItem::Stmt).collect(),
-                        shebang,
-                    })
-                } else {
-                    module_program
-                };
+                let config = swc_core::ecma::preset_env::EnvConfig::from(
+                    swc_core::ecma::preset_env::Config {
+                        targets: Some(Targets::Versions(*versions)),
+                        mode: None, // Don't insert core-js polyfills
+                        ..Default::default()
+                    },
+                );
 
                 // Explicit type annotation to ensure that we don't duplicate transforms in the
                 // final binary
-                *program = module_program.apply((
-                    preset_env::preset_env::<&'_ dyn Comments>(
-                        top_level_mark,
+                apply_transform(
+                    program,
+                    helpers,
+                    preset_env::transform_from_env::<&'_ dyn Comments>(
+                        unresolved_mark,
                         Some(&comments),
                         config,
                         Assumptions::default(),
-                        &mut FeatureFlag::empty(),
                     ),
-                    inject_helpers(unresolved_mark),
-                ));
+                )
             }
             EcmascriptInputTransform::TypeScript {
                 // TODO(WEB-1213)
@@ -269,7 +257,11 @@ impl EcmascriptInputTransform {
             } => {
                 use swc_core::ecma::transforms::typescript::typescript;
                 let config = Default::default();
-                program.mutate(typescript(config, unresolved_mark, top_level_mark));
+                apply_transform(
+                    program,
+                    helpers,
+                    typescript(config, unresolved_mark, top_level_mark),
+                )
             }
             EcmascriptInputTransform::Decorators {
                 is_legacy,
@@ -278,21 +270,30 @@ impl EcmascriptInputTransform {
                 // TODO(WEB-1213)
                 use_define_for_class_fields: _use_define_for_class_fields,
             } => {
-                use swc_core::ecma::transforms::proposal::decorators::{decorators, Config};
+                use swc_core::ecma::transforms::proposal::decorators::{Config, decorators};
                 let config = Config {
                     legacy: *is_legacy,
                     emit_metadata: *emit_decorators_metadata,
                     ..Default::default()
                 };
 
-                program.mutate((decorators(config), inject_helpers(unresolved_mark)));
+                apply_transform(program, helpers, decorators(config))
             }
             EcmascriptInputTransform::Plugin(transform) => {
-                transform.await?.transform(program, ctx).await?
+                // We cannot pass helpers to plugins, so we return them as is
+                transform.await?.transform(program, ctx).await?;
+                helpers
             }
-        }
-        Ok(())
+        })
     }
+}
+
+fn apply_transform(program: &mut Program, helpers: HelperData, op: impl Pass) -> HelperData {
+    let helpers = Helpers::from_data(helpers);
+    HELPERS.set(&helpers, || {
+        program.mutate(op);
+    });
+    helpers.data()
 }
 
 pub fn remove_shebang(program: &mut Program) {
@@ -313,16 +314,15 @@ pub struct UnsupportedServerActionIssue {
 
 #[turbo_tasks::value_impl]
 impl Issue for UnsupportedServerActionIssue {
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        IssueSeverity::Error.into()
+    fn severity(&self) -> IssueSeverity {
+        IssueSeverity::Error
     }
 
     #[turbo_tasks::function]
     fn title(&self) -> Vc<StyledString> {
-        StyledString::Text(
-            "Server actions (\"use server\") are not yet supported in Turbopack".into(),
-        )
+        StyledString::Text(rcstr!(
+            "Server actions (\"use server\") are not yet supported in Turbopack"
+        ))
         .cell()
     }
 

@@ -1,6 +1,6 @@
 use std::{path::MAIN_SEPARATOR, time::Duration};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use indexmap::map::Entry;
 use next_core::{
     all_assets_from_entries,
@@ -13,64 +13,68 @@ use next_core::{
     next_client::{get_client_chunking_context, get_client_compile_time_info},
     next_config::{JsConfig, ModuleIds as ModuleIdStrategyConfig, NextConfig},
     next_server::{
-        get_server_chunking_context, get_server_chunking_context_with_client_assets,
-        get_server_compile_time_info, get_server_module_options_context,
-        get_server_resolve_options_context, ServerContextType,
+        ServerContextType, get_server_chunking_context,
+        get_server_chunking_context_with_client_assets, get_server_compile_time_info,
+        get_server_module_options_context, get_server_resolve_options_context,
     },
     next_telemetry::NextFeatureTelemetry,
-    util::{parse_config_from_source, NextRuntime},
+    util::{NextRuntime, parse_config_from_source},
 };
 use serde::{Deserialize, Serialize};
 use tracing::Instrument;
-use turbo_rcstr::RcStr;
+use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{
+    Completion, Completions, FxIndexMap, IntoTraitRef, NonLocalValue, OperationValue, OperationVc,
+    ReadRef, ResolvedVc, State, TaskInput, TransientInstance, TryFlatJoinIterExt, Vc,
     debug::ValueDebugFormat,
     fxindexmap,
     graph::{AdjacencyMap, GraphTraversal},
     mark_root,
     trace::TraceRawVcs,
-    Completion, Completions, FxIndexMap, IntoTraitRef, NonLocalValue, OperationValue, OperationVc,
-    ReadRef, ResolvedVc, State, TaskInput, TransientInstance, TryFlatJoinIterExt, Value, Vc,
 };
 use turbo_tasks_env::{EnvMap, ProcessEnv};
-use turbo_tasks_fs::{invalidation, DiskFileSystem, FileSystem, FileSystemPath, VirtualFileSystem};
+use turbo_tasks_fs::{
+    DiskFileSystem, FileSystem, FileSystemPath, VirtualFileSystem, get_relative_path_to,
+    invalidation,
+};
 use turbopack::{
-    evaluate_context::node_build_environment, global_module_ids::get_global_module_id_strategy,
-    transition::TransitionOptions, ModuleAssetContext,
+    ModuleAssetContext, evaluate_context::node_build_environment,
+    global_module_ids::get_global_module_id_strategy, transition::TransitionOptions,
 };
 use turbopack_core::{
+    PROJECT_FILESYSTEM_NAME,
     changed::content_changed,
     chunk::{
-        module_id_strategies::{DevModuleIdStrategy, ModuleIdStrategy},
         ChunkingContext, EvaluatableAssets, SourceMapsType,
+        module_id_strategies::{DevModuleIdStrategy, ModuleIdStrategy},
     },
     compile_time_info::CompileTimeInfo,
     context::AssetContext,
     diagnostics::DiagnosticExt,
     file_source::FileSource,
+    ident::Layer,
     issue::{
         Issue, IssueDescriptionExt, IssueExt, IssueSeverity, IssueStage, OptionStyledString,
         StyledString,
     },
     module::Module,
     module_graph::{
-        chunk_group_info::ChunkGroupEntry, GraphEntries, ModuleGraph, SingleModuleGraph,
-        VisitedModules,
+        GraphEntries, ModuleGraph, SingleModuleGraph, VisitedModules,
+        chunk_group_info::ChunkGroupEntry,
     },
     output::{OutputAsset, OutputAssets},
     reference_type::{EntryReferenceSubType, ReferenceType},
-    resolve::{find_context_file, FindContextFileResult},
+    resolve::{FindContextFileResult, find_context_file},
     source_map::OptionStringifiedSourceMap,
     version::{
         NotFoundVersion, OptionVersionedContent, Update, Version, VersionState, VersionedContent,
     },
-    PROJECT_FILESYSTEM_NAME,
 };
 use turbopack_node::execution_context::ExecutionContext;
 use turbopack_nodejs::NodeJsChunkingContext;
 
 use crate::{
-    app::{AppProject, OptionAppProject, ECMASCRIPT_CLIENT_TRANSITION_NAME},
+    app::{AppProject, OptionAppProject},
     empty::EmptyEndpoint,
     entrypoints::Entrypoints,
     instrumentation::InstrumentationEndpoint,
@@ -266,7 +270,7 @@ pub struct ProjectContainer {
 #[turbo_tasks::value_impl]
 impl ProjectContainer {
     #[turbo_tasks::function]
-    pub async fn new(name: RcStr, dev: bool) -> Result<Vc<Self>> {
+    pub fn new(name: RcStr, dev: bool) -> Result<Vc<Self>> {
         Ok(ProjectContainer {
             name,
             // we only need to enable versioning in dev mode, since build
@@ -423,7 +427,7 @@ impl ProjectContainer {
 
 #[turbo_tasks::value_impl]
 impl ProjectContainer {
-    #[turbo_tasks::function]
+    #[turbo_tasks::function(invalidator)]
     pub async fn project(&self) -> Result<Vc<Project>> {
         let env_map: Vc<EnvMap>;
         let next_config;
@@ -467,7 +471,7 @@ impl ProjectContainer {
             .await?
             .dist_dir
             .as_ref()
-            .map_or_else(|| ".next".into(), |d| d.clone());
+            .map_or_else(|| rcstr!(".next"), |d| d.clone());
 
         Ok(Project {
             root_path,
@@ -598,7 +602,7 @@ struct ConflictIssue {
     path: ResolvedVc<FileSystemPath>,
     title: ResolvedVc<StyledString>,
     description: ResolvedVc<StyledString>,
-    severity: ResolvedVc<IssueSeverity>,
+    severity: IssueSeverity,
 }
 
 #[turbo_tasks::value_impl]
@@ -608,9 +612,8 @@ impl Issue for ConflictIssue {
         IssueStage::AppStructure.cell()
     }
 
-    #[turbo_tasks::function]
-    fn severity(&self) -> Vc<IssueSeverity> {
-        *self.severity
+    fn severity(&self) -> IssueSeverity {
+        self.severity
     }
 
     #[turbo_tasks::function]
@@ -657,13 +660,13 @@ impl Project {
 
     #[turbo_tasks::function]
     pub fn client_fs(self: Vc<Self>) -> Vc<Box<dyn FileSystem>> {
-        let virtual_fs = VirtualFileSystem::new_with_name("client-fs".into());
+        let virtual_fs = VirtualFileSystem::new_with_name(rcstr!("client-fs"));
         Vc::upcast(virtual_fs)
     }
 
     #[turbo_tasks::function]
     pub fn output_fs(&self) -> Vc<DiskFileSystem> {
-        DiskFileSystem::new("output".into(), self.project_path.clone(), vec![])
+        DiskFileSystem::new(rcstr!("output"), self.root_path.clone(), vec![])
     }
 
     #[turbo_tasks::function]
@@ -674,7 +677,13 @@ impl Project {
     #[turbo_tasks::function]
     pub async fn node_root(self: Vc<Self>) -> Result<Vc<FileSystemPath>> {
         let this = self.await?;
-        Ok(self.output_fs().root().join(this.dist_dir.clone()))
+        let relative_from_root_to_project_path =
+            get_relative_path_to(&this.root_path, &this.project_path);
+        Ok(self
+            .output_fs()
+            .root()
+            .join(relative_from_root_to_project_path.into())
+            .join(this.dist_dir.clone()))
     }
 
     #[turbo_tasks::function]
@@ -693,7 +702,7 @@ impl Project {
         Ok(self.client_root().join(
             format!(
                 "{}/_next",
-                next_config.base_path.clone().unwrap_or_else(|| "".into()),
+                next_config.base_path.clone().unwrap_or_default(),
             )
             .into(),
         ))
@@ -739,7 +748,7 @@ impl Project {
     }
 
     #[turbo_tasks::function]
-    pub(super) async fn is_watch_enabled(&self) -> Result<Vc<bool>> {
+    pub(super) fn is_watch_enabled(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(self.watch.enable))
     }
 
@@ -766,7 +775,7 @@ impl Project {
     #[turbo_tasks::function]
     pub(super) async fn should_create_webpack_stats(&self) -> Result<Vc<bool>> {
         Ok(Vc::cell(
-            self.env.read("TURBOPACK_STATS".into()).await?.is_some(),
+            self.env.read(rcstr!("TURBOPACK_STATS")).await?.is_some(),
         ))
     }
 
@@ -779,10 +788,10 @@ impl Project {
             NodeJsChunkingContext::builder(
                 self.project_root_path().to_resolved().await?,
                 node_root,
-                self.node_root_to_root_path().to_resolved().await?,
+                self.node_root_to_root_path().owned().await?,
                 node_root,
-                node_root.join("build/chunks".into()).to_resolved().await?,
-                node_root.join("build/assets".into()).to_resolved().await?,
+                node_root.join(rcstr!("build/chunks")).to_resolved().await?,
+                node_root.join(rcstr!("build/assets")).to_resolved().await?,
                 node_build_environment().to_resolved().await?,
                 next_mode.runtime_type(),
             )
@@ -978,27 +987,30 @@ impl Project {
         Ok(get_edge_compile_time_info(
             self.project_path(),
             this.define_env.edge(),
+            self.env(),
         ))
     }
 
     #[turbo_tasks::function]
     pub(super) fn edge_env(&self) -> Vc<EnvMap> {
         let edge_env = fxindexmap! {
-            "__NEXT_BUILD_ID".into() => self.build_id.clone(),
-            "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY".into() => self.encryption_key.clone(),
-            "__NEXT_PREVIEW_MODE_ID".into() => self.preview_props.preview_mode_id.clone(),
-            "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY".into() => self.preview_props.preview_mode_encryption_key.clone(),
-            "__NEXT_PREVIEW_MODE_SIGNING_KEY".into() => self.preview_props.preview_mode_signing_key.clone(),
+            rcstr!("__NEXT_BUILD_ID") => self.build_id.clone(),
+            rcstr!("NEXT_SERVER_ACTIONS_ENCRYPTION_KEY") => self.encryption_key.clone(),
+            rcstr!("__NEXT_PREVIEW_MODE_ID") => self.preview_props.preview_mode_id.clone(),
+            rcstr!("__NEXT_PREVIEW_MODE_ENCRYPTION_KEY") => self.preview_props.preview_mode_encryption_key.clone(),
+            rcstr!("__NEXT_PREVIEW_MODE_SIGNING_KEY") => self.preview_props.preview_mode_signing_key.clone(),
         };
         Vc::cell(edge_env)
     }
 
     #[turbo_tasks::function]
-    pub(super) fn client_chunking_context(self: Vc<Self>) -> Vc<Box<dyn ChunkingContext>> {
-        get_client_chunking_context(
+    pub(super) async fn client_chunking_context(
+        self: Vc<Self>,
+    ) -> Result<Vc<Box<dyn ChunkingContext>>> {
+        Ok(get_client_chunking_context(
             self.project_root_path(),
             self.client_relative_path(),
-            Vc::cell("/ROOT".into()),
+            rcstr!("/ROOT"),
             self.next_config().computed_asset_prefix(),
             self.next_config().chunk_suffix_path(),
             self.client_compile_time_info().environment(),
@@ -1007,49 +1019,52 @@ impl Project {
             self.next_config().turbo_minify(self.next_mode()),
             self.next_config().client_source_maps(self.next_mode()),
             self.no_mangling(),
-        )
+            self.next_config().turbo_scope_hoisting(self.next_mode()),
+        ))
     }
 
     #[turbo_tasks::function]
-    pub(super) fn server_chunking_context(
+    pub(super) async fn server_chunking_context(
         self: Vc<Self>,
         client_assets: bool,
-    ) -> Vc<NodeJsChunkingContext> {
-        if client_assets {
+    ) -> Result<Vc<NodeJsChunkingContext>> {
+        Ok(if client_assets {
             get_server_chunking_context_with_client_assets(
                 self.next_mode(),
                 self.project_root_path(),
                 self.node_root(),
-                self.node_root_to_root_path(),
+                self.node_root_to_root_path().owned().await?,
                 self.client_relative_path(),
-                self.next_config().computed_asset_prefix(),
+                self.next_config().computed_asset_prefix().owned().await?,
                 self.server_compile_time_info().environment(),
                 self.module_ids(),
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_server_chunking_context(
                 self.next_mode(),
                 self.project_root_path(),
                 self.node_root(),
-                self.node_root_to_root_path(),
+                self.node_root_to_root_path().owned().await?,
                 self.server_compile_time_info().environment(),
                 self.module_ids(),
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
-        }
+        })
     }
 
     #[turbo_tasks::function]
-    pub(super) fn edge_chunking_context(
+    pub(super) async fn edge_chunking_context(
         self: Vc<Self>,
         client_assets: bool,
-    ) -> Vc<Box<dyn ChunkingContext>> {
-        if client_assets {
+    ) -> Result<Vc<Box<dyn ChunkingContext>>> {
+        Ok(if client_assets {
             get_edge_chunking_context_with_client_assets(
                 self.next_mode(),
                 self.project_root_path(),
@@ -1062,6 +1077,7 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
         } else {
             get_edge_chunking_context(
@@ -1074,8 +1090,9 @@ impl Project {
                 self.next_config().turbo_minify(self.next_mode()),
                 self.next_config().server_source_maps(),
                 self.no_mangling(),
+                self.next_config().turbo_scope_hoisting(self.next_mode()),
             )
-        }
+        })
     }
 
     #[turbo_tasks::function]
@@ -1196,7 +1213,7 @@ impl Project {
                     ConflictIssue {
                         path: self.project_path().to_resolved().await?,
                         title: StyledString::Text(
-                            format!("App Router and Pages Router both match path: {}", pathname)
+                            format!("App Router and Pages Router both match path: {pathname}")
                                 .into(),
                         )
                         .resolved_cell(),
@@ -1207,7 +1224,7 @@ impl Project {
                                 .into(),
                         )
                         .resolved_cell(),
-                        severity: IssueSeverity::Error.resolved_cell(),
+                        severity: IssueSeverity::Error,
                     }
                     .resolved_cell()
                     .emit();
@@ -1264,14 +1281,12 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let app_project = *self.app_project().await?;
 
-        let ecmascript_client_reference_transition_name = match app_project {
-            Some(app_project) => Some(app_project.client_transition_name().to_resolved().await?),
-            None => None,
-        };
+        let ecmascript_client_reference_transition_name =
+            app_project.map(|_| AppProject::client_transition_name());
 
         if let Some(app_project) = app_project {
             transitions.push((
-                ECMASCRIPT_CLIENT_TRANSITION_NAME.into(),
+                AppProject::client_transition_name(),
                 app_project
                     .edge_ecmascript_client_reference_transition()
                     .to_resolved()
@@ -1289,26 +1304,32 @@ impl Project {
             get_server_module_options_context(
                 self.project_path(),
                 self.execution_context(),
-                Value::new(ServerContextType::Middleware {
+                ServerContextType::Middleware {
                     app_dir,
-                    ecmascript_client_reference_transition_name,
-                }),
+                    ecmascript_client_reference_transition_name:
+                        ecmascript_client_reference_transition_name.clone(),
+                },
                 self.next_mode(),
                 self.next_config(),
                 NextRuntime::Edge,
                 self.encryption_key(),
+                self.edge_compile_time_info().environment(),
             ),
             get_edge_resolve_options_context(
                 self.project_path(),
-                Value::new(ServerContextType::Middleware {
+                ServerContextType::Middleware {
                     app_dir,
-                    ecmascript_client_reference_transition_name,
-                }),
+                    ecmascript_client_reference_transition_name:
+                        ecmascript_client_reference_transition_name.clone(),
+                },
                 self.next_mode(),
                 self.next_config(),
                 self.execution_context(),
             ),
-            Vc::cell("middleware-edge".into()),
+            Layer::new_with_user_friendly_name(
+                rcstr!("middleware-edge"),
+                rcstr!("Edge Middleware"),
+            ),
         )))
     }
 
@@ -1319,14 +1340,12 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let app_project = *self.app_project().await?;
 
-        let ecmascript_client_reference_transition_name = match app_project {
-            Some(app_project) => Some(app_project.client_transition_name().to_resolved().await?),
-            None => None,
-        };
+        let ecmascript_client_reference_transition_name =
+            app_project.map(|_| AppProject::client_transition_name());
 
         if let Some(app_project) = app_project {
             transitions.push((
-                ECMASCRIPT_CLIENT_TRANSITION_NAME.into(),
+                AppProject::client_transition_name(),
                 app_project
                     .edge_ecmascript_client_reference_transition()
                     .to_resolved()
@@ -1344,26 +1363,28 @@ impl Project {
             get_server_module_options_context(
                 self.project_path(),
                 self.execution_context(),
-                Value::new(ServerContextType::Middleware {
+                ServerContextType::Middleware {
                     app_dir,
-                    ecmascript_client_reference_transition_name,
-                }),
+                    ecmascript_client_reference_transition_name:
+                        ecmascript_client_reference_transition_name.clone(),
+                },
                 self.next_mode(),
                 self.next_config(),
                 NextRuntime::NodeJs,
                 self.encryption_key(),
+                self.server_compile_time_info().environment(),
             ),
             get_server_resolve_options_context(
                 self.project_path(),
-                Value::new(ServerContextType::Middleware {
+                ServerContextType::Middleware {
                     app_dir,
                     ecmascript_client_reference_transition_name,
-                }),
+                },
                 self.next_mode(),
                 self.next_config(),
                 self.execution_context(),
             ),
-            Vc::cell("middleware".into()),
+            Layer::new_with_user_friendly_name(rcstr!("middleware"), rcstr!("Middleware")),
         )))
     }
 
@@ -1380,7 +1401,7 @@ impl Project {
         let module = edge_module_context
             .process(
                 source,
-                Value::new(ReferenceType::Entry(EntryReferenceSubType::Middleware)),
+                ReferenceType::Entry(EntryReferenceSubType::Middleware),
             )
             .module();
 
@@ -1411,7 +1432,7 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let ecmascript_client_reference_transition_name = (*self.app_project().await?)
             .as_ref()
-            .map(|app_project| app_project.client_transition_name());
+            .map(|_| AppProject::client_transition_name());
 
         let middleware_asset_context = self.middleware_context();
 
@@ -1431,14 +1452,13 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let app_project = &*self.app_project().await?;
 
-        let ecmascript_client_reference_transition_name = match app_project {
-            Some(app_project) => Some(app_project.client_transition_name().to_resolved().await?),
-            None => None,
-        };
+        let ecmascript_client_reference_transition_name = app_project
+            .as_ref()
+            .map(|_| AppProject::client_transition_name());
 
         if let Some(app_project) = app_project {
             transitions.push((
-                ECMASCRIPT_CLIENT_TRANSITION_NAME.into(),
+                AppProject::client_transition_name(),
                 app_project
                     .ecmascript_client_reference_transition()
                     .to_resolved()
@@ -1456,26 +1476,31 @@ impl Project {
             get_server_module_options_context(
                 self.project_path(),
                 self.execution_context(),
-                Value::new(ServerContextType::Instrumentation {
+                ServerContextType::Instrumentation {
                     app_dir,
-                    ecmascript_client_reference_transition_name,
-                }),
+                    ecmascript_client_reference_transition_name:
+                        ecmascript_client_reference_transition_name.clone(),
+                },
                 self.next_mode(),
                 self.next_config(),
                 NextRuntime::NodeJs,
                 self.encryption_key(),
+                self.server_compile_time_info().environment(),
             ),
             get_server_resolve_options_context(
                 self.project_path(),
-                Value::new(ServerContextType::Instrumentation {
+                ServerContextType::Instrumentation {
                     app_dir,
                     ecmascript_client_reference_transition_name,
-                }),
+                },
                 self.next_mode(),
                 self.next_config(),
                 self.execution_context(),
             ),
-            Vc::cell("instrumentation".into()),
+            Layer::new_with_user_friendly_name(
+                rcstr!("instrumentation"),
+                rcstr!("Instrumentation"),
+            ),
         )))
     }
 
@@ -1486,14 +1511,13 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let app_project = &*self.app_project().await?;
 
-        let ecmascript_client_reference_transition_name = match app_project {
-            Some(app_project) => Some(app_project.client_transition_name().to_resolved().await?),
-            None => None,
-        };
+        let ecmascript_client_reference_transition_name = app_project
+            .as_ref()
+            .map(|_| AppProject::client_transition_name());
 
         if let Some(app_project) = app_project {
             transitions.push((
-                ECMASCRIPT_CLIENT_TRANSITION_NAME.into(),
+                AppProject::client_transition_name(),
                 app_project
                     .edge_ecmascript_client_reference_transition()
                     .to_resolved()
@@ -1511,26 +1535,31 @@ impl Project {
             get_server_module_options_context(
                 self.project_path(),
                 self.execution_context(),
-                Value::new(ServerContextType::Instrumentation {
+                ServerContextType::Instrumentation {
                     app_dir,
-                    ecmascript_client_reference_transition_name,
-                }),
+                    ecmascript_client_reference_transition_name:
+                        ecmascript_client_reference_transition_name.clone(),
+                },
                 self.next_mode(),
                 self.next_config(),
                 NextRuntime::Edge,
                 self.encryption_key(),
+                self.edge_compile_time_info().environment(),
             ),
             get_edge_resolve_options_context(
                 self.project_path(),
-                Value::new(ServerContextType::Instrumentation {
+                ServerContextType::Instrumentation {
                     app_dir,
                     ecmascript_client_reference_transition_name,
-                }),
+                },
                 self.next_mode(),
                 self.next_config(),
                 self.execution_context(),
             ),
-            Vc::cell("instrumentation-edge".into()),
+            Layer::new_with_user_friendly_name(
+                rcstr!("instrumentation"),
+                rcstr!("Edge Instrumentation"),
+            ),
         )))
     }
 
@@ -1555,7 +1584,7 @@ impl Project {
         let app_dir = *find_app_dir(self.project_path()).await?;
         let ecmascript_client_reference_transition_name = (*self.app_project().await?)
             .as_ref()
-            .map(|app_project| app_project.client_transition_name());
+            .map(|_| AppProject::client_transition_name());
 
         let instrumentation_asset_context = if is_edge {
             self.edge_instrumentation_context()
@@ -1725,16 +1754,7 @@ impl Project {
     /// Gets the module id strategy for the project.
     #[turbo_tasks::function]
     pub async fn module_ids(self: Vc<Self>) -> Result<Vc<Box<dyn ModuleIdStrategy>>> {
-        let module_id_strategy =
-            if let Some(module_id_strategy) = &*self.next_config().module_ids().await? {
-                *module_id_strategy
-            } else {
-                match *self.next_mode().await? {
-                    NextMode::Development => ModuleIdStrategyConfig::Named,
-                    NextMode::Build => ModuleIdStrategyConfig::Deterministic,
-                }
-            };
-
+        let module_id_strategy = *self.next_config().module_ids(self.next_mode()).await?;
         match module_id_strategy {
             ModuleIdStrategyConfig::Named => Ok(Vc::upcast(DevModuleIdStrategy::new())),
             ModuleIdStrategyConfig::Deterministic => {
@@ -1827,7 +1847,7 @@ async fn get_referenced_output_assets(
 }
 
 #[turbo_tasks::function(operation)]
-async fn all_assets_from_entries_operation(
+fn all_assets_from_entries_operation(
     operation: OperationVc<OutputAssets>,
 ) -> Result<Vc<OutputAssets>> {
     let assets = operation.connect();

@@ -5,8 +5,8 @@
 use std::sync::Mutex;
 
 use anyhow::Result;
-use turbo_tasks::{get_invalidator, Invalidator, ReadRef, Vc};
-use turbo_tasks_testing::{register, run, Registration};
+use turbo_tasks::{Invalidator, ReadRef, Vc, get_invalidator};
+use turbo_tasks_testing::{Registration, register, run};
 
 static REGISTRATION: Registration = register!();
 
@@ -70,8 +70,8 @@ impl Counter {
 
 #[turbo_tasks::value_impl]
 impl Counter {
-    #[turbo_tasks::function]
-    async fn get_value(&self) -> Result<Vc<CounterValue>> {
+    #[turbo_tasks::function(invalidator)]
+    fn get_value(&self) -> Result<Vc<CounterValue>> {
         let mut lock = self.value.lock().unwrap();
         lock.1 = Some(get_invalidator());
         Ok(Vc::cell(lock.0))

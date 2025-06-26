@@ -1,23 +1,26 @@
 use std::io::Write;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
+use turbo_rcstr::rcstr;
 use turbo_tasks::{
-    trace::TraceRawVcs, NonLocalValue, ResolvedVc, TaskInput, Upcast, ValueToString, Vc,
+    NonLocalValue, ResolvedVc, TaskInput, TryJoinIterExt, Upcast, ValueToString, Vc,
+    trace::TraceRawVcs,
 };
-use turbo_tasks_fs::{rope::Rope, FileSystemPath};
+use turbo_tasks_fs::{FileSystemPath, rope::Rope};
 use turbopack_core::{
-    chunk::{AsyncModuleInfo, ChunkItem, ChunkItemWithAsyncModuleInfo, ChunkingContext},
+    chunk::{AsyncModuleInfo, ChunkItem, ChunkItemWithAsyncModuleInfo, ChunkingContext, ModuleId},
     code_builder::{Code, CodeBuilder},
     error::PrettyPrintError,
-    issue::{code_gen::CodeGenerationIssue, IssueExt, IssueSeverity, StyledString},
+    issue::{IssueExt, IssueSeverity, StyledString, code_gen::CodeGenerationIssue},
     source_map::utils::fileify_source_map,
 };
 
 use crate::{
-    references::async_module::{AsyncModuleOptions, OptionAsyncModuleOptions},
-    utils::FormatIter,
     EcmascriptModuleContent, EcmascriptOptions,
+    references::async_module::{AsyncModuleOptions, OptionAsyncModuleOptions},
+    utils::{FormatIter, StringifyJs},
 };
 
 #[turbo_tasks::value(shared)]
@@ -25,6 +28,7 @@ use crate::{
 pub struct EcmascriptChunkItemContent {
     pub inner_code: Rope,
     pub source_map: Option<Rope>,
+    pub additional_ids: SmallVec<[ResolvedVc<ModuleId>; 1]>,
     pub options: EcmascriptChunkItemOptions,
     pub rewrite_source_path: Option<ResolvedVc<FileSystemPath>>,
     pub placeholder_for_future_extensions: (),
@@ -56,6 +60,7 @@ impl EcmascriptChunkItemContent {
             },
             inner_code: content.inner_code.clone(),
             source_map: content.source_map.clone(),
+            additional_ids: content.additional_ids.clone(),
             options: if content.is_esm {
                 EcmascriptChunkItemOptions {
                     strict: true,
@@ -87,8 +92,7 @@ impl EcmascriptChunkItemContent {
 
     #[turbo_tasks::function]
     pub async fn module_factory(&self) -> Result<Vc<Code>> {
-        // TODO(lukesandberg): find a better way to bind this parameter.
-        let mut args = vec!["g: global"];
+        let mut args = Vec::new();
         if self.options.async_module.is_some() {
             args.push("a: __turbopack_async_module__");
         }
@@ -105,8 +109,12 @@ impl EcmascriptChunkItemContent {
             args.push("w: __turbopack_wasm__");
             args.push("u: __turbopack_wasm_module__");
         }
+
         let mut code = CodeBuilder::default();
-        let args = FormatIter(|| args.iter().copied().intersperse(", "));
+        let additional_ids = self.additional_ids.iter().try_join().await?;
+        if !additional_ids.is_empty() {
+            code += "["
+        }
         if self.options.this {
             code += "(function(__turbopack_context__) {\n";
         } else {
@@ -117,12 +125,15 @@ impl EcmascriptChunkItemContent {
         } else {
             code += "\n";
         }
-        writeln!(code, "var {{ {} }} = __turbopack_context__;", args)?;
+        if !args.is_empty() {
+            let args = FormatIter(|| args.iter().copied().intersperse(", "));
+            writeln!(code, "var {{ {args} }} = __turbopack_context__;")?;
+        }
 
         if self.options.async_module.is_some() {
             code += "__turbopack_async_module__(async (__turbopack_handle_async_dependencies__, \
                      __turbopack_async_result__) => { try {\n";
-        } else {
+        } else if !args.is_empty() {
             code += "{\n";
         }
 
@@ -141,11 +152,15 @@ impl EcmascriptChunkItemContent {
                  }}, {});",
                 opts.has_top_level_await
             )?;
-        } else {
+        } else if !args.is_empty() {
             code += "}";
         }
 
         code += "})";
+        if !additional_ids.is_empty() {
+            writeln!(code, ", {}]", StringifyJs(&additional_ids))?;
+        }
+
         Ok(code.build().cell())
     }
 }
@@ -212,7 +227,9 @@ impl EcmascriptChunkItemWithAsyncInfo {
 
 #[turbo_tasks::value_trait]
 pub trait EcmascriptChunkItem: ChunkItem {
+    #[turbo_tasks::function]
     fn content(self: Vc<Self>) -> Vc<EcmascriptChunkItemContent>;
+    #[turbo_tasks::function]
     fn content_with_async_module_info(
         self: Vc<Self>,
         _async_module_info: Option<Vc<AsyncModuleInfo>>,
@@ -222,6 +239,7 @@ pub trait EcmascriptChunkItem: ChunkItem {
 
     /// Specifies which availablility information the chunk item needs for code
     /// generation
+    #[turbo_tasks::function]
     fn need_async_module_info(self: Vc<Self>) -> Vc<bool> {
         Vc::cell(false)
     }
@@ -256,22 +274,17 @@ async fn module_factory_with_code_generation_issue(
         {
             Ok(factory) => factory,
             Err(error) => {
-                let id = chunk_item
-                    .chunking_context()
-                    .chunk_item_id(Vc::upcast(chunk_item))
-                    .to_string()
-                    .await;
+                let id = chunk_item.asset_ident().to_string().await;
                 let id = id.as_ref().map_or_else(|_| "unknown", |id| &**id);
                 let error = error.context(format!(
-                    "An error occurred while generating the chunk item {}",
-                    id
+                    "An error occurred while generating the chunk item {id}"
                 ));
                 let error_message = format!("{}", PrettyPrintError(&error)).into();
                 let js_error_message = serde_json::to_string(&error_message)?;
                 CodeGenerationIssue {
-                    severity: IssueSeverity::Error.resolved_cell(),
+                    severity: IssueSeverity::Error,
                     path: chunk_item.asset_ident().path().to_resolved().await?,
-                    title: StyledString::Text("Code generation for chunk item errored".into())
+                    title: StyledString::Text(rcstr!("Code generation for chunk item errored"))
                         .resolved_cell(),
                     message: StyledString::Text(error_message).resolved_cell(),
                 }

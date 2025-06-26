@@ -7,12 +7,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use turbo_tasks::{ValueToString, Vc};
 use turbo_tasks_fs::{
-    rope::Rope, util::uri_from_file, DiskFileSystem, FileContent, FileSystemPath,
+    DiskFileSystem, FileContent, FileSystemPath, rope::Rope, util::uri_from_file,
 };
 
 use crate::SOURCE_URL_PROTOCOL;
 
-pub fn add_default_ignore_list(map: &mut sourcemap::SourceMap) {
+pub fn add_default_ignore_list(map: &mut swc_sourcemap::SourceMap) {
     let mut ignored_ids = HashSet::new();
 
     for (source_id, source) in map.sources().enumerate() {
@@ -69,7 +69,7 @@ struct SourceMapJson {
     sections: Option<Vec<SourceMapSectionItemJson>>,
 }
 
-/// Replace the origin prefix in the `sources` with `turbopack:///` and read the the
+/// Replace the origin prefix in the `file` and `sources` with `turbopack:///` and read the the
 /// `sourceContent`s from disk.
 pub async fn resolve_source_map_sources(
     map: Option<&Rope>,
@@ -77,7 +77,7 @@ pub async fn resolve_source_map_sources(
 ) -> Result<Option<Rope>> {
     async fn resolve_source(
         original_source: &mut String,
-        original_content: &mut Option<String>,
+        original_content: Option<&mut Option<String>>,
         origin: Vc<FileSystemPath>,
     ) -> Result<()> {
         if let Some(path) = *origin
@@ -86,10 +86,12 @@ pub async fn resolve_source_map_sources(
             .await?
         {
             let path_str = path.to_string().await?;
-            let source = format!("{SOURCE_URL_PROTOCOL}///{}", path_str);
+            let source = format!("{SOURCE_URL_PROTOCOL}///{path_str}");
             *original_source = source;
 
-            if original_content.is_none() {
+            if let Some(original_content) = original_content
+                && original_content.is_none()
+            {
                 if let FileContent::Content(file) = &*path.read().await? {
                     let text = file.content().to_str()?;
                     *original_content = Some(text.to_string())
@@ -104,8 +106,10 @@ pub async fn resolve_source_map_sources(
             let source = INVALID_REGEX.replace_all(original_source, |s: &regex::Captures<'_>| {
                 s[0].replace('.', "_")
             });
-            *original_source = format!("{SOURCE_URL_PROTOCOL}///{}/{}", origin_str, source);
-            if original_content.is_none() {
+            *original_source = format!("{SOURCE_URL_PROTOCOL}///{origin_str}/{source}");
+            if let Some(original_content) = original_content
+                && original_content.is_none()
+            {
                 *original_content = Some(format!(
                     "unable to access {original_source} in {origin_str} (it's leaving the \
                      filesystem root)"
@@ -126,7 +130,7 @@ pub async fn resolve_source_map_sources(
 
             for (source, content) in sources.iter_mut().zip(contents.iter_mut()) {
                 if let Some(source) = source {
-                    resolve_source(source, content, origin).await?;
+                    resolve_source(source, Some(content), origin).await?;
                 }
             }
 
@@ -143,6 +147,10 @@ pub async fn resolve_source_map_sources(
         // Silently ignore invalid sourcemaps
         return Ok(None);
     };
+
+    if let Some(file) = &mut map.file {
+        resolve_source(file, None, origin).await?;
+    }
 
     resolve_map(&mut map, origin).await?;
     for section in map.sections.iter_mut().flatten() {
@@ -176,10 +184,10 @@ pub async fn fileify_source_map(
     let prefix = format!("{}///[{}]/", SOURCE_URL_PROTOCOL, context_fs.name());
 
     let transform_source = async |src: &mut Option<String>| {
-        if let Some(src) = src {
-            if let Some(src_rest) = src.strip_prefix(&prefix) {
-                *src = uri_from_file(context_path, Some(src_rest)).await?;
-            }
+        if let Some(src) = src
+            && let Some(src_rest) = src.strip_prefix(&prefix)
+        {
+            *src = uri_from_file(context_path, Some(src_rest)).await?;
         }
         anyhow::Ok(())
     };

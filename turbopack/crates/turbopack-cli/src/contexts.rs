@@ -1,16 +1,16 @@
 use std::fmt;
 
 use anyhow::Result;
-use turbo_rcstr::RcStr;
-use turbo_tasks::{ResolvedVc, Value, Vc};
+use turbo_rcstr::{RcStr, rcstr};
+use turbo_tasks::{ResolvedVc, Vc};
 use turbo_tasks_fs::{FileSystem, FileSystemPath};
 use turbopack::{
+    ModuleAssetContext,
     ecmascript::TreeShakingMode,
     module_options::{
         EcmascriptOptionsContext, JsxTransformOptions, ModuleOptionsContext, ModuleRule,
         ModuleRuleEffect, RuleCondition, TypescriptTransformOptions,
     },
-    ModuleAssetContext,
 };
 use turbopack_browser::react_refresh::assert_can_resolve_react_refresh;
 use turbopack_core::{
@@ -21,6 +21,7 @@ use turbopack_core::{
     context::AssetContext,
     environment::{BrowserEnvironment, Environment, ExecutionEnvironment},
     free_var_references,
+    ident::Layer,
     resolve::options::{ImportMap, ImportMapping},
 };
 use turbopack_node::{
@@ -111,7 +112,7 @@ async fn get_client_module_options_context(
 ) -> Result<Vc<ModuleOptionsContext>> {
     let is_dev = matches!(*node_env.await?, NodeEnv::Development);
     let module_options_context = ModuleOptionsContext {
-        preset_env_versions: Some(env),
+        environment: Some(env),
         execution_context: Some(execution_context),
         tree_shaking_mode: Some(TreeShakingMode::ReexportsOnly),
         keep_last_successful_parse: is_dev,
@@ -192,7 +193,7 @@ pub fn get_client_asset_context(
         compile_time_info,
         module_options_context,
         resolve_options_context,
-        Vc::cell("client".into()),
+        Layer::new_with_user_friendly_name(rcstr!("client"), rcstr!("Pages Router Client")),
     ));
 
     asset_context
@@ -213,7 +214,7 @@ pub async fn get_client_compile_time_info(
 ) -> Result<Vc<CompileTimeInfo>> {
     let node_env = node_env.await?;
     CompileTimeInfo::builder(
-        Environment::new(Value::new(ExecutionEnvironment::Browser(
+        Environment::new(ExecutionEnvironment::Browser(
             BrowserEnvironment {
                 dom: true,
                 web_worker: false,
@@ -221,7 +222,7 @@ pub async fn get_client_compile_time_info(
                 browserslist_query,
             }
             .resolved_cell(),
-        )))
+        ))
         .to_resolved()
         .await?,
     )

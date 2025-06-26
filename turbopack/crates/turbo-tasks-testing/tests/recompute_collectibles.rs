@@ -2,10 +2,10 @@
 #![feature(arbitrary_self_types_pointers)]
 #![allow(clippy::needless_return)] // clippy bug causes false positive
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use turbo_rcstr::RcStr;
-use turbo_tasks::{emit, CollectiblesSource, ResolvedVc, State, ValueToString, Vc};
-use turbo_tasks_testing::{register, run, Registration};
+use turbo_tasks::{CollectiblesSource, ResolvedVc, State, ValueToString, Vc, emit};
+use turbo_tasks_testing::{Registration, register, run};
 
 static REGISTRATION: Registration = register!();
 
@@ -76,7 +76,7 @@ impl ValueToString for Collectible {
     }
 }
 
-#[turbo_tasks::function(operation)]
+#[turbo_tasks::function(operation, invalidator)]
 async fn inner_compute(
     input: ResolvedVc<ChangingInput>,
     input2: ResolvedVc<ChangingInput>,
@@ -85,7 +85,7 @@ async fn inner_compute(
     Ok(inner_compute2(*input, *input2.await?.state.get()))
 }
 
-#[turbo_tasks::function]
+#[turbo_tasks::function(invalidator)]
 async fn inner_compute2(input: Vc<ChangingInput>, innerness: u32) -> Result<Vc<u32>> {
     println!("inner_compute2({innerness})");
     if innerness > 0 {

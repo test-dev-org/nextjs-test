@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use auto_hash_map::AutoSet;
 use turbo_rcstr::RcStr;
-use turbo_tasks::{emit, CollectiblesSource, FxIndexMap, ResolvedVc, Upcast, Vc};
+use turbo_tasks::{CollectiblesSource, FxIndexMap, ResolvedVc, Upcast, Vc, emit};
 
 #[turbo_tasks::value(serialization = "none")]
 #[derive(Clone, Debug)]
@@ -57,12 +57,16 @@ pub trait Diagnostic {
     /// `slow_perf_event`, or something else. This is not strongly typed
     /// though; since consumer or implementation may need to define own
     /// category.
+    #[turbo_tasks::function]
     fn category(&self) -> Vc<RcStr>;
     /// Name of the specific diagnostic event.
+    #[turbo_tasks::function]
     fn name(&self) -> Vc<RcStr>;
     /// Arbitarary payload included in the diagnostic event.
+    #[turbo_tasks::function]
     fn payload(&self) -> Vc<DiagnosticPayload>;
 
+    #[turbo_tasks::function]
     async fn into_plain(self: Vc<Self>) -> Result<Vc<PlainDiagnostic>> {
         Ok(PlainDiagnostic {
             category: self.category().owned().await?,

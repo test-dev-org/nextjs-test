@@ -1,18 +1,18 @@
 use std::{borrow::Cow, collections::BinaryHeap, hash::BuildHasherDefault, mem::take};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rustc_hash::FxHasher;
 use smallvec::SmallVec;
-use tracing::{field::Empty, Instrument};
+use tracing::{Instrument, field::Empty};
 use turbo_prehash::BuildHasherExt;
 use turbo_tasks::{FxIndexMap, FxIndexSet, ResolvedVc, TryJoinIterExt, Vc};
 
 use crate::{
     chunk::{
-        chunking::{make_chunk, ChunkItemOrBatchWithInfo, SplitContext},
         ChunkItemBatchGroup, ChunkItemWithAsyncModuleInfo, ChunkingConfig,
+        chunking::{ChunkItemOrBatchWithInfo, SplitContext, make_chunk},
     },
-    module_graph::{chunk_group_info::RoaringBitmapWrapper, ModuleGraph},
+    module_graph::{ModuleGraph, chunk_group_info::RoaringBitmapWrapper},
 };
 
 pub async fn make_production_chunks(
@@ -32,6 +32,7 @@ pub async fn make_production_chunks(
     let span = span_outer.clone();
     async move {
         let chunk_group_info = module_graph.chunk_group_info().await?;
+        let merged_modules = module_graph.merged_modules().await?;
 
         #[derive(Default)]
         struct GrouppedChunkItems<'l> {
@@ -69,9 +70,21 @@ pub async fn make_production_chunks(
                             ..
                         },
                     ..
-                } => chunk_group_info
-                    .module_chunk_groups
-                    .get(&ResolvedVc::upcast(module)),
+                } => Some(
+                    chunk_group_info
+                        .module_chunk_groups
+                        .get(&ResolvedVc::upcast(module))
+                        .or_else(|| {
+                            // Merged modules don't have a chunk group in chunk_group_info, so
+                            // lookup using the original module.
+                            merged_modules
+                                .get_original_module(ResolvedVc::upcast(module))
+                                .and_then(|module| {
+                                    chunk_group_info.module_chunk_groups.get(&module)
+                                })
+                        })
+                        .context("every module should have a chunk group")?,
+                ),
                 &ChunkItemOrBatchWithInfo::ChunkItem {
                     chunk_item: ChunkItemWithAsyncModuleInfo { module: None, .. },
                     ..

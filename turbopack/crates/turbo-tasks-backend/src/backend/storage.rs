@@ -1,7 +1,7 @@
 use std::{
     hash::Hash,
     ops::{Deref, DerefMut},
-    sync::{atomic::AtomicBool, Arc},
+    sync::{Arc, atomic::AtomicBool},
     thread::available_parallelism,
 };
 
@@ -16,7 +16,7 @@ use crate::{
         CachedDataItemValue, CachedDataItemValueRef, CachedDataItemValueRefMut, OutputValue,
     },
     data_storage::{AutoMapStorage, OptionStorage},
-    utils::dash_map_multi::{get_multiple_mut, RefMut},
+    utils::dash_map_multi::{RefMut, get_multiple_mut},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -97,7 +97,8 @@ bitfield! {
     pub data_modified, set_data_modified: 3;
     /// Item was modified after snapshot mode was entered. A snapshot was taken.
     pub meta_snapshot, set_meta_snapshot: 4;
-    pub data_snapshot, set_data_snapshot: 4;
+    pub data_snapshot, set_data_snapshot: 5;
+    pub is_immutable, set_is_immutable: 6;
 }
 
 impl InnerStorageState {
@@ -137,7 +138,7 @@ pub struct InnerStorageSnapshot {
     aggregation_number: OptionStorage<AggregationNumber>,
     output_dependent: AutoMapStorage<TaskId, ()>,
     output: OptionStorage<OutputValue>,
-    upper: AutoMapStorage<TaskId, i32>,
+    upper: AutoMapStorage<TaskId, u32>,
     dynamic: DynamicStorage,
     pub meta_modified: bool,
     pub data_modified: bool,
@@ -205,7 +206,7 @@ pub struct InnerStorage {
     aggregation_number: OptionStorage<AggregationNumber>,
     output_dependent: AutoMapStorage<TaskId, ()>,
     output: OptionStorage<OutputValue>,
-    upper: AutoMapStorage<TaskId, i32>,
+    upper: AutoMapStorage<TaskId, u32>,
     dynamic: DynamicStorage,
     state: InnerStorageState,
 }
@@ -611,18 +612,27 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new() -> Self {
+    pub fn new(small_preallocation: bool) -> Self {
+        let map_capacity: usize = if small_preallocation {
+            1024
+        } else {
+            1024 * 1024
+        };
+        let modified_capacity: usize = if small_preallocation { 0 } else { 1024 };
+        let shard_factor: usize = if small_preallocation { 4 } else { 64 };
+
         let shard_amount =
-            (available_parallelism().map_or(4, |v| v.get()) * 64).next_power_of_two();
+            (available_parallelism().map_or(4, |v| v.get()) * shard_factor).next_power_of_two();
+
         Self {
             snapshot_mode: AtomicBool::new(false),
             modified: FxDashMap::with_capacity_and_hasher_and_shard_amount(
-                1024,
+                modified_capacity,
                 Default::default(),
                 shard_amount,
             ),
             map: FxDashMap::with_capacity_and_hasher_and_shard_amount(
-                1024 * 1024,
+                map_capacity,
                 Default::default(),
                 shard_amount,
             ),
@@ -654,8 +664,7 @@ impl Storage {
 
         // The number of shards is much larger than the number of threads, so the effect of the
         // locks held is negligible.
-        let shards = self
-            .modified
+        self.modified
             .shards()
             .par_iter()
             .with_max_len(1)
@@ -696,9 +705,7 @@ impl Storage {
                     process_snapshot,
                 }
             })
-            .collect::<Vec<_>>();
-
-        shards
+            .collect::<Vec<_>>()
     }
 
     /// Start snapshot mode.
@@ -891,9 +898,7 @@ impl DerefMut for StorageWriteGuard<'_> {
 }
 
 macro_rules! count {
-    ($task:ident, $key:ident) => {{
-        $task.count($crate::data::CachedDataItemType::$key)
-    }};
+    ($task:ident, $key:ident) => {{ $task.count($crate::data::CachedDataItemType::$key) }};
 }
 
 macro_rules! get {

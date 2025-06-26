@@ -13,6 +13,12 @@ import type { SizeLimit } from '../types'
 import type { SupportedTestRunners } from '../cli/next-test'
 import type { ExperimentalPPRConfig } from './lib/experimental/ppr'
 import { INFINITE_CACHE } from '../lib/constants'
+import type {
+  ManifestRewriteRoute,
+  ManifestHeaderRoute,
+  ManifestRedirectRoute,
+  RouteType,
+} from '../build'
 
 export type NextConfigComplete = Required<NextConfig> & {
   images: Required<ImageConfigComplete>
@@ -24,6 +30,42 @@ export type NextConfigComplete = Required<NextConfig> & {
   // because it's not defined in NextConfigComplete.experimental
   htmlLimitedBots: string | undefined
   experimental: Omit<ExperimentalConfig, 'turbo'>
+}
+
+export type AdapterOutputs = Array<{
+  id: string
+  fallbackID?: string
+  runtime?: 'nodejs' | 'edge'
+  pathname: string
+  allowQuery?: string[]
+  config?: {
+    maxDuration?: number
+    expiration?: number
+    revalidate?: number
+  }
+  assets?: Record<string, string>
+  filePath: string
+  type: RouteType
+}>
+
+export interface NextAdapter {
+  name: string
+  modifyConfig(
+    config: NextConfigComplete
+  ): Promise<NextConfigComplete> | NextConfigComplete
+  onBuildComplete(ctx: {
+    routes: {
+      headers: Array<ManifestHeaderRoute>
+      redirects: Array<ManifestRedirectRoute>
+      rewrites: {
+        beforeFiles: Array<ManifestRewriteRoute>
+        afterFiles: Array<ManifestRewriteRoute>
+        fallback: Array<ManifestRewriteRoute>
+      }
+      dynamicRoutes: Array<{}>
+    }
+    outputs: AdapterOutputs
+  }): Promise<void> | void
 }
 
 export type I18NDomains = readonly DomainLocale[]
@@ -273,6 +315,7 @@ export interface LoggingConfig {
 }
 
 export interface ExperimentalConfig {
+  adapterPath?: string
   useSkewCookie?: boolean
   nodeMiddleware?: boolean
   cacheHandlers?: {
@@ -410,6 +453,11 @@ export interface ExperimentalConfig {
   turbopackMinify?: boolean
 
   /**
+   * Enable scope hoisting. Defaults to true in build mode. Always disabled in development mode.
+   */
+  turbopackScopeHoisting?: boolean
+
+  /**
    * Enable persistent caching for the turbopack dev server and build.
    */
   turbopackPersistentCaching?: boolean
@@ -423,6 +471,11 @@ export interface ExperimentalConfig {
    * Enable tree shaking for the turbopack dev server and build.
    */
   turbopackTreeShaking?: boolean
+
+  /**
+   * Enable removing unused exports for turbopack dev server and build.
+   */
+  turbopackRemoveUnusedExports?: boolean
 
   /**
    * For use with `@next/mdx`. Compile MDX files using the new Rust compiler.
@@ -531,6 +584,12 @@ export interface ExperimentalConfig {
    */
   removeUncaughtErrorAndRejectionListeners?: boolean
 
+  /**
+   * During an RSC request, validates that the request headers match the
+   * cache-busting search parameter sent by the client.
+   */
+  validateRSCRequestHeaders?: boolean
+
   serverActions?: {
     /**
      * Allows adjusting body parser size limit for server actions.
@@ -552,6 +611,12 @@ export interface ExperimentalConfig {
   serverMinification?: boolean
 
   /**
+   * Enables source maps while generating static pages.
+   * Helps with errors during the prerender phase in `next build`.
+   */
+  enablePrerenderSourceMaps?: boolean
+
+  /**
    * Enables source maps generation for the server production bundle.
    */
   serverSourceMaps?: boolean
@@ -560,6 +625,10 @@ export interface ExperimentalConfig {
    * @internal Used by the Next.js internals only.
    */
   trustHostHeader?: boolean
+  /**
+   * @internal Used by the Next.js internals only.
+   */
+  isExperimentalCompile?: boolean
 
   useWasmBinary?: boolean
 
@@ -567,11 +636,6 @@ export interface ExperimentalConfig {
    * Use lightningcss instead of postcss-loader
    */
   useLightningcss?: boolean
-
-  /**
-   * Enables early import feature for app router modules
-   */
-  useEarlyImport?: boolean
 
   /**
    * Enables view transitions by using the {@link https://github.com/facebook/react/pull/31975 unstable_ViewTransition} Component.
@@ -629,8 +693,10 @@ export interface ExperimentalConfig {
   serverComponentsHmrCache?: boolean
 
   /**
-   * When enabled will cause IO in App Router to be excluded from prerenders
-   * unless explicitly cached.
+   * When enabled, will cause IO in App Router to be excluded from prerenders,
+   * unless explicitly cached. This also enables the experimental Partial
+   * Prerendering feature of Next.js, and it enables `react@experimental` being
+   * used for the `app` directory.
    */
   dynamicIO?: boolean
 
@@ -664,19 +730,20 @@ export interface ExperimentalConfig {
   }
 
   /**
-   * Enables the client instrumentation hook.
-   * Loads the instrumentation-client.ts file from the project root
-   * and executes it on the client side before hydration.
-   *
-   * Note: Use with caution as this can negatively impact page loading performance.
-   */
-  clientInstrumentationHook?: boolean
-
-  /**
    * Enables using the global-not-found.js file in the app directory
    *
    */
   globalNotFound?: boolean
+
+  /**
+   * Enable segment viewer for the app directory in Next.js DevTools.
+   */
+  devtoolSegmentExplorer?: boolean
+
+  /**
+   * Enable new panel UI for the Next.js DevTools.
+   */
+  devtoolNewPanelUI?: boolean
 }
 
 export type ExportPathMap = {
@@ -729,23 +796,15 @@ export type ExportPathMap = {
     _isRoutePPREnabled?: boolean
 
     /**
-     * When true, it indicates that this page is being rendered in an attempt to
-     * discover if the page will be safe to generate with PPR. This is only
-     * enabled when the app has `experimental.dynamicIO` enabled but does not
-     * have `experimental.ppr` enabled.
+     * When true, the page is prerendered as a fallback shell, while allowing
+     * any dynamic accesses to result in an empty shell. This is the case when
+     * the app has `experimental.ppr` and `experimental.dynamicIO` enabled, and
+     * there are also routes prerendered with a more complete set of params.
+     * Prerendering those routes would catch any invalid dynamic accesses.
      *
      * @internal
      */
-    _isProspectiveRender?: boolean
-
-    /**
-     * When true, it indicates that the diagnostic render for this page is
-     * disabled. This is only used when the app has `experimental.ppr` and
-     * `experimental.dynamicIO` enabled.
-     *
-     * @internal
-     */
-    _doNotThrowOnEmptyStaticShell?: boolean
+    _allowEmptyStaticShell?: boolean
   }
 }
 
@@ -1075,6 +1134,12 @@ export interface NextConfig extends Record<string, any> {
     define?: Record<string, string>
 
     /**
+     * Replaces server-only (Node.js and Edge) variables in your code during compile time.
+     * Each key will be replaced with the respective values.
+     */
+    defineServer?: Record<string, string>
+
+    /**
      * A hook function that executes after production build compilation finishes,
      * but before running post-compilation tasks such as type checking and
      * static page generation.
@@ -1185,7 +1250,7 @@ export interface NextConfig extends Record<string, any> {
   htmlLimitedBots?: RegExp
 }
 
-export const defaultConfig: NextConfig = {
+export const defaultConfig = {
   env: {},
   webpack: null,
   eslint: {
@@ -1244,6 +1309,7 @@ export const defaultConfig: NextConfig = {
   outputFileTracingRoot: process.env.NEXT_PRIVATE_OUTPUT_TRACE_ROOT || '',
   allowedDevOrigins: undefined,
   experimental: {
+    adapterPath: process.env.NEXT_ADAPTER_PATH || undefined,
     useSkewCookie: false,
     nodeMiddleware: false,
     cacheLife: {
@@ -1289,14 +1355,28 @@ export const defaultConfig: NextConfig = {
       static: process.env.NEXT_STATIC_CACHE_HANDLER_PATH,
     },
     cssChunking: true,
+    devtoolNewPanelUI: process.env.__NEXT_DEVTOOL_NEW_PANEL_UI === 'true',
     multiZoneDraftMode: false,
     appNavFailHandling: false,
     prerenderEarlyExit: true,
     serverMinification: true,
+    enablePrerenderSourceMaps: false,
     serverSourceMaps: false,
     linkNoTouchStart: false,
     caseSensitiveRoutes: false,
-    clientSegmentCache: false,
+    clientSegmentCache:
+      // TODO: Remove once we've made clientSegmentCache the default. We're
+      // piggybacking on the PPR test flag, instead of introducing a separate
+      // CI run.
+      //
+      // If we're testing, and the `__NEXT_EXPERIMENTAL_PPR` environment
+      // variable has been set to `true`, enable the experimental
+      // clientSegmentCache feature so long as it wasn't explicitly disabled in
+      // the config.
+      !!(
+        process.env.__NEXT_TEST_MODE &&
+        process.env.__NEXT_EXPERIMENTAL_PPR === 'true'
+      ),
     dynamicOnHover: false,
     appDocumentPreloading: undefined,
     preloadEntriesOnStart: true,
@@ -1354,10 +1434,10 @@ export const defaultConfig: NextConfig = {
     webpackBuildWorker: undefined,
     webpackMemoryOptimizations: false,
     optimizeServerReact: true,
-    useEarlyImport: false,
     viewTransition: false,
     routerBFCache: false,
     removeUncaughtErrorAndRejectionListeners: false,
+    validateRSCRequestHeaders: false,
     staleTimes: {
       dynamic: 0,
       static: 300,
@@ -1373,10 +1453,11 @@ export const defaultConfig: NextConfig = {
     useCache: undefined,
     slowModuleDetection: undefined,
     globalNotFound: false,
+    devtoolSegmentExplorer: false,
   },
   htmlLimitedBots: undefined,
   bundlePagesRouterDependencies: false,
-}
+} satisfies NextConfig
 
 export async function normalizeConfig(phase: string, config: any) {
   if (typeof config === 'function') {

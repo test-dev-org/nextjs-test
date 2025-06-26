@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde_json::json;
 use turbo_tasks::Vc;
-use turbo_tasks_testing::{register, run_without_cache_check, Registration};
+use turbo_tasks_testing::{Registration, register, run_without_cache_check};
 
 static REGISTRATION: Registration = register!();
 
@@ -222,7 +222,9 @@ async fn wrap_vc(val: Vc<u64>) -> Result<Vc<WrappedU64>> {
 
 #[turbo_tasks::value_trait]
 pub trait Doublable {
+    #[turbo_tasks::function]
     fn double(&self) -> Vc<Self>;
+    #[turbo_tasks::function]
     fn double_vc(self: Vc<Self>) -> Vc<Self>;
 }
 
@@ -234,14 +236,14 @@ impl Doublable for WrappedU64 {
     }
 
     #[turbo_tasks::function]
-    async fn double_vc(&self) -> Result<Vc<Self>> {
+    fn double_vc(&self) -> Result<Vc<Self>> {
         let val = self.0;
         Ok(WrappedU64(val * 2).cell())
     }
 }
 
 #[turbo_tasks::function]
-async fn fail(val: u64) -> Result<Vc<()>> {
+fn fail(val: u64) -> Result<Vc<()>> {
     anyhow::bail!("failed using {val}");
 }
 

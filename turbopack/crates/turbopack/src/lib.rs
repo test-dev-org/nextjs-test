@@ -14,20 +14,20 @@ pub mod module_options;
 pub mod transition;
 pub(crate) mod unsupported_sass;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use css::{CssModuleAsset, ModuleCssAsset};
 use ecmascript::{
-    chunk::EcmascriptChunkPlaceable,
-    references::{follow_reexports, FollowExportsResult},
-    side_effect_optimization::facade::module::EcmascriptModuleFacadeModule,
     EcmascriptModuleAsset, EcmascriptModuleAssetType, TreeShakingMode,
+    chunk::EcmascriptChunkPlaceable,
+    references::{FollowExportsResult, follow_reexports},
+    side_effect_optimization::facade::module::EcmascriptModuleFacadeModule,
 };
-use graph::{aggregate, AggregatedGraph, AggregatedGraphNodeContent};
+use graph::{AggregatedGraph, AggregatedGraphNodeContent, aggregate};
 use module_options::{ModuleOptions, ModuleOptionsContext, ModuleRuleEffect, ModuleType};
-use tracing::{field::Empty, Instrument};
-use turbo_rcstr::RcStr;
-use turbo_tasks::{FxIndexSet, ResolvedVc, Value, ValueToString, Vc};
-use turbo_tasks_fs::{glob::Glob, FileSystemPath};
+use tracing::{Instrument, field::Empty};
+use turbo_rcstr::{RcStr, rcstr};
+use turbo_tasks::{FxIndexSet, ResolvedVc, ValueToString, Vc};
+use turbo_tasks_fs::{FileSystemPath, glob::Glob};
 pub use turbopack_core::condition;
 use turbopack_core::{
     asset::Asset,
@@ -35,7 +35,8 @@ use turbopack_core::{
     compile_time_info::CompileTimeInfo,
     context::{AssetContext, ProcessResult},
     environment::{Environment, ExecutionEnvironment, NodeJsEnvironment},
-    issue::{module::ModuleIssue, IssueExt, StyledString},
+    ident::Layer,
+    issue::{IssueExt, StyledString, module::ModuleIssue},
     module::Module,
     output::OutputAsset,
     raw_module::RawModule,
@@ -45,9 +46,9 @@ use turbopack_core::{
         InnerAssets, ReferenceType,
     },
     resolve::{
-        options::ResolveOptions, origin::PlainResolveOrigin, parse::Request, resolve,
         ExternalTraced, ExternalType, ModulePart, ModuleResolveResult, ModuleResolveResultItem,
-        ResolveResult, ResolveResultItem,
+        ResolveResult, ResolveResultItem, options::ResolveOptions, origin::PlainResolveOrigin,
+        parse::Request, resolve,
     },
     source::Source,
 };
@@ -135,10 +136,10 @@ async fn apply_module_type(
                 builder = builder.with_inner_assets(inner_assets);
             }
 
+            let module = builder.build().to_resolved().await?;
             if runtime_code {
-                ResolvedVc::upcast(builder.build().to_resolved().await?)
+                ResolvedVc::upcast(module)
             } else {
-                let module = builder.build().resolve().await?;
                 if matches!(&part, Some(ModulePart::Evaluation)) {
                     // Skip the evaluation part if the module is marked as side effect free.
                     let side_effect_free_packages = module_asset_context
@@ -154,11 +155,11 @@ async fn apply_module_type(
                     }
                 }
 
-                let options = options.await?;
-                match options.tree_shaking_mode {
+                let options_value = options.await?;
+                match options_value.tree_shaking_mode {
                     Some(TreeShakingMode::ModuleFragments) => {
                         Vc::upcast(EcmascriptModulePartAsset::select_part(
-                            module,
+                            *module,
                             part.unwrap_or(ModulePart::facade()),
                         ))
                     }
@@ -168,11 +169,12 @@ async fn apply_module_type(
                                 ModulePart::Evaluation => {
                                     if *module.get_exports().needs_facade().await? {
                                         Vc::upcast(EcmascriptModuleFacadeModule::new(
-                                            Vc::upcast(module),
+                                            Vc::upcast(*module),
                                             part,
+                                            options.await?.remove_unused_exports,
                                         ))
                                     } else {
-                                        Vc::upcast(module)
+                                        Vc::upcast(*module)
                                     }
                                 }
                                 ModulePart::Export(_) => {
@@ -185,20 +187,23 @@ async fn apply_module_type(
                                         apply_reexport_tree_shaking(
                                             Vc::upcast(
                                                 EcmascriptModuleFacadeModule::new(
-                                                    Vc::upcast(module),
+                                                    Vc::upcast(*module),
                                                     ModulePart::exports(),
+                                                    options.await?.remove_unused_exports,
                                                 )
                                                 .resolve()
                                                 .await?,
                                             ),
                                             part,
                                             side_effect_free_packages,
+                                            options.await?.remove_unused_exports,
                                         )
                                     } else {
                                         apply_reexport_tree_shaking(
-                                            Vc::upcast(module.resolve().await?),
+                                            Vc::upcast(*module),
                                             part,
                                             side_effect_free_packages,
+                                            options.await?.remove_unused_exports,
                                         )
                                     }
                                 }
@@ -210,14 +215,15 @@ async fn apply_module_type(
                             }
                         } else if *module.get_exports().needs_facade().await? {
                             Vc::upcast(EcmascriptModuleFacadeModule::new(
-                                Vc::upcast(module),
+                                Vc::upcast(*module),
                                 ModulePart::facade(),
+                                options.await?.remove_unused_exports,
                             ))
                         } else {
-                            Vc::upcast(module)
+                            Vc::upcast(*module)
                         }
                     }
-                    None => Vc::upcast(module),
+                    None => Vc::upcast(*module),
                 }
                 .to_resolved()
                 .await?
@@ -231,7 +237,7 @@ async fn apply_module_type(
                 .await?,
         ),
 
-        ModuleType::Css { ty } => ResolvedVc::upcast(
+        ModuleType::Css { ty, environment } => ResolvedVc::upcast(
             CssModuleAsset::new(
                 *source,
                 Vc::upcast(module_asset_context),
@@ -242,6 +248,7 @@ async fn apply_module_type(
                     .css
                     .minify_type,
                 css_import_context,
+                environment.as_deref().copied(),
             )
             .to_resolved()
             .await?,
@@ -275,6 +282,7 @@ async fn apply_reexport_tree_shaking(
     module: Vc<Box<dyn EcmascriptChunkPlaceable>>,
     part: ModulePart,
     side_effect_free_packages: Vc<Glob>,
+    remove_unused_exports: bool,
 ) -> Result<Vc<Box<dyn Module>>> {
     if let ModulePart::Export(export) = &part {
         let FollowExportsResult {
@@ -289,12 +297,14 @@ async fn apply_reexport_tree_shaking(
                 Vc::upcast(EcmascriptModuleFacadeModule::new(
                     **final_module,
                     ModulePart::renamed_export(new_export.clone(), export.clone()),
+                    remove_unused_exports,
                 ))
             }
         } else {
             Vc::upcast(EcmascriptModuleFacadeModule::new(
                 **final_module,
                 ModulePart::renamed_namespace(export.clone()),
+                remove_unused_exports,
             ))
         };
         return Ok(module);
@@ -309,7 +319,7 @@ pub struct ModuleAssetContext {
     pub compile_time_info: ResolvedVc<CompileTimeInfo>,
     pub module_options_context: ResolvedVc<ModuleOptionsContext>,
     pub resolve_options_context: ResolvedVc<ResolveOptionsContext>,
-    pub layer: ResolvedVc<RcStr>,
+    pub layer: Layer,
     transition: Option<ResolvedVc<Box<dyn Transition>>>,
     /// Whether to replace external resolutions with CachedExternalModules. Used with
     /// ModuleOptionsContext.enable_externals_tracing to handle transitive external dependencies.
@@ -324,7 +334,7 @@ impl ModuleAssetContext {
         compile_time_info: ResolvedVc<CompileTimeInfo>,
         module_options_context: ResolvedVc<ModuleOptionsContext>,
         resolve_options_context: ResolvedVc<ResolveOptionsContext>,
-        layer: ResolvedVc<RcStr>,
+        layer: Layer,
     ) -> Vc<Self> {
         Self::cell(ModuleAssetContext {
             transitions,
@@ -343,7 +353,7 @@ impl ModuleAssetContext {
         compile_time_info: ResolvedVc<CompileTimeInfo>,
         module_options_context: ResolvedVc<ModuleOptionsContext>,
         resolve_options_context: ResolvedVc<ResolveOptionsContext>,
-        layer: ResolvedVc<RcStr>,
+        layer: Layer,
         transition: ResolvedVc<Box<dyn Transition>>,
     ) -> Vc<Self> {
         Self::cell(ModuleAssetContext {
@@ -363,7 +373,7 @@ impl ModuleAssetContext {
         compile_time_info: ResolvedVc<CompileTimeInfo>,
         module_options_context: ResolvedVc<ModuleOptionsContext>,
         resolve_options_context: ResolvedVc<ResolveOptionsContext>,
-        layer: ResolvedVc<RcStr>,
+        layer: Layer,
     ) -> Vc<Self> {
         Self::cell(ModuleAssetContext {
             transitions,
@@ -411,7 +421,7 @@ impl ModuleAssetContext {
             *this.compile_time_info,
             *this.module_options_context,
             resolve_options_context,
-            *this.layer,
+            this.layer.clone(),
         ))
     }
 }
@@ -420,7 +430,7 @@ impl ModuleAssetContext {
     async fn process_with_transition_rules(
         self: Vc<Self>,
         source: ResolvedVc<Box<dyn Source>>,
-        reference_type: Value<ReferenceType>,
+        reference_type: ReferenceType,
     ) -> Result<Vc<ProcessResult>> {
         let this = self.await?;
         Ok(
@@ -440,7 +450,7 @@ impl ModuleAssetContext {
     async fn process_default(
         self: Vc<Self>,
         source: ResolvedVc<Box<dyn Source>>,
-        reference_type: Value<ReferenceType>,
+        reference_type: ReferenceType,
     ) -> Result<Vc<ProcessResult>> {
         process_default(self, source, reference_type, Vec::new()).await
     }
@@ -449,20 +459,19 @@ impl ModuleAssetContext {
 async fn process_default(
     module_asset_context: Vc<ModuleAssetContext>,
     source: ResolvedVc<Box<dyn Source>>,
-    reference_type: Value<ReferenceType>,
+    reference_type: ReferenceType,
     processed_rules: Vec<usize>,
 ) -> Result<Vc<ProcessResult>> {
     let span = tracing::info_span!(
         "process module",
         name = %source.ident().to_string().await?,
         layer = Empty,
-        reference_type = display(&*reference_type)
+        reference_type = display(&reference_type)
     );
     if !span.is_disabled() {
         // Need to use record, otherwise future is not Send for some reason.
         let module_asset_context_ref = module_asset_context.await?;
-        let layer = module_asset_context_ref.layer.await?;
-        span.record("layer", &**layer);
+        span.record("layer", module_asset_context_ref.layer.name().as_str());
     }
     process_default_internal(
         module_asset_context,
@@ -477,7 +486,7 @@ async fn process_default(
 async fn process_default_internal(
     module_asset_context: Vc<ModuleAssetContext>,
     source: ResolvedVc<Box<dyn Source>>,
-    reference_type: Value<ReferenceType>,
+    reference_type: ReferenceType,
     processed_rules: Vec<usize>,
 ) -> Result<Vc<ProcessResult>> {
     let ident = source.ident().resolve().await?;
@@ -488,7 +497,6 @@ async fn process_default_internal(
         module_asset_context.resolve_options_context(),
     );
 
-    let reference_type = reference_type.into_value();
     let part: Option<ModulePart> = match &reference_type {
         ReferenceType::EcmaScriptModules(EcmaScriptModulesReferenceSubType::ImportPart(part)) => {
             Some(part.clone())
@@ -542,7 +550,7 @@ async fn process_default_internal(
                                 return Ok(transition.process(
                                     *current_source,
                                     module_asset_context,
-                                    Value::new(reference_type),
+                                    reference_type,
                                 ));
                             } else {
                                 let mut processed_rules = processed_rules.clone();
@@ -550,7 +558,7 @@ async fn process_default_internal(
                                 return Box::pin(process_default(
                                     module_asset_context,
                                     current_source,
-                                    Value::new(reference_type),
+                                    reference_type,
                                     processed_rules,
                                 ))
                                 .await;
@@ -558,7 +566,7 @@ async fn process_default_internal(
                         }
                     }
                     ModuleRuleEffect::ModuleType(module) => {
-                        current_module_type = Some(*module);
+                        current_module_type = Some(module.clone());
                     }
                     ModuleRuleEffect::ExtendEcmascriptTransforms { prepend, append } => {
                         current_module_type = match current_module_type {
@@ -648,9 +656,9 @@ async fn process_default_internal(
 
 #[turbo_tasks::function]
 async fn externals_tracing_module_context(ty: ExternalType) -> Result<Vc<ModuleAssetContext>> {
-    let env = Environment::new(Value::new(ExecutionEnvironment::NodeJsLambda(
+    let env = Environment::new(ExecutionEnvironment::NodeJsLambda(
         NodeJsEnvironment::default().resolved_cell(),
-    )))
+    ))
     .to_resolved()
     .await?;
 
@@ -661,6 +669,7 @@ async fn externals_tracing_module_context(ty: ExternalType) -> Result<Vc<ModuleA
             ExternalType::CommonJs => vec!["require".into()],
             ExternalType::EcmaScriptModule => vec!["import".into()],
             ExternalType::Url => vec![],
+            ExternalType::Global => vec![],
         },
         ..Default::default()
     };
@@ -680,11 +689,14 @@ async fn externals_tracing_module_context(ty: ExternalType) -> Result<Vc<ModuleA
                 source_maps: SourceMapsType::None,
                 ..Default::default()
             },
+            // Environment is not passed in order to avoid downleveling JS / CSS for
+            // node-file-trace.
+            environment: None,
             ..Default::default()
         }
         .cell(),
         resolve_options.cell(),
-        Vc::cell("externals-tracing".into()),
+        Layer::new(rcstr!("externals-tracing")),
     ))
 }
 
@@ -695,16 +707,15 @@ impl AssetContext for ModuleAssetContext {
         *self.compile_time_info
     }
 
-    #[turbo_tasks::function]
-    fn layer(&self) -> Vc<RcStr> {
-        *self.layer
+    fn layer(&self) -> Layer {
+        self.layer.clone()
     }
 
     #[turbo_tasks::function]
     async fn resolve_options(
         self: Vc<Self>,
         origin_path: Vc<FileSystemPath>,
-        _reference_type: Value<ReferenceType>,
+        _reference_type: ReferenceType,
     ) -> Result<Vc<ResolveOptions>> {
         let this = self.await?;
         let module_asset_context = if let Some(transition) = this.transition {
@@ -725,7 +736,7 @@ impl AssetContext for ModuleAssetContext {
         origin_path: Vc<FileSystemPath>,
         request: Vc<Request>,
         resolve_options: Vc<ResolveOptions>,
-        reference_type: Value<ReferenceType>,
+        reference_type: ReferenceType,
     ) -> Result<Vc<ModuleResolveResult>> {
         let context_path = origin_path.parent().resolve().await?;
 
@@ -754,7 +765,7 @@ impl AssetContext for ModuleAssetContext {
     async fn process_resolve_result(
         self: Vc<Self>,
         result: Vc<ResolveResult>,
-        reference_type: Value<ReferenceType>,
+        reference_type: ReferenceType,
     ) -> Result<Vc<ModuleResolveResult>> {
         let this = self.await?;
 
@@ -804,7 +815,7 @@ impl AssetContext for ModuleAssetContext {
                                     // for externals (and otherwise, this causes duplicate
                                     // CachedExternalModules for both `ImportPart(Evaluation)` and
                                     // `ImportPart(Export("CacheProvider"))`)
-                                    let reference_type = Value::new(match &*reference_type {
+                                    let reference_type = match reference_type {
                                         ReferenceType::EcmaScriptModules(_) => {
                                             ReferenceType::EcmaScriptModules(Default::default())
                                         }
@@ -818,7 +829,7 @@ impl AssetContext for ModuleAssetContext {
                                             ReferenceType::Url(Default::default())
                                         }
                                         _ => ReferenceType::Undefined,
-                                    });
+                                    };
 
                                     let external_result = externals_context
                                         .resolve_asset(
@@ -886,7 +897,7 @@ impl AssetContext for ModuleAssetContext {
     async fn process(
         self: Vc<Self>,
         asset: ResolvedVc<Box<dyn Source>>,
-        reference_type: Value<ReferenceType>,
+        reference_type: ReferenceType,
     ) -> Result<Vc<ProcessResult>> {
         let this = self.await?;
         if let Some(transition) = this.transition {
@@ -907,7 +918,7 @@ impl AssetContext for ModuleAssetContext {
                     *self.compile_time_info,
                     *self.module_options_context,
                     *self.resolve_options_context,
-                    *self.layer,
+                    self.layer.clone(),
                     *transition,
                 ))
             } else {
@@ -917,7 +928,7 @@ impl AssetContext for ModuleAssetContext {
                     *self.compile_time_info,
                     *self.module_options_context,
                     *self.resolve_options_context,
-                    *self.layer,
+                    self.layer.clone(),
                 ))
             },
         )
@@ -930,7 +941,7 @@ impl AssetContext for ModuleAssetContext {
         let mut globs = Vec::with_capacity(pkgs.len());
 
         for pkg in pkgs {
-            globs.push(Glob::new(format!("**/node_modules/{{{}}}/**", pkg).into()));
+            globs.push(Glob::new(format!("**/node_modules/{{{pkg}}}/**").into()));
         }
 
         Ok(Glob::alternatives(globs))
@@ -1007,6 +1018,7 @@ pub async fn replace_external(
                 CachedExternalType::EcmaScriptViaRequire
             }
         }
+        ExternalType::Global => CachedExternalType::Global,
         ExternalType::Url => {
             // we don't want to wrap url externals.
             return Ok(None);

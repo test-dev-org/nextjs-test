@@ -18,8 +18,8 @@ use turbo_tasks::{KeyValuePair, SessionId, TaskId, TurboTasksBackendApi};
 
 use crate::{
     backend::{
-        storage::{SpecificTaskDataCategory, StorageWriteGuard},
         OperationGuard, TaskDataCategory, TransientTask, TurboTasksBackend, TurboTasksBackendInner,
+        storage::{SpecificTaskDataCategory, StorageWriteGuard},
     },
     backing_storage::BackingStorage,
     data::{
@@ -165,10 +165,20 @@ where
         category: TaskDataCategory,
     ) -> Vec<CachedDataItem> {
         // Safety: `transaction` is a valid transaction from `self.backend.backing_storage`.
-        unsafe {
+        let result = unsafe {
             self.backend
                 .backing_storage
                 .lookup_data(self.transaction(), task_id, category)
+        };
+        match result {
+            Ok(data) => data,
+            Err(e) => {
+                let task_name = self.backend.get_task_description(task_id);
+                panic!(
+                    "Failed to restore task data (corrupted database or bug): {:?}",
+                    e.context(format!("{category:?} for {task_name} ({task_id}))"))
+                )
+            }
         }
     }
 }
@@ -396,6 +406,8 @@ pub trait TaskGuard: Debug {
     where
         F: for<'a> FnMut(CachedDataItemKey, CachedDataItemValueRef<'a>) -> bool + 'l;
     fn invalidate_serialization(&mut self);
+    fn is_immutable(&self) -> bool;
+    fn mark_as_immutable(&mut self);
 }
 
 struct TaskGuardImpl<'a, B: BackingStorage> {
@@ -451,7 +463,7 @@ impl<B: BackingStorage> Debug for TaskGuardImpl<'_, B> {
             d.field("task_type", &task_type);
         };
         for (key, value) in self.task.iter_all() {
-            d.field(&format!("{:?}", key), &value);
+            d.field(&format!("{key:?}"), &value);
         }
         d.finish()
     }
@@ -583,6 +595,16 @@ impl<B: BackingStorage> TaskGuard for TaskGuardImpl<'_, B> {
             self.task.track_modification(SpecificTaskDataCategory::Meta);
         }
     }
+
+    fn is_immutable(&self) -> bool {
+        // https://vercel.slack.com/archives/C03EWR7LGEN/p1750889741099559
+        // HACK: immutable tracking is broken, disable it for now
+        false
+        // self.task.state().is_immutable()
+    }
+    fn mark_as_immutable(&mut self) {
+        self.task.state_mut().set_is_immutable(true);
+    }
 }
 
 macro_rules! impl_operation {
@@ -645,8 +667,8 @@ impl_operation!(AggregationUpdate aggregation_update::AggregationUpdateQueue);
 pub use self::invalidate::TaskDirtyCause;
 pub use self::{
     aggregation_update::{
-        get_aggregation_number, get_uppers, is_aggregating_node, is_root_node,
-        AggregatedDataUpdate, AggregationUpdateJob,
+        AggregatedDataUpdate, AggregationUpdateJob, get_aggregation_number, get_uppers,
+        is_aggregating_node, is_root_node,
     },
     cleanup_old_edges::OutdatedEdge,
     connect_children::connect_children,

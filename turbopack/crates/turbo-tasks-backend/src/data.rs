@@ -1,12 +1,13 @@
 use std::cmp::Ordering;
 
-use rustc_hash::FxHashSet;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use turbo_tasks::{
+    CellId, KeyValuePair, SessionId, TaskExecutionReason, TaskId, TraitTypeId,
+    TypedSharedReference, ValueTypeId,
+    backend::TurboTasksExecutionError,
     event::{Event, EventListener},
     registry,
-    util::SharedError,
-    CellId, KeyValuePair, SessionId, TaskId, TraitTypeId, TypedSharedReference, ValueTypeId,
 };
 
 use crate::{
@@ -52,20 +53,18 @@ pub struct CollectiblesRef {
     pub collectible_type: TraitTypeId,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OutputValue {
     Cell(CellRef),
     Output(TaskId),
-    Error,
-    Panic,
+    Error(TurboTasksExecutionError),
 }
 impl OutputValue {
     fn is_transient(&self) -> bool {
         match self {
             OutputValue::Cell(cell) => cell.task.is_transient(),
             OutputValue::Output(task) => task.is_transient(),
-            OutputValue::Error => false,
-            OutputValue::Panic => false,
+            OutputValue::Error(_) => false,
         }
     }
 }
@@ -95,9 +94,7 @@ impl ActivenessState {
             active_counter: 0,
             root_ty: None,
             active_until_clean: false,
-            all_clean_event: Event::new(move || {
-                format!("ActivenessState::all_clean_event {:?}", id)
-            }),
+            all_clean_event: Event::new(move || format!("ActivenessState::all_clean_event {id:?}")),
         }
     }
 
@@ -180,10 +177,10 @@ impl DirtyContainerCount {
     /// Get the count for a specific session. It's only expected to be asked for the current
     /// session, since old session counts might be dropped.
     pub fn get(&self, session: SessionId) -> i32 {
-        if let Some((s, count)) = self.count_in_session {
-            if s == session {
-                return count;
-            }
+        if let Some((s, count)) = self.count_in_session
+            && s == session
+        {
+            return count;
         }
         self.count
     }
@@ -319,12 +316,20 @@ pub struct InProgressStateInner {
     pub done_event: Event,
     /// Children that should be connected to the task and have their active_count decremented
     /// once the task completes.
-    pub new_children: FxHashSet<TaskId>,
+    ///
+    /// The bool value is `is_immutable` of the child task.
+    pub new_children: FxHashMap<TaskId, bool>,
 }
 
 #[derive(Debug)]
 pub enum InProgressState {
-    Scheduled { done_event: Event },
+    Scheduled {
+        /// Event that is triggered when the task output is available (completed flag set).
+        /// This is used to wait for completion when reading the task output before it's available.
+        done_event: Event,
+        /// Reason for scheduling the task.
+        reason: TaskExecutionReason,
+    },
     InProgress(Box<InProgressStateInner>),
     Canceled,
 }
@@ -345,9 +350,7 @@ impl Eq for InProgressCellState {}
 impl InProgressCellState {
     pub fn new(task_id: TaskId, cell: CellId) -> Self {
         InProgressCellState {
-            event: Event::new(move || {
-                format!("InProgressCellState::event ({} {:?})", task_id, cell)
-            }),
+            event: Event::new(move || format!("InProgressCellState::event ({task_id} {cell:?})")),
         }
     }
 }
@@ -427,11 +430,11 @@ pub enum CachedDataItem {
     },
     Follower {
         task: TaskId,
-        value: i32,
+        value: u32,
     },
     Upper {
         task: TaskId,
-        value: i32,
+        value: u32,
     },
 
     // Aggregated Data
@@ -488,12 +491,6 @@ pub enum CachedDataItem {
         target: CollectiblesRef,
         value: (),
     },
-
-    // Transient Error State
-    #[serde(skip)]
-    Error {
-        value: SharedError,
-    },
 }
 
 impl CachedDataItem {
@@ -529,19 +526,23 @@ impl CachedDataItem {
             CachedDataItem::OutdatedOutputDependency { .. } => false,
             CachedDataItem::OutdatedCellDependency { .. } => false,
             CachedDataItem::OutdatedCollectiblesDependency { .. } => false,
-            CachedDataItem::Error { .. } => false,
         }
     }
 
-    pub fn new_scheduled(description: impl Fn() -> String + Sync + Send + 'static) -> Self {
+    pub fn new_scheduled(
+        reason: TaskExecutionReason,
+        description: impl Fn() -> String + Sync + Send + 'static,
+    ) -> Self {
         CachedDataItem::InProgress {
             value: InProgressState::Scheduled {
                 done_event: Event::new(move || format!("{} done_event", description())),
+                reason,
             },
         }
     }
 
     pub fn new_scheduled_with_listener(
+        reason: TaskExecutionReason,
         description: impl Fn() -> String + Sync + Send + 'static,
         note: impl Fn() -> String + Sync + Send + 'static,
     ) -> (Self, EventListener) {
@@ -549,7 +550,7 @@ impl CachedDataItem {
         let listener = done_event.listen_with_note(note);
         (
             CachedDataItem::InProgress {
-                value: InProgressState::Scheduled { done_event },
+                value: InProgressState::Scheduled { done_event, reason },
             },
             listener,
         )
@@ -584,7 +585,6 @@ impl CachedDataItem {
             | Self::OutdatedCollectiblesDependency { .. }
             | Self::InProgressCell { .. }
             | Self::InProgress { .. }
-            | Self::Error { .. }
             | Self::Activeness { .. } => TaskDataCategory::All,
         }
     }
@@ -627,7 +627,6 @@ impl CachedDataItemKey {
             CachedDataItemKey::OutdatedOutputDependency { .. } => false,
             CachedDataItemKey::OutdatedCellDependency { .. } => false,
             CachedDataItemKey::OutdatedCollectiblesDependency { .. } => false,
-            CachedDataItemKey::Error { .. } => false,
         }
     }
 
@@ -666,7 +665,6 @@ impl CachedDataItemType {
             | Self::OutdatedCollectiblesDependency { .. }
             | Self::InProgressCell { .. }
             | Self::InProgress { .. }
-            | Self::Error { .. }
             | Self::Activeness { .. } => TaskDataCategory::All,
         }
     }
@@ -699,8 +697,7 @@ impl CachedDataItemType {
             | Self::OutdatedCollectible
             | Self::OutdatedOutputDependency
             | Self::OutdatedCellDependency
-            | Self::OutdatedCollectiblesDependency
-            | Self::Error => false,
+            | Self::OutdatedCollectiblesDependency => false,
         }
     }
 }
@@ -719,7 +716,7 @@ impl CachedDataItemValueRef<'_> {
         match self {
             CachedDataItemValueRef::Output { value } => !value.is_transient(),
             CachedDataItemValueRef::CellData { value } => {
-                registry::get_value_type(value.0).is_serializable()
+                registry::get_value_type(value.type_id).is_serializable()
             }
             _ => true,
         }

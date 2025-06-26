@@ -1,6 +1,6 @@
 use anyhow::Result;
-use turbo_rcstr::RcStr;
-use turbo_tasks::{ResolvedVc, Value, Vc};
+use turbo_rcstr::{RcStr, rcstr};
+use turbo_tasks::{ResolvedVc, Vc};
 use turbo_tasks_fs::FileSystemPath;
 use turbopack_core::{
     introspect::{Introspectable, IntrospectableChildren},
@@ -8,9 +8,9 @@ use turbopack_core::{
 };
 
 use super::{
-    route_tree::{MapGetContentSourceContent, RouteTree},
     ContentSource, ContentSourceContent, ContentSourceData, ContentSourceDataVary, ContentSources,
     GetContentSourceContent,
+    route_tree::{MapGetContentSourceContent, RouteTree},
 };
 
 #[turbo_tasks::value]
@@ -117,11 +117,7 @@ impl GetContentSourceContent for IssueContextGetContentSourceContent {
     }
 
     #[turbo_tasks::function]
-    async fn get(
-        &self,
-        path: RcStr,
-        data: Value<ContentSourceData>,
-    ) -> Result<Vc<ContentSourceContent>> {
+    async fn get(&self, path: RcStr, data: ContentSourceData) -> Result<Vc<ContentSourceContent>> {
         let source = self.source.await?;
         Ok(
             get_content_source_get_operation(self.get_content, path, data)
@@ -143,7 +139,7 @@ fn get_content_source_vary_operation(
 fn get_content_source_get_operation(
     get_content: ResolvedVc<Box<dyn GetContentSourceContent>>,
     path: RcStr,
-    data: Value<ContentSourceData>,
+    data: ContentSourceData,
 ) -> Vc<ContentSourceContent> {
     get_content.get(path, data)
 }
@@ -151,12 +147,12 @@ fn get_content_source_get_operation(
 #[turbo_tasks::value_impl]
 impl Introspectable for IssueFilePathContentSource {
     #[turbo_tasks::function]
-    async fn ty(&self) -> Result<Vc<RcStr>> {
+    fn ty(&self) -> Result<Vc<RcStr>> {
         Ok(
             if let Some(source) = ResolvedVc::try_sidecast::<Box<dyn Introspectable>>(self.source) {
                 source.ty()
             } else {
-                Vc::cell("IssueContextContentSource".into())
+                Vc::cell(rcstr!("IssueContextContentSource"))
             },
         )
     }
@@ -174,7 +170,7 @@ impl Introspectable for IssueFilePathContentSource {
     }
 
     #[turbo_tasks::function]
-    async fn details(&self) -> Result<Vc<RcStr>> {
+    fn details(&self) -> Result<Vc<RcStr>> {
         Ok(
             if let Some(source) = ResolvedVc::try_sidecast::<Box<dyn Introspectable>>(self.source) {
                 source.details()
@@ -185,7 +181,7 @@ impl Introspectable for IssueFilePathContentSource {
     }
 
     #[turbo_tasks::function]
-    async fn children(&self) -> Result<Vc<IntrospectableChildren>> {
+    fn children(&self) -> Result<Vc<IntrospectableChildren>> {
         Ok(
             if let Some(source) = ResolvedVc::try_sidecast::<Box<dyn Introspectable>>(self.source) {
                 source.children()
