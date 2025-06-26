@@ -1546,7 +1546,8 @@ async fn compile_time_info_for_module_type(
         .or_insert(if is_esm {
             FreeVarReference::Value(CompileTimeDefineValue::Undefined)
         } else {
-            FreeVarReference::Ident(rcstr!("exports"))
+            // Insert `module.exports` since `exports` can be reassigned
+            FreeVarReference::Member(rcstr!("module"), rcstr!("exports"))
         });
     free_var_references
         .entry(vec![
