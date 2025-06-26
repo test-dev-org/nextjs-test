@@ -89,6 +89,8 @@ describe('segment cache (staleness)', () => {
     const act = createRouterAct(page)
 
     await page.clock.install()
+    const startDate = Date.now()
+    await page.clock.setFixedTime(startDate)
 
     // Navigate to the dynamic page
     await act(
@@ -110,10 +112,10 @@ describe('segment cache (staleness)', () => {
 
     await browser.back()
 
-    // Fast forward 28 seconds. staleTimes.dynamic is configured as 30s, so if
-    // we navigate to the same link again, the old data should be reused without
-    // a new network request.
-    await page.clock.fastForward(28 * 1000)
+    // Advance time by 29 seconds. staleTimes.dynamic is configured as 30s, so
+    // if we navigate to the same link again, the old data should be reused
+    // without a new network request.
+    await page.clock.setFixedTime(startDate + 29 * 1000)
 
     await act(async () => {
       const toggle = await browser.elementByCss(
@@ -130,9 +132,9 @@ describe('segment cache (staleness)', () => {
 
     await browser.back()
 
-    // Fast forward an additional 4 seconds. This time, if we navigate to the
-    // link again, the data is stale, so we issue a new request.
-    await page.clock.fastForward(4 * 1000)
+    // Advance an additional second. This time, if we navigate to the link
+    // again, the data is stale, so we issue a new request.
+    await page.clock.setFixedTime(startDate + 30 * 1000)
 
     await act(
       async () => {
