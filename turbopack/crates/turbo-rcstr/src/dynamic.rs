@@ -1,6 +1,7 @@
 use std::{num::NonZeroU8, ptr::NonNull};
 
 use triomphe::Arc;
+use zerocopy::FromBytes;
 
 use crate::{
     INLINE_TAG, INLINE_TAG_INIT, LEN_OFFSET, RcStr, TAG_MASK,
@@ -157,11 +158,11 @@ fn hash_bytes(bytes: &[u8]) -> u64 {
     if len <= 16 {
         // XOR the input into s0, s1.
         if len >= 8 {
-            s0 ^= u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-            s1 ^= u64::from_le_bytes(bytes[len - 8..].try_into().unwrap());
+            s0 ^= u64::read_from_bytes(bytes[0..8].try_into().unwrap()).unwrap();
+            s1 ^= u64::read_from_bytes(bytes[len - 8..].try_into().unwrap()).unwrap();
         } else if len >= 4 {
-            s0 ^= u32::from_le_bytes(bytes[0..4].try_into().unwrap()) as u64;
-            s1 ^= u32::from_le_bytes(bytes[len - 4..].try_into().unwrap()) as u64;
+            s0 ^= u32::read_from_bytes(bytes[0..4].try_into().unwrap()).unwrap() as u64;
+            s1 ^= u32::read_from_bytes(bytes[len - 4..].try_into().unwrap()).unwrap() as u64;
         } else if len > 0 {
             let lo = bytes[0];
             let mid = bytes[len / 2];
@@ -173,8 +174,8 @@ fn hash_bytes(bytes: &[u8]) -> u64 {
         // Handle bulk (can partially overlap with suffix).
         let mut off = 0;
         while off < len - 16 {
-            let x = u64::from_le_bytes(bytes[off..off + 8].try_into().unwrap());
-            let y = u64::from_le_bytes(bytes[off + 8..off + 16].try_into().unwrap());
+            let x = u64::read_from_bytes(bytes[off..off + 8].try_into().unwrap()).unwrap();
+            let y = u64::read_from_bytes(bytes[off + 8..off + 16].try_into().unwrap()).unwrap();
 
             // Replace s1 with a mix of s0, x, and y, and s0 with s1.
             // This ensures the compiler can unroll this loop into two
@@ -189,8 +190,8 @@ fn hash_bytes(bytes: &[u8]) -> u64 {
         }
 
         let suffix = &bytes[len - 16..];
-        s0 ^= u64::from_le_bytes(suffix[0..8].try_into().unwrap());
-        s1 ^= u64::from_le_bytes(suffix[8..16].try_into().unwrap());
+        s0 ^= u64::read_from_bytes(suffix[0..8].try_into().unwrap()).unwrap();
+        s1 ^= u64::read_from_bytes(suffix[8..16].try_into().unwrap()).unwrap();
     }
 
     multiply_mix(s0, s1) ^ (len as u64)

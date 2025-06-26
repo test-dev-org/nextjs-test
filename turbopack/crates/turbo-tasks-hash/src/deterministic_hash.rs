@@ -1,6 +1,7 @@
 use std::mem::Discriminant;
 
 pub use turbo_tasks_macros::DeterministicHash;
+use zerocopy::IntoBytes;
 
 macro_rules! deterministic_hash_number {
     ($(($ty:ident, $meth:ident),)*) => {$(
@@ -17,9 +18,7 @@ macro_rules! impl_write_number {
         /// Writes a single `$ty` to this hasher
         #[inline]
         fn $meth(&mut self, i: $ty) {
-            // Apple silicon and Intel chips both use little endian, so this should be fast.
-            let little_endian = i.to_le_bytes();
-            self.write_bytes(&little_endian);
+            self.write_bytes(i.as_bytes());
         }
     )*}
 }
