@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   useSegmentTree,
   type SegmentTrieNode,
@@ -102,6 +103,15 @@ function PageSegmentTreeLayerPresentation({
   }
 
   const hasFilesChildren = filesChildrenKeys.length > 0
+  const [selectedBoundaryType, setSelectedBoundaryType] = useState<
+    string | null
+  >(null)
+
+  const handleChangeBoundaryType = (boundaryType: string | null) => {
+    if (!pageChild || !pageChild.value) return
+    setSelectedBoundaryType(boundaryType)
+    pageChild.value.setBoundaryType(boundaryType)
+  }
 
   return (
     <>
@@ -165,32 +175,11 @@ function PageSegmentTreeLayerPresentation({
                 </span>
               )}
 
-              {/* operations */}
-              {pageChild && (
-                <select
-                  onChange={(e) => {
-                    if (!pageChild || !pageChild.value) return
-                    const nodeState = pageChild.value
-                    const value = e.target.value
-                    if (value === 'not-found') {
-                      nodeState.setBoundaryType('not-found')
-                    } else if (value === 'loading') {
-                      nodeState.setBoundaryType('loading')
-                    } else if (value === 'error') {
-                      nodeState.setBoundaryType('error')
-                    } else {
-                      console.log('reset boundary trigger')
-                      nodeState.setBoundaryType(null)
-                    }
-                  }}
-                  className="segment-explorer-file-label--operations"
-                >
-                  {['reset', 'not-found', 'loading', 'error'].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+              {pageChild && pageChild.value && (
+                <SegmentBoundaryTrigger
+                  selectedBoundary={selectedBoundaryType}
+                  onSelectBoundary={handleChangeBoundaryType}
+                />
               )}
             </div>
           </div>
@@ -218,6 +207,46 @@ function PageSegmentTreeLayerPresentation({
         )
       })}
     </>
+  )
+}
+
+function SegmentBoundaryTrigger({
+  selectedBoundary,
+  onSelectBoundary,
+}: {
+  selectedBoundary: string | null
+  onSelectBoundary: (boundaryType: string | null) => void
+}) {
+  return (
+    <select
+      data-nextjs-devtool-segment-explorer-boundary-trigger
+      onChange={(e) => {
+        const value = e.target.value
+
+        if (value === 'not-found') {
+          onSelectBoundary('not-found')
+        } else if (value === 'loading') {
+          onSelectBoundary('loading')
+        } else if (value === 'error') {
+          onSelectBoundary('error')
+        } else if (value === 'reset') {
+          onSelectBoundary(null)
+        }
+      }}
+      className="segment-explorer-file-label--operations"
+      value={selectedBoundary || 'reset'}
+    >
+      {[
+        { label: 'Reset', value: 'reset' },
+        { label: 'Not Found', value: 'not-found' },
+        { label: 'Loading', value: 'loading' },
+        { label: 'Error', value: 'error' },
+      ].map((option) => (
+        <option key={option.label} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   )
 }
 

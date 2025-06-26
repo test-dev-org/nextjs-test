@@ -1,55 +1,17 @@
 'use client'
+
 import type { ReactNode } from 'react'
-import { Fragment, useMemo, useState, createContext, useContext } from 'react'
+import { useState, createContext, useContext, use, useMemo } from 'react'
 import { useEffect } from 'react'
 import { dispatcher } from 'next/dist/compiled/next-devtools'
-import { notFound } from '../../../api/navigation.react-server'
+import { notFound } from '../../../client/components/not-found'
 
-let currentPending: {
-  promise: Promise<unknown>
-  release: () => void
-} | null = null
-// Return the promise itself and a function to resolve it later
-function createForeverPending() {
-  let resolve: (value?: unknown) => void
-  const promise = new Promise((res) => {
-    resolve = res
-  })
-  return {
-    promise,
-    release: () => {
-      console.log('Releasing forever pending promise', resolve)
-      if (resolve) resolve()
-    },
-  }
-}
-
-function triggerBoundary(type: 'not-found' | 'error' | 'loading' | null) {
-  if (type === 'not-found') {
-    notFound()
-  } else if (type === 'error') {
-    throw new Error('__NEXT_DEVTOOLS_SEGMENT_ERROR__')
-  } else if (type === 'loading') {
-    const pending = createForeverPending()
-    currentPending = pending
-    throw pending.promise
-  } else if (type === null) {
-    console.log('currentPending', currentPending)
-    if (currentPending) {
-      currentPending.release()
-      currentPending = null
-    }
-  }
-}
-
-export function SegmentViewNode({
+function SegmentTrieNode({
   type,
   pagePath,
-  children,
 }: {
   type: string
   pagePath: string
-  children?: ReactNode
 }): React.ReactNode {
   const { boundaryType, setBoundaryType } = useSegmentState()
   const nodeState = useMemo(
@@ -62,33 +24,78 @@ export function SegmentViewNode({
     [type, pagePath, boundaryType, setBoundaryType]
   )
 
-  const isChildBoundary = type !== 'layout' && type !== 'template'
-  const isNotMatchingBoundary = boundaryType && type !== boundaryType
-
   useEffect(() => {
     dispatcher.segmentExplorerNodeAdd(nodeState)
     return () => {
       dispatcher.segmentExplorerNodeRemove(nodeState)
     }
-  }, [nodeState, boundaryType])
+  }, [nodeState])
 
+  return null
+}
+
+function NotFoundSegmentNode() {
   useEffect(() => {
-    if (isChildBoundary && isNotMatchingBoundary) {
-      dispatcher.segmentExplorerNodeRemove(nodeState)
-    }
-  }, [nodeState, isChildBoundary, isNotMatchingBoundary])
+    notFound()
+  }, [])
+  return null
+}
 
+function ErrorSegmentNode() {
   useEffect(() => {
-    if (isChildBoundary && type !== boundaryType) {
-      triggerBoundary(boundaryType)
-    }
-  }, [isChildBoundary, type, boundaryType])
+    throw new Error('__NEXT_DEVTOOLS_SEGMENT_ERROR__')
+  }, [])
+  return null
+}
 
-  if (isChildBoundary && isNotMatchingBoundary) {
-    return null
+function LoadingSegmentNode() {
+  const [pending, setPending] = useState<Promise<void> | null>(null)
+  useEffect(() => {
+    setPending(new Promise(() => {}))
+    return () => {
+      setPending(null)
+    }
+  }, [])
+
+  if (pending) {
+    use(pending)
   }
 
-  return <Fragment key={'segment-' + type}>{children}</Fragment>
+  return null
+}
+
+export function SegmentViewNode({
+  type,
+  pagePath,
+  children,
+}: {
+  type: string
+  pagePath: string
+  children?: ReactNode
+}): React.ReactNode {
+  const { boundaryType } = useSegmentState()
+
+  const isChildBoundary = type !== 'layout' && type !== 'template'
+
+  let segmentNode = (
+    <SegmentTrieNode key={type} type={type} pagePath={pagePath} />
+  )
+  if (boundaryType && boundaryType !== type && isChildBoundary) {
+    if (boundaryType === 'loading') {
+      segmentNode = <LoadingSegmentNode />
+    } else if (boundaryType === 'not-found') {
+      segmentNode = <NotFoundSegmentNode />
+    } else if (boundaryType === 'error') {
+      segmentNode = <ErrorSegmentNode />
+    }
+  }
+
+  return (
+    <>
+      {children}
+      {segmentNode}
+    </>
+  )
 }
 
 const SegmentStateContext = createContext<{
