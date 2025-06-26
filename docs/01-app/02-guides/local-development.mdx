@@ -172,16 +172,16 @@ Turbopack tracing is a tool that helps you understand the performance of your ap
 It provides detailed information about the time taken for each module to compile and how they are related.
 
 1. Make sure you have the latest version of Next.js installed.
-1. Generate a Turbopack trace file:
+2. Generate a Turbopack trace file:
 
    ```bash
    NEXT_TURBOPACK_TRACING=1 npm run dev
    ```
 
-1. Navigate around your application or make edits to files to reproduce the problem.
-1. Stop the Next.js development server.
-1. A file called `trace-turbopack` will be available in the `.next` folder.
-1. You can interpret the file using `next internal trace [path-to-file]`:
+3. Navigate around your application or make edits to files to reproduce the problem.
+4. Stop the Next.js development server.
+5. A file called `trace-turbopack` will be available in the `.next` folder.
+6. You can interpret the file using `next internal trace [path-to-file]`:
 
    ```bash
    next internal trace .next/trace-turbopack
@@ -193,8 +193,8 @@ It provides detailed information about the time taken for each module to compile
    next internal turbo-trace-server .next/trace-turbopack
    ```
 
-1. Once the trace server is running you can view the trace at https://trace.nextjs.org/.
-1. By default the trace viewer will aggregate timings, in order to see each individual time you can switch from "Aggregated in order" to "Spans in order" at the top right of the viewer.
+7. Once the trace server is running you can view the trace at https://trace.nextjs.org/.
+8. By default the trace viewer will aggregate timings, in order to see each individual time you can switch from "Aggregated in order" to "Spans in order" at the top right of the viewer.
 
 ## Still having problems?
 
