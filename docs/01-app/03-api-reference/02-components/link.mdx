@@ -612,25 +612,6 @@ export function Links() {
 
 </AppOnly>
 
-### Scrolling to an `id`
-
-If you'd like to scroll to a specific `id` on navigation, you can append your URL with a `#` hash link or just pass a hash link to the `href` prop. This is possible since `<Link>` renders to an `<a>` element.
-
-```jsx
-<Link href="/dashboard#settings">Settings</Link>
-
-// Output
-<a href="/dashboard#settings">Settings</a>
-```
-
-<AppOnly>
-
-> **Good to know**:
->
-> - Next.js will scroll to the [Page](/docs/app/api-reference/file-conventions/page) if it is not visible in the viewport upon navigation.
-
-</AppOnly>
-
 <PagesOnly>
 
 ### Linking to dynamic route segments
@@ -674,6 +655,25 @@ export default Posts
 ```
 
 </PagesOnly>
+
+### Scrolling to an `id`
+
+If you'd like to scroll to a specific `id` on navigation, you can append your URL with a `#` hash link or just pass a hash link to the `href` prop. This is possible since `<Link>` renders to an `<a>` element.
+
+```jsx
+<Link href="/dashboard#settings">Settings</Link>
+
+// Output
+<a href="/dashboard#settings">Settings</a>
+```
+
+<AppOnly>
+
+> **Good to know**:
+>
+> - Next.js will scroll to the [Page](/docs/app/api-reference/file-conventions/page) if it is not visible in the viewport upon navigation.
+
+</AppOnly>
 
 ### If the child is a custom component that wraps an `<a>` tag
 
@@ -939,7 +939,7 @@ export default Home
 The above example has a link to:
 
 - A predefined route: `/about?name=test`
-- A [dynamic route](/docs/app/api-reference/file-conventions/dynamic-routes): `/blog/my-post`
+- A [dynamic route](/docs/pages/building-your-application/routing/dynamic-routes#convention): `/blog/my-post`
 
 You can use every property as defined in the [Node.js URL module documentation](https://nodejs.org/api/url.html#url_url_strings_and_url_objects).
 
