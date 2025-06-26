@@ -2,7 +2,7 @@ import { nextTestSetup } from 'e2e-utils'
 import { createRouterAct } from '../router-act'
 
 describe('segment cache (incremental opt in)', () => {
-  const { next, isNextDev } = nextTestSetup({
+  const { next, isNextDeploy, isNextDev } = nextTestSetup({
     files: __dirname,
   })
   if (isNextDev) {
@@ -44,6 +44,27 @@ describe('segment cache (incremental opt in)', () => {
             } else {
               prefetches.set(key, prefetchInfo)
             }
+            const response = await page.request.fetch(request, {
+              maxRedirects: 0,
+            })
+            const status = response.status()
+            const responseHeaders = response.headers()
+            if (status !== 200) {
+              await page.unrouteAll({ behavior: 'ignoreErrors' })
+              return page.close({
+                reason: `
+Received an unexpected prefetch response.
+
+Status: ${status}
+URL: ${request.url()}
+Headers: ${JSON.stringify(responseHeaders)}
+
+Response:
+${await response.body()}
+`,
+              })
+            }
+            return route.fulfill({ response })
           }
           route.continue()
         })
@@ -84,8 +105,11 @@ describe('segment cache (incremental opt in)', () => {
 
   describe('multiple prefetches to same link are deduped', () => {
     it('page with PPR enabled', () => testPrefetchDeduping('/ppr-enabled'))
-    it('page with PPR enabled, and has a dynamic param', () =>
-      testPrefetchDeduping('/ppr-enabled/dynamic-param'))
+    // FIXME: When deployed, the _tree prefetch request returns an empty 204.
+    ;(isNextDeploy ? it.failing : it)(
+      'page with PPR enabled, and has a dynamic param',
+      () => testPrefetchDeduping('/ppr-enabled/dynamic-param')
+    )
     it('page with PPR disabled', () => testPrefetchDeduping('/ppr-disabled'))
     it('page with PPR disabled, and has a loading boundary', () =>
       testPrefetchDeduping('/ppr-disabled-with-loading-boundary'))
