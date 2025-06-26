@@ -1,4 +1,5 @@
 import { nextTestSetup } from 'e2e-utils'
+import { retry } from 'next-test-utils'
 
 describe('segment cache (MPA navigations)', () => {
   const { next, isNextDev } = nextTestSetup({
@@ -25,10 +26,14 @@ describe('segment cache (MPA navigations)', () => {
     await link.click()
 
     // The expando should not be present because we did a full-page navigation.
-    const htmlAfterNav = await browser.elementByCss('html')
-    expect(
-      await htmlAfterNav.evaluate((el) => (el as ElementWithExpando).__expando)
-    ).toBe(undefined)
+    await retry(async () => {
+      const htmlAfterNav = await browser.elementByCss('html')
+      expect(
+        await htmlAfterNav.evaluate(
+          (el) => (el as ElementWithExpando).__expando
+        )
+      ).toBe(undefined)
+    })
   })
 
   it(
@@ -52,12 +57,14 @@ describe('segment cache (MPA navigations)', () => {
       await link.click()
 
       // The expando should not be present because we did a full-page navigation.
-      const htmlAfterNav = await browser.elementByCss('html')
-      expect(
-        await htmlAfterNav.evaluate(
-          (el) => (el as ElementWithExpando).__expando
-        )
-      ).toBe(undefined)
+      await retry(async () => {
+        const htmlAfterNav = await browser.elementByCss('html')
+        expect(
+          await htmlAfterNav.evaluate(
+            (el) => (el as ElementWithExpando).__expando
+          )
+        ).toBe(undefined)
+      })
     }
   )
 })
