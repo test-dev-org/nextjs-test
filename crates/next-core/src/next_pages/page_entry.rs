@@ -14,7 +14,6 @@ use turbopack_core::{
     source::Source,
     virtual_source::VirtualSource,
 };
-use turbopack_ecmascript::utils::StringifyJs;
 
 use crate::{
     next_config::NextConfig,
@@ -212,17 +211,6 @@ async fn wrap_edge_page(
     const INNER_ERROR_500: &str = "INNER_500";
 
     let next_config_val = &*next_config.await?;
-
-    // TODO(WEB-1824): add build support
-    let dev = true;
-
-    let sri_enabled = !dev
-        && next_config
-            .experimental_sri()
-            .await?
-            .as_ref()
-            .map(|sri| sri.algorithm.as_ref())
-            .is_some();
 
     let source = load_next_js_template(
         "edge-ssr.js",

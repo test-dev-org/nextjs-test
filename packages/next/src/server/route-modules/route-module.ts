@@ -16,6 +16,7 @@ import {
   BUILD_ID_FILE,
   BUILD_MANIFEST,
   CLIENT_REFERENCE_MANIFEST,
+  DYNAMIC_CSS_MANIFEST,
   NEXT_FONT_MANIFEST,
   PRERENDER_MANIFEST,
   REACT_LOADABLE_MANIFEST,
@@ -176,6 +177,7 @@ export abstract class RouteModule<
     subresourceIntegrityManifest: any
     clientReferenceManifest: any
     serverActionsManifest: any
+    dynamicCssManifest: any
   } {
     if (process.env.NEXT_RUNTIME === 'edge') {
       const { getEdgePreviewProps } =
@@ -221,6 +223,7 @@ export abstract class RouteModule<
         subresourceIntegrityManifest: maybeJSONParse(
           self.__SUBRESOURCE_INTEGRITY_MANIFEST
         ),
+        dynamicCssManifest: maybeJSONParse(self.__DYNAMIC_CSS_MANIFEST),
       }
     } else {
       if (!projectDir) {
@@ -241,6 +244,7 @@ export abstract class RouteModule<
         subresourceIntegrityManifest,
         serverFilesManifest,
         buildId,
+        dynamicCssManifest,
       ] = [
         loadManifestFromRelativePath<DevRoutesManifest>({
           projectDir,
@@ -316,6 +320,12 @@ export abstract class RouteModule<
               manifest: BUILD_ID_FILE,
               skipParse: true,
             }),
+        loadManifestFromRelativePath<any>({
+          projectDir,
+          distDir: this.distDir,
+          manifest: DYNAMIC_CSS_MANIFEST,
+          handleMissing: true,
+        }),
       ]
 
       return {
@@ -330,6 +340,7 @@ export abstract class RouteModule<
           ?.__RSC_MANIFEST?.[srcPage.replace(/%5F/g, '_')],
         serverActionsManifest,
         subresourceIntegrityManifest,
+        dynamicCssManifest,
       }
     }
   }
@@ -480,6 +491,7 @@ export abstract class RouteModule<
         // our pre-compiled types
         clientReferenceManifest?: any
         serverActionsManifest?: any
+        dynamicCssManifest?: any
         subresourceIntegrityManifest?: DeepReadonly<Record<string, string>>
         isOnDemandRevalidate: boolean
         revalidateOnlyGenerated: boolean

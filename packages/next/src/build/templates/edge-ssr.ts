@@ -110,6 +110,7 @@ async function requestHandler(
     reactLoadableManifest,
     clientReferenceManifest,
     subresourceIntegrityManifest,
+    dynamicCssManifest,
   } = prepareResult
 
   const renderContext = {
@@ -185,6 +186,7 @@ async function requestHandler(
       subresourceIntegrityManifest,
       reactLoadableManifest,
       clientReferenceManifest,
+      dynamicCssManifest,
     },
   }
 
