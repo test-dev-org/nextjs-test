@@ -79,7 +79,7 @@ Create an `mdx-components.tsx` (or `.js`) file in the root of your project to de
 ```tsx filename="mdx-components.tsx" switcher
 import type { MDXComponents } from 'mdx/types'
 
-const components = {} satisfies MDXComponents
+const components: MDXComponents = {}
 
 export function useMDXComponents(): MDXComponents {
   return components
