@@ -520,7 +520,7 @@ async fn validate_pages_css_imports(
             return GraphTraversalAction::Continue;
         }
 
-        // We allow any global import of css files from the `node_modules` folder.
+        // We allow imports of global CSS files which are inside of `node_modules`.
         let module_name_contains_node_modules = module_name_map
             .get(&module)
             .is_some_and(|s| s.contains("node_modules"));
