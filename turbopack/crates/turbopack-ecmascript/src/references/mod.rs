@@ -1546,8 +1546,9 @@ async fn compile_time_info_for_module_type(
         .or_insert(if is_esm {
             FreeVarReference::Value(CompileTimeDefineValue::Undefined)
         } else {
-            // Insert `module.exports` since `exports` can be reassigned
-            FreeVarReference::Member(rcstr!("module"), rcstr!("exports"))
+            // Insert `__turbopack_context__.e` which is equivalent to `module.exports` but should
+            // not be shadowed by user symbols.
+            FreeVarReference::Member(rcstr!("__turbopack_context__"), rcstr!("e"))
         });
     free_var_references
         .entry(vec![
