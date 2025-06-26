@@ -273,7 +273,7 @@ Errors will bubble up to the nearest parent error boundary. This allows for gran
 
 Error boundaries don’t catch errors inside event handlers. They’re designed to catch errors [during rendering](https://react.dev/reference/react/Component#static-getderivedstatefromerror) to show a **fallback UI** instead of crashing the whole app.
 
-In general, errors in event handlers or async code aren’t handled by error boundaries, because they run after rendering.
+In general, errors in event handlers or async code aren’t handled by error boundaries because they run after rendering.
 
 To handle these cases, catch the error manually and store it using `useState` or `useReducer`, then update the UI to inform the user.
 
