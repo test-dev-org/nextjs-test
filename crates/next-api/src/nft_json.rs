@@ -105,7 +105,7 @@ async fn apply_includes(
     ident_folder: &FileSystemPath,
 ) -> Result<BTreeSet<RcStr>> {
     // Read files matching the glob pattern from the project root
-    let glob_result = project_root_path.read_glob(glob, true).await?;
+    let glob_result = project_root_path.read_glob(glob).await?;
 
     // Walk the full glob_result using an explicit stack to avoid async recursion overheads.
     let mut result = BTreeSet::new();

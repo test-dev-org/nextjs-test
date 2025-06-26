@@ -17,13 +17,11 @@ pub struct ReadGlobResult {
 ///
 /// DETERMINISM: Result is in random order. Either sort result or do not depend
 /// on the order.
-#[turbo_tasks::function(fs)]
 pub async fn read_glob(
     directory: Vc<FileSystemPath>,
     glob: Vc<Glob>,
-    include_dot_files: bool,
 ) -> Result<Vc<ReadGlobResult>> {
-    Ok(*read_glob_internal("", directory, glob, include_dot_files).await?)
+    read_glob_internal("", directory, glob).await
 }
 
 #[turbo_tasks::function(fs)]
@@ -31,9 +29,8 @@ async fn read_glob_inner(
     prefix: RcStr,
     directory: Vc<FileSystemPath>,
     glob: Vc<Glob>,
-    include_dot_files: bool,
 ) -> Result<Vc<ReadGlobResult>> {
-    Ok(*read_glob_internal(&prefix, directory, glob, include_dot_files).await?)
+    read_glob_internal(&prefix, directory, glob).await
 }
 
 // The `prefix` represents the relative directory path where symlinks are not resolve.
@@ -41,17 +38,13 @@ async fn read_glob_internal(
     prefix: &str,
     directory: Vc<FileSystemPath>,
     glob: Vc<Glob>,
-    include_dot_files: bool,
-) -> Result<ResolvedVc<ReadGlobResult>> {
+) -> Result<Vc<ReadGlobResult>> {
     let dir = directory.read_dir().await?;
     let mut result = ReadGlobResult::default();
     let glob_value = glob.await?;
     match &*dir {
         DirectoryContent::Entries(entries) => {
             for (segment, entry) in entries.iter() {
-                if !include_dot_files && segment.starts_with('.') {
-                    continue;
-                }
                 // This is redundant with logic inside of `read_dir` but here we track it separately
                 // so we don't follow symlinks.
                 let entry_path: RcStr = if prefix.is_empty() {
@@ -68,7 +61,7 @@ async fn read_glob_internal(
                 {
                     result.inner.insert(
                         entry_path.to_string(),
-                        read_glob_inner(entry_path, *path, glob, include_dot_files)
+                        read_glob_inner(entry_path, *path, glob)
                             .to_resolved()
                             .await?,
                     );
@@ -77,7 +70,7 @@ async fn read_glob_internal(
         }
         DirectoryContent::NotFound => {}
     }
-    Ok(ReadGlobResult::resolved_cell(result))
+    Ok(ReadGlobResult::cell(result))
 }
 
 // Resolve a symlink checking for recursion.
@@ -241,11 +234,7 @@ pub mod tests {
                 path,
                 Vec::new(),
             ));
-            let read_dir = fs
-                .root()
-                .read_glob(Glob::new("**".into()), false)
-                .await
-                .unwrap();
+            let read_dir = fs.root().read_glob(Glob::new("**".into())).await.unwrap();
             assert_eq!(read_dir.results.len(), 2);
             assert_eq!(
                 read_dir.results.get("foo"),
@@ -273,7 +262,7 @@ pub mod tests {
             // Now with a more specific pattern
             let read_dir = fs
                 .root()
-                .read_glob(Glob::new("**/bar".into()), false)
+                .read_glob(Glob::new("**/bar".into()))
                 .await
                 .unwrap();
             assert_eq!(read_dir.results.len(), 0);
@@ -321,11 +310,7 @@ pub mod tests {
                 path,
                 Vec::new(),
             ));
-            let read_dir = fs
-                .root()
-                .read_glob(Glob::new("*.js".into()), false)
-                .await
-                .unwrap();
+            let read_dir = fs.root().read_glob(Glob::new("*.js".into())).await.unwrap();
             assert_eq!(read_dir.results.len(), 1);
             assert_eq!(
                 read_dir.results.get("link.js"),
@@ -453,7 +438,7 @@ pub mod tests {
             ));
             let err = fs
                 .root()
-                .read_glob(Glob::new("**".into()), false)
+                .read_glob(Glob::new("**".into()))
                 .await
                 .expect_err("Should have detected an infinite loop");
 

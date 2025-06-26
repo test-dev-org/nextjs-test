@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
             let fs: Vc<Box<dyn FileSystem>> = Vc::upcast(disk_fs);
             let input = fs.root().join("crates".into());
             let glob = Glob::new("**/*.rs".into());
-            let glob_result = input.read_glob(glob, true);
+            let glob_result = input.read_glob(glob);
             let dir_hash = hash_glob_result(glob_result);
             print_hash(dir_hash).await?;
             Ok::<Vc<()>, _>(Default::default())

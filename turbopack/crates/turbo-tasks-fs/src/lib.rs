@@ -1268,12 +1268,8 @@ impl FileSystemPath {
     }
 
     #[turbo_tasks::function]
-    pub fn read_glob(
-        self: Vc<Self>,
-        glob: Vc<Glob>,
-        include_dot_files: bool,
-    ) -> Vc<ReadGlobResult> {
-        read_glob(self, glob, include_dot_files)
+    pub async fn read_glob(self: Vc<Self>, glob: Vc<Glob>) -> Result<Vc<ReadGlobResult>> {
+        read_glob(self, glob).await
     }
 
     // Tracks all files and directories matching the glob
