@@ -118,27 +118,49 @@ describe.each([
       it('should show a collapsed redbox error', async () => {
         const browser = await next.browser('/')
 
-        await expect(browser).toDisplayCollapsedRedbox(`
-         {
-           "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
-           "environmentLabel": "Server",
-           "label": "Console Error",
-           "source": "app/page.tsx (15:7) @ Page
-         > 15 |       <Dynamic />
-              |       ^",
-           "stack": [
-             "Dynamic [Server] <anonymous> (1:25)",
-             "Page app/page.tsx (15:7)",
-             "main <anonymous> (1:13)",
-             "body <anonymous> (1:13)",
-             "html <anonymous> (1:13)",
-             "Root [Server] <anonymous> (1:22)",
-             "JSON.parse <anonymous> (0:0)",
-             "JSON.parse <anonymous> (0:0)",
-             "LogSafely <anonymous> (0:0)",
-           ],
-         }
-        `)
+        if (isTurbopack) {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           {
+             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+             "environmentLabel": "Server",
+             "label": "Console Error",
+             "source": null,
+             "stack": [
+               "Dynamic [Server] <anonymous> (1:25)",
+               "<FIXME-file-protocol>",
+               "main <anonymous> (1:13)",
+               "body <anonymous> (1:13)",
+               "html <anonymous> (1:13)",
+               "Root [Server] <anonymous> (1:22)",
+               "JSON.parse <anonymous> (0:0)",
+               "JSON.parse <anonymous> (0:0)",
+               "LogSafely <anonymous> (0:0)",
+             ],
+           }
+          `)
+        } else {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           {
+             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+             "environmentLabel": "Server",
+             "label": "Console Error",
+             "source": "app/page.tsx (15:7) @ Page
+           > 15 |       <Dynamic />
+                |       ^",
+             "stack": [
+               "Dynamic [Server] <anonymous> (1:25)",
+               "Page app/page.tsx (15:7)",
+               "main <anonymous> (1:13)",
+               "body <anonymous> (1:13)",
+               "html <anonymous> (1:13)",
+               "Root [Server] <anonymous> (1:22)",
+               "JSON.parse <anonymous> (0:0)",
+               "JSON.parse <anonymous> (0:0)",
+               "LogSafely <anonymous> (0:0)",
+             ],
+           }
+          `)
+        }
       })
     } else {
       // This test is just here because there was a bug when dynamic metadata was used alongside another dynamic IO violation which caused the validation to be skipped.
@@ -581,49 +603,93 @@ describe.each([
       it('should show a collapsed redbox with two errors', async () => {
         const browser = await next.browser('/')
 
-        await expect(browser).toDisplayCollapsedRedbox(`
-         [
-           {
-             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
-             "environmentLabel": "Server",
-             "label": "Console Error",
-             "source": "app/indirection.tsx (7:34) @ IndirectionTwo
-         >  7 | export function IndirectionTwo({ children }) {
-              |                                  ^",
-             "stack": [
-               "FetchingComponent [Server] <anonymous> (1:35)",
-               "IndirectionTwo app/indirection.tsx (7:34)",
-               "Page app/page.tsx (16:9)",
-               "main <anonymous> (1:13)",
-               "body <anonymous> (1:13)",
-               "html <anonymous> (1:13)",
-               "Root [Server] <anonymous> (1:22)",
-               "JSON.parse <anonymous> (0:0)",
-               "JSON.parse <anonymous> (0:0)",
-               "LogSafely <anonymous> (0:0)",
-             ],
-           },
-           {
-             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
-             "environmentLabel": "Server",
-             "label": "Console Error",
-             "source": "app/page.tsx (16:9) @ Page
-         > 16 |         <FetchingComponent nonce="a" cached={true} />
-              |         ^",
-             "stack": [
-               "FetchingComponent [Server] <anonymous> (1:35)",
-               "Page app/page.tsx (16:9)",
-               "main <anonymous> (1:13)",
-               "body <anonymous> (1:13)",
-               "html <anonymous> (1:13)",
-               "Root [Server] <anonymous> (1:22)",
-               "JSON.parse <anonymous> (0:0)",
-               "JSON.parse <anonymous> (0:0)",
-               "LogSafely <anonymous> (0:0)",
-             ],
-           },
-         ]
-        `)
+        if (isTurbopack) {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           [
+             {
+               "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+               "environmentLabel": "Server",
+               "label": "Console Error",
+               "source": "app/indirection.tsx (7:34) @ IndirectionTwo
+           >  7 | export function IndirectionTwo({ children }) {
+                |                                  ^",
+               "stack": [
+                 "FetchingComponent [Server] <anonymous> (1:35)",
+                 "IndirectionTwo app/indirection.tsx (7:34)",
+                 "<FIXME-file-protocol>",
+                 "main <anonymous> (1:13)",
+                 "body <anonymous> (1:13)",
+                 "html <anonymous> (1:13)",
+                 "Root [Server] <anonymous> (1:22)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "LogSafely <anonymous> (0:0)",
+               ],
+             },
+             {
+               "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+               "environmentLabel": "Server",
+               "label": "Console Error",
+               "source": null,
+               "stack": [
+                 "FetchingComponent [Server] <anonymous> (1:35)",
+                 "<FIXME-file-protocol>",
+                 "main <anonymous> (1:13)",
+                 "body <anonymous> (1:13)",
+                 "html <anonymous> (1:13)",
+                 "Root [Server] <anonymous> (1:22)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "LogSafely <anonymous> (0:0)",
+               ],
+             },
+           ]
+          `)
+        } else {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           [
+             {
+               "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+               "environmentLabel": "Server",
+               "label": "Console Error",
+               "source": "app/indirection.tsx (7:34) @ IndirectionTwo
+           >  7 | export function IndirectionTwo({ children }) {
+                |                                  ^",
+               "stack": [
+                 "FetchingComponent [Server] <anonymous> (1:35)",
+                 "IndirectionTwo app/indirection.tsx (7:34)",
+                 "Page app/page.tsx (16:9)",
+                 "main <anonymous> (1:13)",
+                 "body <anonymous> (1:13)",
+                 "html <anonymous> (1:13)",
+                 "Root [Server] <anonymous> (1:22)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "LogSafely <anonymous> (0:0)",
+               ],
+             },
+             {
+               "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+               "environmentLabel": "Server",
+               "label": "Console Error",
+               "source": "app/page.tsx (16:9) @ Page
+           > 16 |         <FetchingComponent nonce="a" cached={true} />
+                |         ^",
+               "stack": [
+                 "FetchingComponent [Server] <anonymous> (1:35)",
+                 "Page app/page.tsx (16:9)",
+                 "main <anonymous> (1:13)",
+                 "body <anonymous> (1:13)",
+                 "html <anonymous> (1:13)",
+                 "Root [Server] <anonymous> (1:22)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "JSON.parse <anonymous> (0:0)",
+                 "LogSafely <anonymous> (0:0)",
+               ],
+             },
+           ]
+          `)
+        }
       })
     } else {
       it('should error the build if dynamic IO happens in the root (outside a Suspense)', async () => {

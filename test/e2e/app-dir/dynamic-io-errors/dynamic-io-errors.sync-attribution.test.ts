@@ -177,29 +177,53 @@ describe.each([
       it('should show a collapsed redbox error', async () => {
         const browser = await next.browser('/')
 
-        await expect(browser).toDisplayCollapsedRedbox(`
-         {
-           "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
-           "environmentLabel": "Server",
-           "label": "Console Error",
-           "source": "app/page.tsx (27:9) @ Page
-         > 27 |         <RequestData />
-              |         ^",
-           "stack": [
-             "RequestData [Server] <anonymous> (1:29)",
-             "section <anonymous> (1:16)",
-             "main <anonymous> (1:13)",
-             "Page app/page.tsx (27:9)",
-             "main <anonymous> (1:13)",
-             "body <anonymous> (1:13)",
-             "html <anonymous> (1:13)",
-             "Root [Server] <anonymous> (1:22)",
-             "JSON.parse <anonymous> (0:0)",
-             "JSON.parse <anonymous> (0:0)",
-             "LogSafely <anonymous> (0:0)",
-           ],
-         }
-        `)
+        if (isTurbopack) {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           {
+             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+             "environmentLabel": "Server",
+             "label": "Console Error",
+             "source": null,
+             "stack": [
+               "RequestData [Server] <anonymous> (1:29)",
+               "section <anonymous> (1:16)",
+               "main <anonymous> (1:13)",
+               "<FIXME-file-protocol>",
+               "main <anonymous> (1:13)",
+               "body <anonymous> (1:13)",
+               "html <anonymous> (1:13)",
+               "Root [Server] <anonymous> (1:22)",
+               "JSON.parse <anonymous> (0:0)",
+               "JSON.parse <anonymous> (0:0)",
+               "LogSafely <anonymous> (0:0)",
+             ],
+           }
+          `)
+        } else {
+          await expect(browser).toDisplayCollapsedRedbox(`
+           {
+             "description": "Route "/": A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. We don't have the exact line number added to error messages yet but you can see which component in the stack below. See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense",
+             "environmentLabel": "Server",
+             "label": "Console Error",
+             "source": "app/page.tsx (27:9) @ Page
+           > 27 |         <RequestData />
+                |         ^",
+             "stack": [
+               "RequestData [Server] <anonymous> (1:29)",
+               "section <anonymous> (1:16)",
+               "main <anonymous> (1:13)",
+               "Page app/page.tsx (27:9)",
+               "main <anonymous> (1:13)",
+               "body <anonymous> (1:13)",
+               "html <anonymous> (1:13)",
+               "Root [Server] <anonymous> (1:22)",
+               "JSON.parse <anonymous> (0:0)",
+               "JSON.parse <anonymous> (0:0)",
+               "LogSafely <anonymous> (0:0)",
+             ],
+           }
+          `)
+        }
       })
     } else {
       it('should error the build with a reason related dynamic data', async () => {
