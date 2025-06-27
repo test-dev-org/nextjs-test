@@ -228,7 +228,7 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
   }
   .segment-explorer-file-label--page {
     background-color: var(--color-blue-300);
-    color: var(--color-blue-800);
+    color: var(--color-blue-900);
   }
   .segment-explorer-file-label--not-found,
   .segment-explorer-file-label--forbidden,
