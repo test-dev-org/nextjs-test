@@ -249,6 +249,7 @@ function formatStackFrame(frame: StackFrame): string {
   return `    at ${functionName} (${location})`
 }
 
+// appends the source mapped location of the console method
 export const withLocation = async (
   {
     original,
