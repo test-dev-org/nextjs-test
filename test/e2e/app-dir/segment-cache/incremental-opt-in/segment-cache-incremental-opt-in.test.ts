@@ -21,7 +21,7 @@ describe('segment cache (incremental opt in)', () => {
     // that occur. Then at the end we confirm there are no duplicates.
     const prefetches = new Map()
     const duplicatePrefetches = new Map()
-    const unexpectedResponse = []
+    const unexpectedResponses = []
 
     let currentPage: Page
     const browser = await next.browser('/', {
@@ -51,7 +51,7 @@ describe('segment cache (incremental opt in)', () => {
             })
             const status = response.status()
             if (status !== 200) {
-              unexpectedResponse.push({
+              unexpectedResponses.push({
                 status,
                 url,
                 headers: response.headers(),
@@ -97,7 +97,7 @@ describe('segment cache (incremental opt in)', () => {
     // responses.
     expect(prefetches).not.toBeEmpty()
     expect(duplicatePrefetches).toBeEmpty()
-    expect(unexpectedResponse).toBeEmpty()
+    expect(unexpectedResponses).toBeEmpty()
   }
 
   describe('multiple prefetches to same link are deduped', () => {
