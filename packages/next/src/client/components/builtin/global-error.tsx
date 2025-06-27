@@ -1,6 +1,6 @@
 'use client'
 
-import { HandleISRError } from './handle-isr-error'
+import { HandleISRError } from '../handle-isr-error'
 
 const styles = {
   error: {
