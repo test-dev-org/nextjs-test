@@ -265,4 +265,70 @@ describe(`Terminal Logging (${bundlerName})`, () => {
       await browser.close()
     })
   })
+
+  describe('with showSourceLocation disabled', () => {
+    let next: NextInstance
+    let logs: string[] = []
+    let originalStdout: typeof process.stdout.write
+    let originalStderr: typeof process.stderr.write
+
+    beforeAll(async () => {
+      originalStdout = process.stdout.write
+      originalStderr = process.stderr.write
+
+      const capture = (chunk: any) => {
+        logs.push(stripAnsi(chunk.toString()))
+        return true
+      }
+
+      process.stdout.write = function (chunk: any) {
+        capture(chunk)
+        return originalStdout.call(this, chunk)
+      }
+      process.stderr.write = function (chunk: any) {
+        capture(chunk)
+        return originalStderr.call(this, chunk)
+      }
+
+      next = await createNext({
+        files: {
+          pages: new FileRef(join(__dirname, 'fixtures/pages')),
+          'next.config.js': `
+            module.exports = {
+              experimental: {
+                browserDebugInfoInTerminal: {
+                  showSourceLocation: false
+                }
+              }
+            }
+          `,
+        },
+      })
+    })
+
+    afterAll(async () => {
+      process.stdout.write = originalStdout
+      process.stderr.write = originalStderr
+      await next.destroy()
+    })
+
+    beforeEach(() => {
+      logs = []
+    })
+
+    it(`should omit source location in logs when disabled (${bundlerName})`, async () => {
+      const browser = await webdriver(next.url, '/basic-logs')
+
+      await browser.waitForElementByCss('#log-button')
+      await browser.elementByCss('#log-button').click()
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      const logOutput = logs.join('')
+      expect(logOutput).toContain('[browser]')
+      expect(logOutput).toContain('Hello from browser')
+      expect(logOutput).not.toMatch(/\([^)]+basic-logs\.js[:)]/) 
+
+      await browser.close()
+    })
+  })
 })
