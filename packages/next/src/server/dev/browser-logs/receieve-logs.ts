@@ -109,6 +109,8 @@ const colorError = (
     case 'all-ignored': {
       return config?.prefix ? colorFn(config?.prefix) : ''
     }
+    default: {
+    }
   }
   mapped satisfies never
 }
@@ -173,7 +175,6 @@ async function prepareConsoleErrorArgs(
   return [...deserialized, colorError(mappedStack)]
 }
 
-// Helper functions for specific console methods
 async function handleTable(entry: ConsoleEntry, browserPrefix: string) {
   const deserializedArgs = await Promise.all(
     entry.args.map(async (arg: any) => {
@@ -331,6 +332,8 @@ export async function handleLog(
           forwardConsole.error(browserPrefix, ...formattedArgs)
           break
         }
+        default: {
+        }
       }
     } catch {
       switch (entry.kind) {
@@ -346,11 +349,14 @@ export async function handleLog(
           forwardConsole.error(browserPrefix, `${entry.prefix}\n`, entry.stack)
           break
         }
+        default: {
+        }
       }
     }
   }
 }
 
+// the data is used later when we need to get sourcemaps for error stacks
 export async function receiveBrowserLogsWebpack(opts: {
   entries: LogEntry[]
   router: 'app' | 'pages'

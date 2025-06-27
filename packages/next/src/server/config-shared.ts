@@ -747,16 +747,16 @@ export interface ExperimentalConfig {
   devtoolNewPanelUI?: boolean
 
   /**
-   * tbd
+   *
    */
-  terminalLogging?:
+  browserDebugInfoInTerminal?:
     | boolean
     | {
         /**
-         * Maximum depth for object serialization in console logs.
-         * @default Infinity
+         * Maximum depth for logging nested objects in the terminal.
+         * @default Number.MAX_SAFE_INTEGER
          */
-        serializationDepth?: number
+        logDepth?: number
       }
 }
 
@@ -1470,7 +1470,7 @@ export const defaultConfig = {
     slowModuleDetection: undefined,
     globalNotFound: false,
     devtoolSegmentExplorer: false,
-    terminalLogging: false,
+    browserDebugInfoInTerminal: false,
   },
   htmlLimitedBots: undefined,
   bundlePagesRouterDependencies: false,

@@ -502,11 +502,11 @@ export const configSchema: zod.ZodType<NextConfig> = z.lazy(() =>
         globalNotFound: z.boolean().optional(),
         devtoolSegmentExplorer: z.boolean().optional(),
         devtoolNewPanelUI: z.boolean().optional(),
-        terminalLogging: z
+        browserDebugInfoInTerminal: z
           .union([
             z.boolean(),
             z.object({
-              serializationDepth: z.number().int().positive().optional(),
+              logDepth: z.number().int().positive().optional(),
             }),
           ])
           .optional(),

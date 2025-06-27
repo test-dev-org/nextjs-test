@@ -816,8 +816,7 @@ export async function createHotReloaderTurbopack(
               // TODO
               break
             case 'browser-logs': {
-              // Only process browser logs if terminal logging is enabled
-              if (nextConfig.experimental.terminalLogging) {
+              if (nextConfig.experimental.browserDebugInfoInTerminal) {
                 await receiveBrowserLogsTurbopack({
                   entries: parsedData.entries,
                   router: parsedData.router,

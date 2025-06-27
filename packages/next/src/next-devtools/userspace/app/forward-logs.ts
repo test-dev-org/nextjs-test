@@ -16,17 +16,21 @@ import {
 
 export const PROMISE_MARKER = 'Promise {}'
 export const UNAVAILABLE_MARKER = '[Unable to view]'
-
+/**
+ * allows us to:
+ * - revive the undefined log in the server as it would look in the browser
+ * - not read/attempt to serialize promises (next will console error if you do that, and will cause this program to infinitely recurse)
+ * - if we read a proxy that throws (no way to detect if something is a proxy), explain to the user we can't read this data
+ */
 export function safeClone<T>(value: T, seen = new WeakMap()): any {
   if (value === undefined) return UNDEFINED_MARKER
   if (value === null || typeof value !== 'object') return value
   if (seen.has(value as object)) return seen.get(value as object)
 
-  // Check if it's thenable, but wrap in try-catch for proxies that throw
   try {
     if (typeof (value as any)?.then === 'function') return PROMISE_MARKER
   } catch {
-    // If accessing .then throws, continue with normal object processing
+    /* not an important case */
   }
 
   if (Array.isArray(value)) {
@@ -59,14 +63,12 @@ export function safeClone<T>(value: T, seen = new WeakMap()): any {
   return Object.prototype.toString.call(value)
 }
 
-// Parse the terminal logging config from environment
 const terminalLoggingConfig = getTerminalLoggingConfig()
 
 const stringify = configure({
   maximumDepth:
-    typeof terminalLoggingConfig === 'object' &&
-    terminalLoggingConfig.serializationDepth
-      ? terminalLoggingConfig.serializationDepth
+    typeof terminalLoggingConfig === 'object' && terminalLoggingConfig.logDepth
+      ? terminalLoggingConfig.logDepth
       : Number.MAX_SAFE_INTEGER,
 })
 export const logStringify = (data: unknown): string => {
@@ -177,7 +179,7 @@ const createLogEntry = (level: LogMethod, args: any[]) => {
   // do not abstract this, it implicitly relies on which functions call it. forcing the inlined implementation makes you think about callers
   const stack = stackWithOwners(new Error())
   const stackLines = stack?.split('\n')
-  const cleanStack = stackLines?.slice(2).join('\n')
+  const cleanStack = stackLines?.slice(3).join('\n')
   const entry: ConsoleEntry = {
     kind: 'console',
     consoleMethodStack: cleanStack ?? null, // depending on browser we might not have stack
@@ -205,10 +207,14 @@ export const forwardErrorLog = (args: any[]) => {
       logQueue.sourceType = source
     }
   }
-  // browser shows stack regardless of data in error, so we should do the same
+  /**
+   * browser shows stack regardless of type of data passed to console.error, so we should do the same
+   *
+   * do not abstract this, it implicitly relies on which functions call it. forcing the inlined implementation makes you think about callers
+   */
   const stack = stackWithOwners(new Error())
   const stackLines = stack?.split('\n')
-  const cleanStack = stackLines?.slice(2).join('\n')
+  const cleanStack = stackLines?.slice(3).join('\n')
 
   const entry: ConsoleErrorEntry = {
     kind: 'any-logged-error',
@@ -311,7 +317,7 @@ const isHMR = (args: any[]) => {
   if (firstArg.startsWith('[HMR]')) {
     return true
   }
-  // todo: handle values for pages/webpack
+  // todo: handle al values for pages/webpack
 
   return false
 }

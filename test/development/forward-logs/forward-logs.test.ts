@@ -38,7 +38,7 @@ describe(`Terminal Logging (${bundlerName})`, () => {
           'next.config.js': `
             module.exports = {
               experimental: {
-                terminalLogging: true
+                browserDebugInfoInTerminal: true
               }
             }
           `,
@@ -229,8 +229,8 @@ describe(`Terminal Logging (${bundlerName})`, () => {
           'next.config.js': `
             module.exports = {
               experimental: {
-                terminalLogging: {
-                  serializationDepth: 2
+                browserDebugInfoInTerminal: {
+                  logDepth: 2
                 }
               }
             }

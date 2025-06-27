@@ -2,7 +2,7 @@ import type { StackFrame } from 'stacktrace-parser'
 import { getOriginalStackFrames as getOriginalStackFramesWebpack } from '../middleware-webpack'
 import { getOriginalStackFrames as getOriginalStackFramesTurbopack } from '../middleware-turbopack'
 import type { Project } from '../../../build/swc/types'
-import { dim, gray } from '../../../lib/picocolors'
+import { dim } from '../../../lib/picocolors'
 import { parseStack } from '../../lib/parse-stack'
 import path from 'path'
 import { LRUCache } from '../../lib/lru-cache'
@@ -70,6 +70,9 @@ export async function mapFramesUsingBundler(
 
       return res
     }
+    default: {
+      return null!
+    }
   }
 }
 
@@ -104,9 +107,6 @@ function preprocessStackTrace(stackTrace: string, distDir?: string): string {
 const cache = new LRUCache<
   Awaited<ReturnType<typeof getSourceMappedStackFramesInternal>>
 >(500)
-// todo: add cache for sourcemap lookup incase we do it twice
-
-// todo(rob): refactor this awful function
 async function getSourceMappedStackFramesInternal(
   stackTrace: string,
   ctx: MappingContext,
