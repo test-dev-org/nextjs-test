@@ -151,9 +151,9 @@ describe.each([
                 9 | }
                10 |
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -210,9 +210,9 @@ describe.each([
                 9 | }
                10 |
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -376,9 +376,9 @@ describe.each([
                42 |     <div>
                43 |       this component read the accessed the \`foo\` search param: {fooParams}
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -403,9 +403,9 @@ describe.each([
                42 |     <div>
                43 |       this component read the accessed the \`foo\` search param: {fooParams}
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -554,9 +554,9 @@ describe.each([
                34 | }
                35 |
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -583,9 +583,9 @@ describe.each([
                583 |       \`\\\`cookies()\\\` should be awaited before using its value. \` +
                584 |       \`Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis\`
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`

@@ -61,9 +61,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateMetadata\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) when the rest of the route does not. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -77,9 +77,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateMetadata\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) when the rest of the route does not. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(
@@ -158,9 +158,9 @@ describe.each([
                  at body (<anonymous>)
                  at html (<anonymous>)
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -209,9 +209,9 @@ describe.each([
                336 |   cacheNode,
                337 |   url,
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -289,9 +289,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateMetadata\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) when the rest of the route does not. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -305,9 +305,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateMetadata\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) when the rest of the route does not. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -409,9 +409,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateViewport\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) without explicitly allowing fully dynamic rendering. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -425,9 +425,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateViewport\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) without explicitly allowing fully dynamic rendering. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -491,9 +491,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateViewport\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) without explicitly allowing fully dynamic rendering. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -507,9 +507,9 @@ describe.each([
             expect(output).toMatchInlineSnapshot(`
              "Route "/" has a \`generateViewport\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) without explicitly allowing fully dynamic rendering. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -650,9 +650,9 @@ describe.each([
                  at body (<anonymous>)
                  at html (<anonymous>)
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -740,9 +740,9 @@ describe.each([
                336 |   cacheNode,
                337 |   url,
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`

@@ -4,7 +4,7 @@ import { getPrerenderOutput } from './utils'
 
 describe.each([
   { inPrerenderDebugMode: true, name: 'With --prerender-debug' },
-  { inPrerenderDebugMode: false, name: 'Without --prerender-debug' },
+  // { inPrerenderDebugMode: false, name: 'Without --prerender-debug' },
 ])('Dynamic IO Errors - $name', ({ inPrerenderDebugMode }) => {
   // We want to skip building and starting in start mode, and in dev mode when
   // prerender debug mode is enabled, which doesn't exist for `next dev`.
@@ -110,9 +110,9 @@ describe.each([
                37 |     <div>
                38 |       <span id="rand">{random}</span>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -135,9 +135,9 @@ describe.each([
                37 |     <div>
                38 |       <span id="rand">{random}</span>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`

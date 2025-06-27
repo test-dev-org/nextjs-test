@@ -111,9 +111,9 @@ describe.each([
                7 |   return (
                8 |     <main>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -136,9 +136,9 @@ describe.each([
                7 |   return (
                8 |     <main>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -220,9 +220,9 @@ describe.each([
                  at body (<anonymous>)
                  at html (<anonymous>)
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -275,9 +275,9 @@ describe.each([
                336 |   cacheNode,
                337 |   url,
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -371,9 +371,9 @@ describe.each([
                7 |   return (
                8 |     <main>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
@@ -396,9 +396,9 @@ describe.each([
                7 |   return (
                8 |     <main>
              Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
-  
+
              > Export encountered errors on following paths:
-               /page: /"
+             	/page: /"
             `)
           } else {
             expect(output).toMatchInlineSnapshot(`
