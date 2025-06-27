@@ -88,7 +88,7 @@ describe('Dynamic IO Dev Errors', () => {
         `A component accessed data, headers, params, searchParams, or a short-lived cache without a Suspense boundary nor a "use cache" above it. ` +
         `We don't have the exact line number added to error messages yet but you can see which component in the stack below. ` +
         `See more info: https://nextjs.org/docs/messages/next-prerender-missing-suspense` +
-        '\n    at Page [Server] (<anonymous>)' +
+        '\n    at Page (app/no-accessed-data/page.js:1:30)' +
         (isTurbopack
           ? '\n    at main (<anonymous>)' +
             '\n    at body (<anonymous>)' +
