@@ -58,3 +58,53 @@ export type FormattedErrorEntry = {
 export type LogEntry = ConsoleEntry | ConsoleErrorEntry | FormattedErrorEntry
 
 export const UNDEFINED_MARKER = '__next_tagged_undefined'
+
+// Based on https://github.com/facebook/react/blob/28dc0776be2e1370fe217549d32aee2519f0cf05/packages/react-server/src/ReactFlightServer.js#L248
+export function patchConsoleMethod<T extends keyof Console>(
+  methodName: T,
+  wrapper: (
+    originalMethod: Console[T] extends (...args: any[]) => any
+      ? Console[T]
+      : never,
+    ...args: Console[T] extends (...args: infer P) => any ? P : never[]
+  ) => boolean | void
+): () => void {
+  const descriptor = Object.getOwnPropertyDescriptor(console, methodName)
+  if (
+    descriptor &&
+    (descriptor.configurable || descriptor.writable) &&
+    typeof descriptor.value === 'function'
+  ) {
+    const originalMethod = descriptor.value as Console[T] extends (
+      ...args: any[]
+    ) => any
+      ? Console[T]
+      : never
+    const originalName = Object.getOwnPropertyDescriptor(originalMethod, 'name')
+    const wrapperMethod = function (
+      this: typeof console,
+      ...args: Console[T] extends (...args: infer P) => any ? P : never[]
+    ) {
+      const shouldCallOriginal = wrapper(originalMethod, ...args)
+      if (shouldCallOriginal !== false) {
+        originalMethod.apply(this, args)
+      }
+    }
+    if (originalName) {
+      Object.defineProperty(wrapperMethod, 'name', originalName)
+    }
+    Object.defineProperty(console, methodName, {
+      value: wrapperMethod,
+    })
+
+    return () => {
+      Object.defineProperty(console, methodName, {
+        value: originalMethod,
+        writable: descriptor.writable,
+        configurable: descriptor.configurable,
+      })
+    }
+  }
+
+  return () => {}
+}

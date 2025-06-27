@@ -49,6 +49,7 @@ const methodsToSkipInspect = new Set([
   'groupEnd',
 ])
 
+// we aren't overriding console, we're just making a (slightly convoluted) helper for replaying user console methods
 const forwardConsole: typeof console = {
   ...console,
   ...Object.fromEntries(
@@ -61,7 +62,8 @@ const forwardConsole: typeof console = {
             typeof arg !== 'object' ||
             arg === null
               ? arg
-              : util.inspect(arg, { depth: Infinity, colors: true })
+              : // we hardcode depth:Infinity to allow the true depth to be configured by the serialization done in the browser (which is controlled by user)
+                util.inspect(arg, { depth: Infinity, colors: true })
           )
         ),
     ])
@@ -70,7 +72,7 @@ const forwardConsole: typeof console = {
 
 async function deserializeArgData(arg: any) {
   try {
-    // we want undefined to be represented as it would be in the browser from the user's perspective
+    // we want undefined to be represented as it would be in the browser from the user's perspective (otherwise it would be stripped away/shown as null)
     if (arg === UNDEFINED_MARKER) {
       return restoreUndefined(arg)
     }
@@ -157,7 +159,6 @@ async function prepareConsoleErrorArgs(
         if (arg.isRejectionMessage) return red(arg.data)
         return deserializeArgData(arg.data)
       }
-      // formatted-error-arg
       if (!arg.stack) return red(arg.prefix)
       const mapped = await getSourceMappedStackFrames(arg.stack, ctx, distDir)
       return colorError(mapped, { prefix: arg.prefix })
