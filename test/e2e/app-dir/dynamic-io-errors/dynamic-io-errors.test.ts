@@ -575,7 +575,6 @@ describe.each([
         try {
           await next.build()
         } catch {
-          // we expect the build to fail
           throw new Error('expected build not to fail for fully static project')
         }
       })
