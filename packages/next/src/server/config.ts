@@ -1431,12 +1431,7 @@ export default async function loadConfig(
         reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
       )
 
-      setExperimentalFeatureForDebugPrerender(
-        userConfig.experimental,
-        'enablePrerenderSourceMaps',
-        true,
-        reportExperimentalFeatures ? configuredExperimentalFeatures : undefined
-      )
+      userConfig.staticPageGenerationSourcemaps = true
 
       setExperimentalFeatureForDebugPrerender(
         userConfig.experimental,
