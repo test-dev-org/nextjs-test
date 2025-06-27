@@ -100,7 +100,11 @@ fn bench_small_apps(c: &mut Criterion) {
                 });
 
                 if let Ok(output_file_path) = std::env::var("GITHUB_STEP_SUMMARY") {
-                    let mut file = std::fs::File::create(output_file_path).unwrap();
+                    let mut file = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(output_file_path)
+                        .unwrap();
                     let mut writer = std::io::BufWriter::new(file);
 
                     writeln!(writer, "# App: {app_name}").unwrap();
