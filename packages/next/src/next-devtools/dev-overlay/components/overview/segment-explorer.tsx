@@ -1,6 +1,10 @@
 import { useSegmentTree, type SegmentTrieNode } from '../../segment-explorer'
 import { css } from '../../utils/css'
 import { cx } from '../../utils/cx'
+import {
+  Tooltip,
+  styles as tooltipStyles,
+} from '../../../userspace/components/tooltip'
 
 const BUILTIN_PREFIX = '__next_builtin__'
 
@@ -125,6 +129,7 @@ function PageSegmentTreeLayerPresentation({
                       <span
                         key={fileChildSegment}
                         onClick={() => {
+                          if (isBuiltin) return
                           openInEditor({ filePath })
                         }}
                         className={cx(
@@ -135,11 +140,12 @@ function PageSegmentTreeLayerPresentation({
                       >
                         {fileName}
                         {isBuiltin && (
-                          <TooltipSpan
+                          <Tooltip
+                            direction="right"
                             title={`The default Next.js not found is being shown. You can customize this page by adding your own ${fileName} file to the app/ directory.`}
                           >
                             <InfoIcon />
-                          </TooltipSpan>
+                          </Tooltip>
                         )}
                       </span>
                     )
@@ -268,12 +274,15 @@ export const DEV_TOOLS_INFO_RENDER_FILES_STYLES = css`
     background-color: transparent;
     color: var(--color-gray-900);
     border: 1px dashed var(--color-gray-500);
+    cursor: default;
   }
 
   .segment-explorer-file-label--builtin svg {
     margin-left: 4px;
     margin-right: -4px;
   }
+
+  ${tooltipStyles}
 `
 
 function openInEditor({ filePath }: { filePath: string }) {
@@ -310,14 +319,4 @@ function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
       />
     </svg>
   )
-}
-
-function TooltipSpan({
-  children,
-  title,
-}: {
-  children: React.ReactNode
-  title: string
-}) {
-  return <span title={title}>{children}</span>
 }
