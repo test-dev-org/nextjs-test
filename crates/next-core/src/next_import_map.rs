@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result};
+use either::Either;
 use rustc_hash::FxHashMap;
 use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{FxIndexMap, ResolvedVc, Vc, fxindexmap};
@@ -20,6 +21,7 @@ use turbopack_core::{
 use turbopack_node::execution_context::ExecutionContext;
 
 use crate::{
+    app_structure::CollectedRootParams,
     embed_js::{VIRTUAL_PACKAGE_NAME, next_js_fs},
     mode::NextMode,
     next_client::context::ClientContextType,
@@ -29,6 +31,7 @@ use crate::{
         GOOGLE_FONTS_INTERNAL_PREFIX, NextFontGoogleCssModuleReplacer,
         NextFontGoogleFontFileReplacer, NextFontGoogleReplacer,
     },
+    next_root_params::insert_next_root_params_mapping,
     next_server::context::ServerContextType,
     util::NextRuntime,
 };
@@ -235,6 +238,13 @@ pub async fn get_next_client_import_map(
             "next/dist/compiled/client-only" => "next/dist/compiled/client-only/index".to_string(),
         },
     );
+    insert_next_root_params_mapping(
+        &mut import_map,
+        next_config.enable_root_params(),
+        Either::Right(ty),
+        None,
+    )
+    .await?;
 
     match ty {
         ClientContextType::Pages { .. }
@@ -291,6 +301,7 @@ pub async fn get_next_server_import_map(
     next_config: Vc<NextConfig>,
     next_mode: Vc<NextMode>,
     execution_context: Vc<ExecutionContext>,
+    collected_root_params: Option<Vc<CollectedRootParams>>,
 ) -> Result<Vc<ImportMap>> {
     let mut import_map = ImportMap::empty();
 
@@ -372,6 +383,7 @@ pub async fn get_next_server_import_map(
         ty,
         NextRuntime::NodeJs,
         next_config,
+        collected_root_params,
     )
     .await?;
 
@@ -386,6 +398,7 @@ pub async fn get_next_edge_import_map(
     next_config: Vc<NextConfig>,
     next_mode: Vc<NextMode>,
     execution_context: Vc<ExecutionContext>,
+    collected_root_params: Option<Vc<CollectedRootParams>>,
 ) -> Result<Vc<ImportMap>> {
     let mut import_map = ImportMap::empty();
 
@@ -484,6 +497,7 @@ pub async fn get_next_edge_import_map(
         ty.clone(),
         NextRuntime::Edge,
         next_config,
+        collected_root_params,
     )
     .await?;
 
@@ -566,6 +580,7 @@ async fn insert_next_server_special_aliases(
     ty: ServerContextType,
     runtime: NextRuntime,
     next_config: Vc<NextConfig>,
+    collected_root_params: Option<Vc<CollectedRootParams>>,
 ) -> Result<()> {
     let external_cjs_if_node =
         move |context_dir: ResolvedVc<FileSystemPath>, request: &str| match runtime {
@@ -674,6 +689,14 @@ async fn insert_next_server_special_aliases(
             );
         }
     }
+
+    insert_next_root_params_mapping(
+        import_map,
+        next_config.enable_root_params(),
+        Either::Left(ty),
+        collected_root_params,
+    )
+    .await?;
 
     import_map.insert_exact_alias(
         "@vercel/og",
