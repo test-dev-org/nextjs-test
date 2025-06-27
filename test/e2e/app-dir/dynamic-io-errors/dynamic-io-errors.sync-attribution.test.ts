@@ -38,7 +38,7 @@ describe.each([
     } else {
       it('should not error the build sync IO is used inside a Suspense Boundary in a client Component and nothing else is dynamic', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           throw new Error('expected build not to fail')
         }
@@ -90,7 +90,7 @@ describe.each([
     } else {
       it('should error the build with a reason related to sync IO access', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }
@@ -228,7 +228,7 @@ describe.each([
     } else {
       it('should error the build with a reason related dynamic data', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }
@@ -378,7 +378,7 @@ describe.each([
     } else {
       it('should error the build with a reason related to sync IO access', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }

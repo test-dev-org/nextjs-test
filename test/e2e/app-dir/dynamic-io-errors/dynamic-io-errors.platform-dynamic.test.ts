@@ -36,7 +36,7 @@ describe.each([
     } else {
       it('should not error the build when calling Math.random() if all dynamic access is inside a Suspense boundary', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
@@ -88,7 +88,7 @@ describe.each([
     } else {
       it('should error the build if Math.random() happens before some component outside a Suspense boundary is complete', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }

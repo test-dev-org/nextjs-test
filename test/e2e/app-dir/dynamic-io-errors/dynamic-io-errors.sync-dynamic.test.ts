@@ -51,7 +51,7 @@ describe.each([
     } else {
       it('should not error the build when synchronously reading search params in a client component if all dynamic access is inside a Suspense boundary', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
@@ -124,7 +124,7 @@ describe.each([
     } else {
       it('should error the build if dynamic IO happens in the root (outside a Suspense)', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }
@@ -288,7 +288,7 @@ describe.each([
     } else {
       it('should not error the build when synchronously reading search params in a client component if all dynamic access is inside a Suspense boundary', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
@@ -358,7 +358,7 @@ describe.each([
     } else {
       it('should error the build if dynamic IO happens in the root (outside a Suspense)', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }
@@ -469,7 +469,7 @@ describe.each([
     } else {
       it('should not error the build when synchronously reading search params in a client component if all dynamic access is inside a Suspense boundary', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
@@ -539,7 +539,7 @@ describe.each([
     } else {
       it('should error the build if dynamic IO happens in the root (outside a Suspense)', async () => {
         try {
-          await next.start()
+          await next.build()
         } catch {
           // we expect the build to fail
         }
