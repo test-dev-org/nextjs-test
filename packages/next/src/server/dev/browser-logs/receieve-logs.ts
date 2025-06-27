@@ -63,7 +63,15 @@ const forwardConsole: typeof console = {
             arg === null
               ? arg
               : // we hardcode depth:Infinity to allow the true depth to be configured by the serialization done in the browser (which is controlled by user)
-                util.inspect(arg, { depth: Infinity, colors: true })
+                (() => {
+                  try {
+                    return util.inspect(arg, { depth: Infinity, colors: true })
+                  } catch (e) {
+                    console.error('util.inspect failed on:', arg)
+                    console.error('Error:', e)
+                    return '[Failed to inspect: ' + String(e) + ']'
+                  }
+                })()
           )
         ),
     ])

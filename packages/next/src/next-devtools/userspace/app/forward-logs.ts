@@ -71,13 +71,27 @@ const stringify = configure({
       ? terminalLoggingConfig.logDepth
       : Number.MAX_SAFE_INTEGER,
 })
+let did = false
 export const logStringify = (data: unknown): string => {
   try {
+    if (!did) {
+      // console.log('trying to serialize this', data);
+      // did = true
+      // setTimeout(() => {
+      //   console.log('throwing on ', data)
+      // })
+    }
     const result = stringify(safeClone(data))
-    return result ?? '[unable to serialize]'
+
+    return result ?? `"${UNAVAILABLE_MARKER}"`
   } catch {
-    // todo document: what safe stable stringify logs on failure
-    return '[unable to serialize, circular reference is too complex to analyze]'
+    if (!did) {
+      did = true
+      setTimeout(() => {
+        console.log('throwing on ', data)
+      })
+    }
+    return `"${UNAVAILABLE_MARKER}"`
   }
 }
 
@@ -350,7 +364,7 @@ export const initializeDebugLogForwarding = (router: 'app' | 'pages'): void => {
   // better to be safe than sorry
   try {
     methods.forEach((method) =>
-      patchConsoleMethod(method, (...args) => {
+      patchConsoleMethod(method, (_, ...args) => {
         if (isHMR(args)) {
           return false
         }

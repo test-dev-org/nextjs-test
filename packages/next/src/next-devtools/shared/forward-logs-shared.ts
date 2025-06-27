@@ -63,9 +63,7 @@ export const UNDEFINED_MARKER = '__next_tagged_undefined'
 export function patchConsoleMethod<T extends keyof Console>(
   methodName: T,
   wrapper: (
-    originalMethod: Console[T] extends (...args: any[]) => any
-      ? Console[T]
-      : never,
+    methodName: T,
     ...args: Console[T] extends (...args: infer P) => any ? P : never[]
   ) => boolean | void
 ): () => void {
@@ -85,7 +83,7 @@ export function patchConsoleMethod<T extends keyof Console>(
       this: typeof console,
       ...args: Console[T] extends (...args: infer P) => any ? P : never[]
     ) {
-      const shouldCallOriginal = wrapper(originalMethod, ...args)
+      const shouldCallOriginal = wrapper(methodName, ...args)
       if (shouldCallOriginal !== false) {
         originalMethod.apply(this, args)
       }
