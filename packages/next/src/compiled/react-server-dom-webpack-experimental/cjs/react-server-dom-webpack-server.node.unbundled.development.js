@@ -1767,8 +1767,7 @@
                     owner: node.owner,
                     stack: filterStackTrace(request, node.stack)
                   }),
-                  request.status !== ABORTING &&
-                    markOperationEndTime(request, task, endTime))
+                  markOperationEndTime(request, task, endTime))
                 : (match = awaited);
             }
           }
@@ -1808,9 +1807,9 @@
             request,
             parseStackTrace(stack, 1)
           )),
+        advanceTaskTime(request, task, task.time),
         emitDebugChunk(request, task.id, alreadyForwardedDebugInfo),
-        request.status !== ABORTING &&
-          markOperationEndTime(request, task, node.end));
+        markOperationEndTime(request, task, node.end));
     }
     function pingTask(request, task) {
       task.timed = !0;
@@ -3238,10 +3237,9 @@
             ? (serializeIONode(request, thenable, null),
               request.pendingChunks++,
               (debugInfo = (0, request.environmentName)()),
-              emitDebugChunk(request, task.id, {
-                awaited: thenable,
-                env: debugInfo
-              }))
+              (debugInfo = { awaited: thenable, env: debugInfo }),
+              advanceTaskTime(request, task, task.time),
+              emitDebugChunk(request, task.id, debugInfo))
             : emitAsyncSequence(request, task, payload, debugInfo, null, null);
         }
       }
@@ -3260,10 +3258,11 @@
       task.timed = !0;
     }
     function markOperationEndTime(request, task, timestamp) {
-      timestamp > task.time
-        ? (emitTimingChunk(request, task.id, timestamp),
-          (task.time = timestamp))
-        : emitTimingChunk(request, task.id, task.time);
+      request.status !== ABORTING &&
+        (timestamp > task.time
+          ? (emitTimingChunk(request, task.id, timestamp),
+            (task.time = timestamp))
+          : emitTimingChunk(request, task.id, task.time));
     }
     function emitChunk(request, task, value) {
       var id = task.id;

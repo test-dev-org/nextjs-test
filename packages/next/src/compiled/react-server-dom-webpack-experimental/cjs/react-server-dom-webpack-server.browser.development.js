@@ -2956,10 +2956,11 @@
       request.completedRegularChunks.push(id);
     }
     function markOperationEndTime(request, task, timestamp) {
-      timestamp > task.time
-        ? (emitTimingChunk(request, task.id, timestamp),
-          (task.time = timestamp))
-        : emitTimingChunk(request, task.id, task.time);
+      request.status !== ABORTING &&
+        (timestamp > task.time
+          ? (emitTimingChunk(request, task.id, timestamp),
+            (task.time = timestamp))
+          : emitTimingChunk(request, task.id, task.time));
     }
     function emitChunk(request, task, value) {
       var id = task.id;

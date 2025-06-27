@@ -1116,6 +1116,25 @@
       }
       properties.push(["\u00a0\u00a0".repeat(indent) + propertyName, value]);
     }
+    function markAllTracksInOrder() {
+      supportsUserTiming &&
+        (console.timeStamp(
+          "Server Requests Track",
+          0.001,
+          0.001,
+          "Server Requests \u269b",
+          void 0,
+          "primary-light"
+        ),
+        console.timeStamp(
+          "Server Components Track",
+          0.001,
+          0.001,
+          "Primary",
+          "Server Components \u269b",
+          "primary-light"
+        ));
+    }
     function getIOColor(functionName) {
       switch (functionName.charCodeAt(0) % 3) {
         case 0:
@@ -1142,7 +1161,7 @@
         env =
           "await " +
           (isPrimaryEnv || void 0 === env ? name : name + " [" + env + "]");
-        (asyncInfo = asyncInfo.debugTask)
+        (asyncInfo = asyncInfo.debugTask || asyncInfo.awaited.debugTask)
           ? ((name = []),
             "object" === typeof value && null !== value
               ? addObjectToProperties(value, name, 0)
@@ -1482,23 +1501,7 @@
       var debugChannel = response._debugChannel;
       void 0 !== debugChannel &&
         (debugChannel(""), (response._debugChannel = void 0));
-      supportsUserTiming &&
-        (console.timeStamp(
-          "Server Requests Track",
-          0.001,
-          0.001,
-          "Server Requests \u269b",
-          void 0,
-          "primary-light"
-        ),
-        console.timeStamp(
-          "Server Components Track",
-          0.001,
-          0.001,
-          "Primary",
-          "Server Components \u269b",
-          "primary-light"
-        ));
+      markAllTracksInOrder();
       flushComponentPerformance(
         response,
         getChunk(response, 0),
@@ -2081,6 +2084,7 @@
       this._debugChannel = debugChannel;
       this._replayConsole = replayConsole;
       this._rootEnvironmentName = environmentName;
+      markAllTracksInOrder();
       this._fromJSON = createFromJSONCallback(this);
     }
     function resolveDebugHalt(response, id) {
@@ -2901,12 +2905,12 @@
         childResult > trackTime && (trackTime = childResult);
         childResult > componentInfo && (componentInfo = childResult);
       }
-      if (previousEndTime) {
-        var componentEndTime = 0;
-        _i4 = !0;
-        info = parentEndTime = -1;
+      if (previousEndTime)
         for (
-          entryName = previousEndTime.length - 1;
+          childResult = 0,
+            _i4 = !0,
+            info = parentEndTime = -1,
+            entryName = previousEndTime.length - 1;
           0 <= entryName;
           entryName--
         )
@@ -2914,38 +2918,35 @@
             ((trackTime = previousEndTime[entryName]),
             "number" === typeof trackTime.time)
           ) {
-            0 === componentEndTime && (componentEndTime = trackTime.time);
+            0 === childResult && (childResult = trackTime.time);
             trackTime = trackTime.time;
             if (-1 < info)
-              for (--info; info > entryName; info--)
-                if (
-                  ((childResult = previousEndTime[info]),
-                  "string" === typeof childResult.name)
-                ) {
-                  componentEndTime > componentInfo &&
-                    (componentInfo = componentEndTime);
+              for (--info; info > entryName; info--) {
+                var candidateInfo = previousEndTime[info];
+                if ("string" === typeof candidateInfo.name) {
+                  childResult > componentInfo && (componentInfo = childResult);
                   var response = response$jscomp$0,
-                    componentInfo$jscomp$0 = childResult,
+                    componentInfo$jscomp$0 = candidateInfo,
                     trackIdx$jscomp$0 = trackIdx$jscomp$1,
                     startTime = trackTime,
-                    componentEndTime$jscomp$0 = componentEndTime,
+                    componentEndTime = childResult,
                     childrenEndTime = componentInfo;
                   _i4 &&
                   "rejected" === root.status &&
                   root.reason !== response._closedReason
                     ? ((_i4 = root.reason),
                       supportsUserTiming &&
-                        ((componentEndTime = componentInfo$jscomp$0.env),
+                        ((childResult = componentInfo$jscomp$0.env),
                         (componentInfo$jscomp$0 = componentInfo$jscomp$0.name),
-                        (componentEndTime =
-                          componentEndTime === response._rootEnvironmentName ||
-                          void 0 === componentEndTime
+                        (childResult =
+                          childResult === response._rootEnvironmentName ||
+                          void 0 === childResult
                             ? componentInfo$jscomp$0
                             : componentInfo$jscomp$0 +
                               " [" +
-                              componentEndTime +
+                              childResult +
                               "]"),
-                        performance.measure(componentEndTime, {
+                        performance.measure(childResult, {
                           start: 0 > startTime ? 0 : startTime,
                           end: childrenEndTime,
                           detail: {
@@ -2953,7 +2954,7 @@
                               color: "error",
                               track: trackNames[trackIdx$jscomp$0],
                               trackGroup: "Server Components \u269b",
-                              tooltipText: componentEndTime + " Errored",
+                              tooltipText: childResult + " Errored",
                               properties: [
                                 [
                                   "Error",
@@ -2968,7 +2969,7 @@
                           }
                         })))
                     : ((_i4 = trackIdx$jscomp$0),
-                      (componentEndTime = startTime),
+                      (childResult = startTime),
                       (startTime = childrenEndTime),
                       supportsUserTiming &&
                         0 <= startTime &&
@@ -2977,17 +2978,17 @@
                         (trackIdx$jscomp$0 = componentInfo$jscomp$0.name),
                         (response =
                           childrenEndTime === response._rootEnvironmentName),
-                        (componentEndTime$jscomp$0 -= componentEndTime),
-                        (componentEndTime$jscomp$0 =
-                          0.5 > componentEndTime$jscomp$0
+                        (componentEndTime -= childResult),
+                        (componentEndTime =
+                          0.5 > componentEndTime
                             ? response
                               ? "primary-light"
                               : "secondary-light"
-                            : 50 > componentEndTime$jscomp$0
+                            : 50 > componentEndTime
                               ? response
                                 ? "primary"
                                 : "secondary"
-                              : 500 > componentEndTime$jscomp$0
+                              : 500 > componentEndTime
                                 ? response
                                   ? "primary-dark"
                                   : "secondary-dark"
@@ -3002,31 +3003,30 @@
                               console.timeStamp.bind(
                                 console,
                                 response,
-                                0 > componentEndTime ? 0 : componentEndTime,
+                                0 > childResult ? 0 : childResult,
                                 startTime,
                                 trackNames[_i4],
                                 "Server Components \u269b",
-                                componentEndTime$jscomp$0
+                                componentEndTime
                               )
                             )
                           : console.timeStamp(
                               response,
-                              0 > componentEndTime ? 0 : componentEndTime,
+                              0 > childResult ? 0 : childResult,
                               startTime,
                               trackNames[_i4],
                               "Server Components \u269b",
-                              componentEndTime$jscomp$0
+                              componentEndTime
                             )));
-                  componentEndTime = trackTime;
-                  trackIdx.component = childResult;
+                  childResult = trackTime;
+                  trackIdx.component = candidateInfo;
                   _i4 = !1;
-                } else if (childResult.awaited)
+                } else if (candidateInfo.awaited)
                   if (
                     (parentEndTime > componentInfo &&
                       (componentInfo = parentEndTime),
-                    (componentEndTime$jscomp$0 =
-                      response$jscomp$0._rootEnvironmentName),
-                    (componentInfo$jscomp$0 = childResult.awaited.value))
+                    (componentEndTime = response$jscomp$0._rootEnvironmentName),
+                    (componentInfo$jscomp$0 = candidateInfo.awaited.value))
                   )
                     switch (
                       ((childrenEndTime = componentInfo$jscomp$0),
@@ -3034,11 +3034,11 @@
                     ) {
                       case "fulfilled":
                         logComponentAwait(
-                          childResult,
+                          candidateInfo,
                           trackIdx$jscomp$1,
                           trackTime,
                           parentEndTime,
-                          componentEndTime$jscomp$0,
+                          componentEndTime,
                           childrenEndTime.value
                         );
                         break;
@@ -3048,19 +3048,21 @@
                         startTime = parentEndTime;
                         childrenEndTime = childrenEndTime.reason;
                         if (supportsUserTiming && 0 < startTime) {
-                          trackIdx$jscomp$0 = childResult.env;
-                          var name = childResult.awaited.name;
-                          componentEndTime$jscomp$0 =
+                          trackIdx$jscomp$0 = candidateInfo.env;
+                          var name = candidateInfo.awaited.name;
+                          componentEndTime =
                             "await " +
-                            (trackIdx$jscomp$0 === componentEndTime$jscomp$0 ||
+                            (trackIdx$jscomp$0 === componentEndTime ||
                             void 0 === trackIdx$jscomp$0
                               ? name
                               : name + " [" + trackIdx$jscomp$0 + "]");
-                          (childResult = childResult.debugTask)
-                            ? childResult.run(
+                          (candidateInfo =
+                            candidateInfo.debugTask ||
+                            candidateInfo.awaited.debugTask)
+                            ? candidateInfo.run(
                                 performance.measure.bind(
                                   performance,
-                                  componentEndTime$jscomp$0,
+                                  componentEndTime,
                                   {
                                     start: 0 > response ? 0 : response,
                                     end: startTime,
@@ -3083,15 +3085,14 @@
                                           ]
                                         ],
                                         tooltipText:
-                                          componentEndTime$jscomp$0 +
-                                          " Rejected"
+                                          componentEndTime + " Rejected"
                                       }
                                     }
                                   }
                                 )
                               )
                             : console.timeStamp(
-                                componentEndTime$jscomp$0,
+                                componentEndTime,
                                 0 > response ? 0 : response,
                                 startTime,
                                 trackNames[componentInfo$jscomp$0],
@@ -3102,27 +3103,134 @@
                         break;
                       default:
                         logComponentAwait(
-                          childResult,
+                          candidateInfo,
                           trackIdx$jscomp$1,
                           trackTime,
                           parentEndTime,
-                          componentEndTime$jscomp$0,
+                          componentEndTime,
                           void 0
                         );
                     }
                   else
                     logComponentAwait(
-                      childResult,
+                      candidateInfo,
                       trackIdx$jscomp$1,
                       trackTime,
                       parentEndTime,
-                      componentEndTime$jscomp$0,
+                      componentEndTime,
                       void 0
                     );
+              }
+            else
+              for (
+                parentEndTime = trackTime, info = previousEndTime.length - 1;
+                info > entryName;
+                info--
+              )
+                (candidateInfo = previousEndTime[info]),
+                  "string" === typeof candidateInfo.name
+                    ? (childResult > componentInfo &&
+                        (componentInfo = childResult),
+                      (_i4 = candidateInfo),
+                      (childResult = response$jscomp$0._rootEnvironmentName),
+                      supportsUserTiming &&
+                        ((candidateInfo = _i4.env),
+                        (componentInfo$jscomp$0 = _i4.name),
+                        (childResult =
+                          candidateInfo === childResult ||
+                          void 0 === candidateInfo
+                            ? componentInfo$jscomp$0
+                            : componentInfo$jscomp$0 +
+                              " [" +
+                              candidateInfo +
+                              "]"),
+                        performance.measure(childResult, {
+                          start: 0 > trackTime ? 0 : trackTime,
+                          end: componentInfo,
+                          detail: {
+                            devtools: {
+                              color: "warning",
+                              track: trackNames[trackIdx$jscomp$1],
+                              trackGroup: "Server Components \u269b",
+                              tooltipText: childResult + " Aborted",
+                              properties: [
+                                [
+                                  "Aborted",
+                                  "The stream was aborted before this Component finished rendering."
+                                ]
+                              ]
+                            }
+                          }
+                        })),
+                      (childResult = trackTime),
+                      (trackIdx.component = _i4),
+                      (_i4 = !1))
+                    : candidateInfo.awaited &&
+                      ((startTime = candidateInfo),
+                      (componentEndTime =
+                        response$jscomp$0._rootEnvironmentName),
+                      startTime.awaited.end > parentEndTime &&
+                        (parentEndTime = startTime.awaited.end),
+                      parentEndTime > componentInfo &&
+                        (componentInfo = parentEndTime),
+                      (candidateInfo = trackIdx$jscomp$1),
+                      (componentInfo$jscomp$0 = trackTime),
+                      (response = parentEndTime),
+                      supportsUserTiming &&
+                        0 < response &&
+                        ((childrenEndTime = startTime.env),
+                        (trackIdx$jscomp$0 = startTime.awaited.name),
+                        (componentEndTime =
+                          "await " +
+                          (childrenEndTime === componentEndTime ||
+                          void 0 === childrenEndTime
+                            ? trackIdx$jscomp$0
+                            : trackIdx$jscomp$0 +
+                              " [" +
+                              childrenEndTime +
+                              "]")),
+                        (startTime =
+                          startTime.debugTask || startTime.awaited.debugTask)
+                          ? startTime.run(
+                              performance.measure.bind(
+                                performance,
+                                componentEndTime,
+                                {
+                                  start:
+                                    0 > componentInfo$jscomp$0
+                                      ? 0
+                                      : componentInfo$jscomp$0,
+                                  end: response,
+                                  detail: {
+                                    devtools: {
+                                      color: "warning",
+                                      track: trackNames[candidateInfo],
+                                      trackGroup: "Server Components \u269b",
+                                      properties: [
+                                        [
+                                          "Aborted",
+                                          "The stream was aborted before this Promise resolved."
+                                        ]
+                                      ],
+                                      tooltipText: componentEndTime + " Aborted"
+                                    }
+                                  }
+                                }
+                              )
+                            )
+                          : console.timeStamp(
+                              componentEndTime,
+                              0 > componentInfo$jscomp$0
+                                ? 0
+                                : componentInfo$jscomp$0,
+                              response,
+                              trackNames[candidateInfo],
+                              "Server Components \u269b",
+                              "warning"
+                            )));
             parentEndTime = trackTime;
             info = entryName;
           }
-      }
       trackIdx.endTime = componentInfo;
       return trackIdx;
     }
