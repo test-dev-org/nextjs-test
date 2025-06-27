@@ -335,12 +335,19 @@ export async function handleLog(
       }
     } catch {
       switch (entry.kind) {
-        case 'any-logged-error':
+        case 'any-logged-error': {
+          const consoleArgs = await prepareConsoleErrorArgs(entry, ctx, distDir)
+          forwardConsole.error(browserPrefix, ...consoleArgs)
+          break
+        }
         case 'console': {
           const consoleMethod =
             forwardConsole[entry.method] || forwardConsole.log
-          // @ts-expect-error todo fix this its wrong, its completely random data and type erroring
-          consoleMethod(browserPrefix, ...entry.args)
+          const consoleArgs = await prepareConsoleArgs(entry, ctx, distDir)
+          ;(consoleMethod as (...args: any[]) => void)(
+            browserPrefix,
+            ...consoleArgs
+          )
           break
         }
         case 'formatted-error': {
