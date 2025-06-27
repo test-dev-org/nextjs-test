@@ -50,7 +50,7 @@ function NotFoundSegmentNode() {
 
 function ErrorSegmentNode() {
   useEffect(() => {
-    throw new Error('__NEXT_DEVTOOLS_SEGMENT_ERROR__')
+    throw new Error('NEXT_DEVTOOLS_SIMULATED_ERROR')
   }, [])
   return null
 }
@@ -99,8 +99,8 @@ export function SegmentViewNode({
 
   return (
     <>
-      {children}
       {segmentNode}
+      {children}
     </>
   )
 }

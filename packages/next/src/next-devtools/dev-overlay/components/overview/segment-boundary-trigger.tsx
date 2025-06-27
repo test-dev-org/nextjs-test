@@ -234,7 +234,6 @@ export const styles = `
     top: 100%;
     right: 0;
     margin-top: 6px;
-    border-radius: 16px;
     background: var(--color-background);
     border: 1px solid var(--color-gray-400);
     border-radius: 6px;

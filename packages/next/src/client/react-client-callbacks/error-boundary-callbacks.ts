@@ -38,8 +38,9 @@ export function onCaughtError(
 
   // Skip the segment explorer triggered error
   if (
+    process.env.NODE_ENV !== 'production' &&
     thrownValue instanceof Error &&
-    thrownValue.message === '__NEXT_DEVTOOLS_SEGMENT_ERROR__'
+    thrownValue.message === 'NEXT_DEVTOOLS_SIMULATED_ERROR'
   ) {
     return
   }
