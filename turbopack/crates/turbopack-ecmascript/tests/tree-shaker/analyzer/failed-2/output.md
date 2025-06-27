@@ -118,7 +118,7 @@ export function markCurrentScopeAsDynamic(store, expression) {
     if (store.isUnstableCacheCallback) {
         return;
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {
@@ -147,7 +147,7 @@ export function trackDynamicDataAccessed(store, expression) {
     if (store.isUnstableCacheCallback) {
         throw new Error(`Route ${pathname} used "${expression}" inside a function cached with "unstable_cache(...)". Accessing Dynamic data sources inside a cache scope is not supported. If you need this data inside a cached function use "${expression}" outside of the cached function and pass the required dynamic data in as an argument. See more info here: https://nextjs.org/docs/app/api-reference/functions/unstable_cache`);
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {
@@ -761,7 +761,7 @@ function markCurrentScopeAsDynamic(store, expression) {
     if (store.isUnstableCacheCallback) {
         return;
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {
@@ -802,7 +802,7 @@ function trackDynamicDataAccessed(store, expression) {
     if (store.isUnstableCacheCallback) {
         throw new Error(`Route ${pathname} used "${expression}" inside a function cached with "unstable_cache(...)". Accessing Dynamic data sources inside a cache scope is not supported. If you need this data inside a cached function use "${expression}" outside of the cached function and pass the required dynamic data in as an argument. See more info here: https://nextjs.org/docs/app/api-reference/functions/unstable_cache`);
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {
@@ -1128,7 +1128,7 @@ function markCurrentScopeAsDynamic(store, expression) {
     if (store.isUnstableCacheCallback) {
         return;
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {
@@ -1169,7 +1169,7 @@ function trackDynamicDataAccessed(store, expression) {
     if (store.isUnstableCacheCallback) {
         throw new Error(`Route ${pathname} used "${expression}" inside a function cached with "unstable_cache(...)". Accessing Dynamic data sources inside a cache scope is not supported. If you need this data inside a cached function use "${expression}" outside of the cached function and pass the required dynamic data in as an argument. See more info here: https://nextjs.org/docs/app/api-reference/functions/unstable_cache`);
     } else if (store.dynamicShouldError) {
-        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`);
+        throw new StaticGenBailoutError(`Route ${pathname} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`);
     } else if (store.prerenderState) {
         postponeWithTracking(store.prerenderState, expression, pathname);
     } else {

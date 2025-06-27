@@ -1165,7 +1165,7 @@ function trackDynamic(
 
   if (store.dynamicShouldError) {
     throw new StaticGenBailoutError(
-      `Route ${store.route} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`
+      `Route ${store.route} with \`dynamic = "error"\` couldn't be rendered statically because it used \`${expression}\`. See more info here: https://nextjs.org/docs/app/building-your-application/rendering#dynamic-rendering`
     )
   }
 
