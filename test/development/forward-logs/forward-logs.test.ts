@@ -3,6 +3,7 @@ import { NextInstance } from 'e2e-utils'
 import webdriver from 'next-webdriver'
 import { join } from 'path'
 import stripAnsi from 'strip-ansi'
+import { retry } from 'next-test-utils'
 
 const bundlerName = process.env.IS_TURBOPACK_TEST ? 'Turbopack' : 'Webpack'
 
@@ -60,11 +61,12 @@ describe(`Terminal Logging (${bundlerName})`, () => {
       const browser = await webdriver(next.url, '/basic-logs')
       await browser.waitForElementByCss('#log-button')
       await browser.elementByCss('#log-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Hello from browser')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Hello from browser')
+      })
 
       await browser.close()
     })
@@ -74,11 +76,12 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#error-button')
       await browser.elementByCss('#error-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Error from browser')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Error from browser')
+      })
 
       await browser.close()
     })
@@ -88,12 +91,13 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#object-button')
       await browser.elementByCss('#object-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Complex object')
-      expect(logOutput).toContain('nested')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Complex object')
+        expect(logOutput).toContain('nested')
+      })
 
       await browser.close()
     })
@@ -103,12 +107,13 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#circular-button')
       await browser.elementByCss('#circular-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Circular object')
-      expect(logOutput).not.toContain('Converting circular structure to JSON')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Circular object')
+        expect(logOutput).not.toContain('Converting circular structure to JSON')
+      })
 
       await browser.close()
     })
@@ -118,11 +123,12 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#warn-button')
       await browser.elementByCss('#warn-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Warning message')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Warning message')
+      })
 
       await browser.close()
     })
@@ -132,11 +138,12 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#log-button')
       await browser.elementByCss('#log-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Hello from browser')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Hello from browser')
+      })
 
       await browser.close()
     })
@@ -189,6 +196,7 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#log-button')
       await browser.elementByCss('#log-button').click()
+
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       const logOutput = logs.join('')
@@ -254,13 +262,14 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#deep-button')
       await browser.elementByCss('#deep-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('level1')
-      expect(logOutput).toContain('level2')
-      expect(logOutput).not.toContain('level4')
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('level1')
+        expect(logOutput).toContain('level2')
+        expect(logOutput).not.toContain('level4')
+      })
 
       await browser.close()
     })
@@ -321,12 +330,13 @@ describe(`Terminal Logging (${bundlerName})`, () => {
 
       await browser.waitForElementByCss('#log-button')
       await browser.elementByCss('#log-button').click()
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const logOutput = logs.join('')
-      expect(logOutput).toContain('[browser]')
-      expect(logOutput).toContain('Hello from browser')
-      expect(logOutput).not.toMatch(/\([^)]+basic-logs\.js[:)]/)
+      await retry(() => {
+        const logOutput = logs.join('')
+        expect(logOutput).toContain('[browser]')
+        expect(logOutput).toContain('Hello from browser')
+        expect(logOutput).not.toMatch(/\([^)]+basic-logs\.js[:)]/)
+      })
 
       await browser.close()
     })
