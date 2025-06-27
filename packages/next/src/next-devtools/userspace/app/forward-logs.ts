@@ -18,6 +18,21 @@ import {
 const terminalLoggingConfig = getTerminalLoggingConfig()
 export const PROMISE_MARKER = 'Promise {}'
 export const UNAVAILABLE_MARKER = '[Unable to view]'
+
+const methods: Array<LogMethod> = [
+  'log',
+  'info',
+  'warn',
+  'debug',
+  'table',
+  'assert',
+  'dir',
+  'dirxml',
+  'group',
+  'groupCollapsed',
+  'groupEnd',
+  'trace',
+]
 /**
  * allows us to:
  * - revive the undefined log in the server as it would look in the browser
@@ -332,21 +347,6 @@ export const initializeDebugLogForwarding = (router: 'app' | 'pages'): void => {
   if (typeof window === 'undefined') {
     return
   }
-
-  const methods: Array<LogMethod> = [
-    'log',
-    'info',
-    'warn',
-    'debug',
-    'table',
-    'assert',
-    'dir',
-    'dirxml',
-    'group',
-    'groupCollapsed',
-    'groupEnd',
-    'trace',
-  ]
 
   // better to be safe than sorry
   try {
