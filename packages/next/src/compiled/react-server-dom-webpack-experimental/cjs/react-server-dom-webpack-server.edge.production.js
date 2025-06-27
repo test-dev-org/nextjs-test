@@ -2067,7 +2067,7 @@ function abort(request, reason) {
           errorId$27 = request.nextChunkId++;
         request.fatalError = errorId$27;
         request.pendingChunks++;
-        emitErrorChunk(request, errorId$27, digest, error);
+        emitErrorChunk(request, errorId$27, digest, error, !1);
         abortableTasks.forEach(function (task) {
           return abortTask(task, request, errorId$27);
         });

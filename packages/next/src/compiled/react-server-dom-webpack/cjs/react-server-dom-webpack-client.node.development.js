@@ -1297,6 +1297,45 @@
         return "<...>";
       }
     }
+    function initializeElement(response, element) {
+      var stack = element._debugStack,
+        owner = element._owner;
+      null === owner && (element._owner = response._debugRootOwner);
+      var env = response._rootEnvironmentName;
+      null !== owner && null != owner.env && (env = owner.env);
+      var normalizedStackTrace = null;
+      null === owner && null != response._debugRootStack
+        ? (normalizedStackTrace = response._debugRootStack)
+        : null !== stack &&
+          (normalizedStackTrace = createFakeJSXCallStackInDEV(
+            response,
+            stack,
+            env
+          ));
+      element._debugStack = normalizedStackTrace;
+      normalizedStackTrace = null;
+      supportsCreateTask &&
+        null !== stack &&
+        ((normalizedStackTrace = console.createTask.bind(
+          console,
+          getTaskName(element.type)
+        )),
+        (stack = buildFakeCallStack(
+          response,
+          stack,
+          env,
+          !1,
+          normalizedStackTrace
+        )),
+        (env = null === owner ? null : initializeFakeTask(response, owner)),
+        null === env
+          ? ((env = response._debugRootTask),
+            (normalizedStackTrace = null != env ? env.run(stack) : stack()))
+          : (normalizedStackTrace = env.run(stack)));
+      element._debugTask = normalizedStackTrace;
+      null !== owner && initializeFakeStack(response, owner);
+      Object.freeze(element.props);
+    }
     function createLazyChunkWrapper(chunk) {
       var lazyType = {
         $$typeof: REACT_LAZY_TYPE,
@@ -1353,6 +1392,9 @@
               break;
             case "4":
               value._owner = i;
+              break;
+            case "5":
+              value._debugStack = i;
           }
         handler.deps--;
         0 === handler.deps &&
@@ -2700,98 +2742,75 @@
         if ("string" === typeof value)
           return parseModelString(response, this, key, value);
         if ("object" === typeof value && null !== value) {
-          if (value[0] === REACT_ELEMENT_TYPE) {
-            var type = value[1];
-            key = value[4];
-            var stack = value[5],
-              validated = value[6];
-            value = {
-              $$typeof: REACT_ELEMENT_TYPE,
-              type: type,
-              key: value[2],
-              props: value[3],
-              _owner: null === key ? response._debugRootOwner : key
-            };
-            Object.defineProperty(value, "ref", {
-              enumerable: !1,
-              get: nullRefGetter
-            });
-            value._store = {};
-            Object.defineProperty(value._store, "validated", {
-              configurable: !1,
-              enumerable: !1,
-              writable: !0,
-              value: validated
-            });
-            Object.defineProperty(value, "_debugInfo", {
-              configurable: !1,
-              enumerable: !1,
-              writable: !0,
-              value: null
-            });
-            validated = response._rootEnvironmentName;
-            null !== key && null != key.env && (validated = key.env);
-            var normalizedStackTrace = null;
-            null === key && null != response._debugRootStack
-              ? (normalizedStackTrace = response._debugRootStack)
-              : null !== stack &&
-                (normalizedStackTrace = createFakeJSXCallStackInDEV(
-                  response,
-                  stack,
-                  validated
-                ));
-            Object.defineProperty(value, "_debugStack", {
-              configurable: !1,
-              enumerable: !1,
-              writable: !0,
-              value: normalizedStackTrace
-            });
-            normalizedStackTrace = null;
-            supportsCreateTask &&
-              null !== stack &&
-              ((type = console.createTask.bind(console, getTaskName(type))),
-              (stack = buildFakeCallStack(
-                response,
-                stack,
-                validated,
-                !1,
-                type
-              )),
-              (type = null === key ? null : initializeFakeTask(response, key)),
-              null === type
-                ? ((type = response._debugRootTask),
-                  (normalizedStackTrace =
-                    null != type ? type.run(stack) : stack()))
-                : (normalizedStackTrace = type.run(stack)));
-            Object.defineProperty(value, "_debugTask", {
-              configurable: !1,
-              enumerable: !1,
-              writable: !0,
-              value: normalizedStackTrace
-            });
-            null !== key && initializeFakeStack(response, key);
-            null !== initializingHandler
-              ? ((stack = initializingHandler),
-                (initializingHandler = stack.parent),
-                stack.errored
-                  ? ((key = new ReactPromise("rejected", null, stack.value)),
-                    (stack = {
-                      name: getComponentNameFromType(value.type) || "",
-                      owner: value._owner
-                    }),
-                    (stack.debugStack = value._debugStack),
-                    supportsCreateTask && (stack.debugTask = value._debugTask),
-                    (key._debugInfo = [stack]),
-                    (value = createLazyChunkWrapper(key)))
-                  : 0 < stack.deps &&
-                    ((key = new ReactPromise("blocked", null, null)),
-                    (stack.value = value),
-                    (stack.chunk = key),
-                    (value = Object.freeze.bind(Object, value.props)),
-                    key.then(value, value),
-                    (value = createLazyChunkWrapper(key))))
-              : Object.freeze(value.props);
-          }
+          if (value[0] === REACT_ELEMENT_TYPE)
+            b: {
+              key = value[5];
+              var validated = value[6];
+              value = {
+                $$typeof: REACT_ELEMENT_TYPE,
+                type: value[1],
+                key: value[2],
+                props: value[3],
+                _owner: value[4]
+              };
+              Object.defineProperty(value, "ref", {
+                enumerable: !1,
+                get: nullRefGetter
+              });
+              value._store = {};
+              Object.defineProperty(value._store, "validated", {
+                configurable: !1,
+                enumerable: !1,
+                writable: !0,
+                value: validated
+              });
+              Object.defineProperty(value, "_debugInfo", {
+                configurable: !1,
+                enumerable: !1,
+                writable: !0,
+                value: null
+              });
+              Object.defineProperty(value, "_debugStack", {
+                configurable: !1,
+                enumerable: !1,
+                writable: !0,
+                value: key
+              });
+              Object.defineProperty(value, "_debugTask", {
+                configurable: !1,
+                enumerable: !1,
+                writable: !0,
+                value: null
+              });
+              if (null !== initializingHandler) {
+                validated = initializingHandler;
+                initializingHandler = validated.parent;
+                if (validated.errored) {
+                  key = new ReactPromise("rejected", null, validated.value);
+                  initializeElement(response, value);
+                  validated = {
+                    name: getComponentNameFromType(value.type) || "",
+                    owner: value._owner
+                  };
+                  validated.debugStack = value._debugStack;
+                  supportsCreateTask &&
+                    (validated.debugTask = value._debugTask);
+                  key._debugInfo = [validated];
+                  value = createLazyChunkWrapper(key);
+                  break b;
+                }
+                if (0 < validated.deps) {
+                  key = new ReactPromise("blocked", null, null);
+                  validated.value = value;
+                  validated.chunk = key;
+                  value = initializeElement.bind(null, response, value);
+                  key.then(value, value);
+                  value = createLazyChunkWrapper(key);
+                  break b;
+                }
+              }
+              initializeElement(response, value);
+            }
           return value;
         }
         return value;
