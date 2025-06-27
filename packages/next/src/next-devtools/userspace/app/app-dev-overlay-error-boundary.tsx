@@ -1,4 +1,4 @@
-import { Fragment, PureComponent } from 'react'
+import { PureComponent } from 'react'
 import { dispatcher } from 'next/dist/compiled/next-devtools'
 import { RuntimeErrorHandler } from '../../../client/dev/runtime-error-handler'
 import { ErrorBoundary } from '../../../client/components/error-boundary'
@@ -31,10 +31,8 @@ function ErroredHtml({
   }
   return (
     <ErrorBoundary errorComponent={DefaultGlobalError}>
-      <>
-        {globalErrorStyles}
-        <GlobalError error={error} />
-      </>
+      {globalErrorStyles}
+      <GlobalError error={error} />
     </ErrorBoundary>
   )
 }
