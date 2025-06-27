@@ -1,7 +1,10 @@
 export function getTerminalLoggingConfig():
   | false
   | boolean
-  | { logDepth?: number } {
+  | {
+      logDepth?: number
+      showSourceLocation?: boolean
+    } {
   try {
     return JSON.parse(
       process.env.__NEXT_BROWSER_DEBUG_INFO_IN_TERMINAL || 'false'

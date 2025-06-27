@@ -15,6 +15,7 @@ import {
   UNDEFINED_MARKER,
 } from '../../shared/forward-logs-shared'
 
+const terminalLoggingConfig = getTerminalLoggingConfig()
 export const PROMISE_MARKER = 'Promise {}'
 export const UNAVAILABLE_MARKER = '[Unable to view]'
 /**
@@ -63,8 +64,6 @@ export function safeClone<T>(value: T, seen = new WeakMap()): any {
 
   return Object.prototype.toString.call(value)
 }
-
-const terminalLoggingConfig = getTerminalLoggingConfig()
 
 const stringify = configure({
   maximumDepth:

@@ -6,6 +6,9 @@ import { dim } from '../../../lib/picocolors'
 import { parseStack } from '../../lib/parse-stack'
 import path from 'path'
 import { LRUCache } from '../../lib/lru-cache'
+import { getTerminalLoggingConfig } from '../../../next-devtools/userspace/app/terminal-logging-config'
+
+const terminalLoggingConfig = getTerminalLoggingConfig()
 
 type WebpackMappingContext = {
   bundler: 'webpack'
@@ -243,8 +246,6 @@ function formatStackFrame(frame: StackFrame): string {
   return `    at ${functionName} (${location})`
 }
 
-const TODO_CONFIG_BASED_SOURCE_LOG = true
-
 export const withStack = async (
   {
     original,
@@ -256,7 +257,10 @@ export const withStack = async (
   ctx: MappingContext,
   distDir: string
 ) => {
-  if (!TODO_CONFIG_BASED_SOURCE_LOG) {
+  if (
+    typeof terminalLoggingConfig === 'object' &&
+    terminalLoggingConfig.showSourceLocation === false
+  ) {
     return original
   }
   if (!stack) {
