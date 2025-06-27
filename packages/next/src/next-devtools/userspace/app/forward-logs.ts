@@ -162,14 +162,11 @@ export const logQueue: {
 }
 
 const createErrorArg = (error: Error) => {
-  setOwnerStackIfAvailable(error)
-  const ownerStack = getOwnerStack(error)
-  const fullStack = (error.stack || '') + (ownerStack || '')
-  // then this error will be displayed pretty, but white in the terminal (same as browser behavior)
+  const stack = stackWithOwners(error)
   return {
     kind: 'formatted-error-arg' as const,
     prefix: error.message ? `${error.name}: ${error.message}` : `${error.name}`,
-    stack: fullStack,
+    stack,
   }
 }
 
@@ -248,9 +245,10 @@ const createUncaughtErrorEntry = (
 }
 
 const stackWithOwners = (error: Error) => {
+  let ownerStack = ''
   setOwnerStackIfAvailable(error)
-  const ownerStack = getOwnerStack(error)
-  const stack = (error.stack || '') + (ownerStack || '')
+  ownerStack = getOwnerStack(error) || ''
+  const stack = (error.stack || '') + ownerStack
   return stack
 }
 
