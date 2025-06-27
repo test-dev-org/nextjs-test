@@ -225,22 +225,17 @@ export const styles = `
     color: var(--color-gray-1000);
     border-radius: 6px;
   }
-  .segment-boundary-trigger-button:hover {
-    background: var(--color-gray-400);
-  }
   .segment-boundary-trigger-button--reset {
-    background: none;
+    background: transparent;
     border: none;
   }
   .segment-boundary-trigger-button svg {
     width: 20px;
     height: 20px;
   }
-
   .segment-boundary-trigger-button:hover {
     background: var(--color-gray-400);
   }
-
   .segment-boundary-dropdown-backdrop {
     position: absolute;
     top: 100%;
