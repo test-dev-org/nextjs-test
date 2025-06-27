@@ -371,7 +371,7 @@ describe.each([
     } else {
       it('should partially prerender when all dynamic components are inside a Suspense boundary', async () => {
         try {
-          await next.build()
+          await next.start()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
@@ -884,7 +884,7 @@ describe.each([
     } else {
       it('should partially prerender when all dynamic components are inside a Suspense boundary', async () => {
         try {
-          await next.build()
+          await next.start()
         } catch {
           throw new Error('expected build not to fail for fully static project')
           // we expect the build to fail

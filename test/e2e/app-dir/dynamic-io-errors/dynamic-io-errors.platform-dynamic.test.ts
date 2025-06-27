@@ -36,7 +36,7 @@ describe.each([
     } else {
       it('should not error the build when calling Math.random() if all dynamic access is inside a Suspense boundary', async () => {
         try {
-          await next.build()
+          await next.start()
         } catch {
           throw new Error('expected build not to fail for fully static project')
         }
