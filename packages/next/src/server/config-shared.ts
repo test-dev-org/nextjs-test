@@ -747,10 +747,7 @@ export interface ExperimentalConfig {
   devtoolNewPanelUI?: boolean
 
   /**
-   * Enable enhanced console logging with source mapping and filtering.
-   * - `false`: Disable enhanced logging (default)
-   * - `true`: Enable with default settings (infinite serialization depth)
-   * - `object`: Enable with custom configuration
+   * tbd
    */
   terminalLogging?:
     | boolean

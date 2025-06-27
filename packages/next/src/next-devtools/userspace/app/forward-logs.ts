@@ -14,14 +14,20 @@ import type {
   LogMethod,
 } from '../../shared/forward-logs-types'
 
-const PROMISE_MARKER = 'Promise {}'
-const UNAVAILABLE_MARKER = '[Unable to view]'
+export const PROMISE_MARKER = 'Promise {}'
+export const UNAVAILABLE_MARKER = '[Unable to view]'
 
-function safeClone<T>(value: T, seen = new WeakMap()): any {
+export function safeClone<T>(value: T, seen = new WeakMap()): any {
   if (value === undefined) return UNDEFINED_MARKER
   if (value === null || typeof value !== 'object') return value
   if (seen.has(value as object)) return seen.get(value as object)
-  if (typeof (value as any)?.then === 'function') return PROMISE_MARKER
+
+  // Check if it's thenable, but wrap in try-catch for proxies that throw
+  try {
+    if (typeof (value as any)?.then === 'function') return PROMISE_MARKER
+  } catch {
+    // If accessing .then throws, continue with normal object processing
+  }
 
   if (Array.isArray(value)) {
     const out: any[] = []
@@ -53,18 +59,19 @@ function safeClone<T>(value: T, seen = new WeakMap()): any {
   return Object.prototype.toString.call(value)
 }
 
-const UNDEFINED_MARKER = '__next_tagged_undefined'
+export const UNDEFINED_MARKER = '__next_tagged_undefined'
 const replacer = (_k: string, v: unknown) => {
   return v === undefined ? UNDEFINED_MARKER : v
 }
 
 const stringify = configure({ maximumDepth: Number.MAX_SAFE_INTEGER }) // todo: allow user to config
 // ternary since stringify(undefined) wont be handled by the replacer
-const logStringify = (data: unknown) => {
+export const logStringify = (data: unknown): string => {
   // try {
   // return data === undefined ? UNDEFINED_MARKER : stringify(data, replacer)
   try {
-   return stringify(safeClone(data))
+    const result = stringify(safeClone(data))
+    return result ?? '[unable to serialize]'
   } catch {
     // todo document: what safe stable stringify logs on failure
     return '[unable to serialize, circular reference is too complex to analyze]'
