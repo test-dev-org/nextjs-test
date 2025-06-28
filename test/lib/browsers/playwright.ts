@@ -13,17 +13,12 @@ import {
   Response as PlaywrightResponse,
 } from 'playwright'
 import path from 'path'
+import { TestingLogger } from 'next-test-utils'
+import waitForHydration from '../wait-for-hydration'
 
 type EventType = 'request' | 'response'
 
 type PageLog = { source: string; message: string; args: unknown[] }
-
-let page: Page
-let browser: Browser | undefined
-let context: BrowserContext | undefined
-let contextHasJSEnabled: boolean = true
-let pageLogs: Array<Promise<PageLog> | PageLog> = []
-let websocketFrames: Array<{ payload: string | Buffer }> = []
 
 const tracePlaywright = process.env.TRACE_PLAYWRIGHT
 
@@ -33,23 +28,32 @@ const defaultTimeout = process.env.NEXT_E2E_TEST_TIMEOUT
     // availability in GitHub Actions.
     60 * 1000
 
-// loose global to register teardown functions before quitting the browser instance.
-// This is due to `quit` can be called anytime outside of Playwright's lifecycle,
-// which can create corrupted state by terminating the context.
-// [TODO] global `quit` might need to be removed, instead should introduce per-instance teardown
-const pendingTeardown: Array<() => Promise<void>> = []
-export async function quit() {
-  await Promise.all(pendingTeardown.map((fn) => fn()))
-  await context?.close()
-  await browser?.close()
-  context = undefined
-  browser = undefined
-}
-
-async function teardown(tearDownFn: () => Promise<void>) {
-  pendingTeardown.push(tearDownFn)
-  await tearDownFn()
-  pendingTeardown.splice(pendingTeardown.indexOf(tearDownFn), 1)
+function launchBrowser(
+  browserName: string,
+  launchOptions: Record<string, any>
+) {
+  if (browserName === 'safari') {
+    return webkit.launch(launchOptions)
+  } else if (browserName === 'firefox') {
+    return firefox.launch({
+      ...launchOptions,
+      firefoxUserPrefs: {
+        ...launchOptions.firefoxUserPrefs,
+        // The "fission.webContentIsolationStrategy" pref must be
+        // set to 1 on Firefox due to the bug where a new history
+        // state is pushed on a page reload.
+        // See https://github.com/microsoft/playwright/issues/22640
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1832341
+        'fission.webContentIsolationStrategy': 1,
+      },
+    })
+  } else {
+    return chromium.launch({
+      devtools: !launchOptions.headless,
+      ...launchOptions,
+      ignoreDefaultArgs: ['--disable-back-forward-cache'],
+    })
+  }
 }
 
 interface ElementHandleExt extends ElementHandle {
@@ -57,21 +61,19 @@ interface ElementHandleExt extends ElementHandle {
   text(): Promise<string>
 }
 
-export class Playwright<TCurrent = undefined> {
+type WebSocketFrame = { payload: string | Buffer }
+
+const logger = new TestingLogger('playwright')
+
+export class PlaywrightManager {
+  private context: BrowserContext
   private activeTrace?: string
-  private eventCallbacks: Record<EventType, Set<(...args: any[]) => void>> = {
-    request: new Set(),
-    response: new Set(),
-  }
+
   private async initContextTracing(url: string, context: BrowserContext) {
-    if (!tracePlaywright) {
-      return
-    }
+    // If tracing is disabled or a trace is already active, do nothing.
+    if (!tracePlaywright || this.activeTrace) return
 
     try {
-      // Clean up if any previous traces are still active
-      await teardown(this.teardownTracing.bind(this))
-
       await context.tracing.start({
         screenshots: true,
         snapshots: true,
@@ -84,9 +86,8 @@ export class Playwright<TCurrent = undefined> {
   }
 
   private async teardownTracing() {
-    if (!this.activeTrace) {
-      return
-    }
+    // If no trace is active, do nothing.
+    if (!this.activeTrace) return
 
     try {
       const traceDir = path.join(__dirname, '../../traces')
@@ -99,16 +100,184 @@ export class Playwright<TCurrent = undefined> {
       )
 
       await fs.remove(traceOutputPath)
-      await context!.tracing.stop({
+      await this.context.tracing.stop({
         path: traceOutputPath,
       })
     } catch (e) {
-      require('console').warn('Failed to teardown playwright tracing', e)
+      logger.warn('Failed to teardown playwright tracing', e)
     } finally {
       this.activeTrace = undefined
     }
   }
 
+  private static shared?: Browser | undefined
+  static async setup(
+    browserName: string,
+    locale: string,
+    javaScriptEnabled: boolean,
+    ignoreHTTPSErrors: boolean,
+    headless: boolean,
+    userAgent: string | undefined
+  ) {
+    let device
+    if (process.env.DEVICE_NAME) {
+      device = devices[process.env.DEVICE_NAME]
+
+      if (!device) {
+        throw new Error(
+          `Invalid playwright device name ${process.env.DEVICE_NAME}`
+        )
+      }
+    }
+
+    // Create a browser instance if it doesn't exist using the singleton
+    // pattern.
+    const browser = (this.shared ??= await launchBrowser(browserName, {
+      headless,
+    }))
+
+    const context = await browser.newContext({
+      locale,
+      javaScriptEnabled,
+      ignoreHTTPSErrors,
+      ...(userAgent ? { userAgent } : {}),
+      ...device,
+    })
+
+    return new PlaywrightManager(context)
+  }
+
+  private constructor(context: BrowserContext) {
+    this.context = context
+  }
+
+  async closeContext(): Promise<void> {
+    try {
+      await this.teardownTracing()
+      await this.context.close()
+    } catch (err) {
+      console.error('Failed to close context', err)
+    }
+  }
+
+  async close() {
+    try {
+      await PlaywrightManager.shared?.close()
+    } catch (err) {
+      console.error('Failed to close browser', err)
+    } finally {
+      PlaywrightManager.shared = undefined
+    }
+  }
+
+  async newPage(
+    url: string,
+    opts?: {
+      disableCache?: boolean
+      cpuThrottleRate?: number
+      pushErrorAsConsoleLog?: boolean
+      beforePageLoad?: (page: Page) => void
+    }
+  ) {
+    const page = await this.context.newPage()
+
+    if (opts?.disableCache) {
+      // TODO: this doesn't seem to work (dev tools does not check the box as expected)
+      const session = await this.context.newCDPSession(page)
+      session.send('Network.setCacheDisabled', { cacheDisabled: true })
+    }
+
+    if (opts?.cpuThrottleRate) {
+      const session = await this.context.newCDPSession(page)
+      // https://chromedevtools.github.io/devtools-protocol/tot/Emulation/#method-setCPUThrottlingRate
+      session.send('Emulation.setCPUThrottlingRate', {
+        rate: opts.cpuThrottleRate,
+      })
+    }
+
+    await this.initContextTracing(url, this.context)
+    const browser = new Playwright(page, opts)
+
+    opts?.beforePageLoad?.(page)
+    await browser.goto(url, { waitUntil: 'load' })
+
+    return browser
+  }
+}
+
+export class Playwright<TCurrent = void> {
+  private readonly page: Page
+
+  constructor(
+    page: Page,
+    opts: { pushErrorAsConsoleLog?: boolean } | undefined
+  ) {
+    this.page = page
+
+    page.setDefaultTimeout(defaultTimeout)
+    page.setDefaultNavigationTimeout(defaultTimeout)
+
+    page.on('console', (msg) => {
+      console.log('browser log:', msg)
+
+      this._logs.push(
+        Promise.all(
+          msg.args().map((handle) => handle.jsonValue().catch(() => {}))
+        ).then((args) => ({ source: msg.type(), message: msg.text(), args }))
+      )
+    })
+    page.on('crash', () => {
+      console.error('page crashed')
+    })
+    page.on('pageerror', (error) => {
+      console.error('page error', error)
+
+      if (opts?.pushErrorAsConsoleLog) {
+        this._logs.push({
+          source: 'error',
+          message: error.message,
+          args: [],
+        })
+      }
+    })
+    page.on('request', (req) => {
+      this.eventCallbacks.request.forEach((cb) => cb(req))
+    })
+    page.on('response', (res) => {
+      this.eventCallbacks.response.forEach((cb) => cb(res))
+    })
+
+    page.on('websocket', (ws) => {
+      if (tracePlaywright) {
+        page
+          .evaluate(`console.log('connected to ws at ${ws.url()}')`)
+          .catch(() => {})
+
+        ws.on('close', () =>
+          page
+            .evaluate(`console.log('closed websocket ${ws.url()}')`)
+            .catch(() => {})
+        )
+      }
+      ws.on('framereceived', (frame) => {
+        this._websocketFrames.push({ payload: frame.payload })
+
+        if (tracePlaywright) {
+          page
+            .evaluate(`console.log('received ws message ${frame.payload}')`)
+            .catch(() => {})
+        }
+      })
+    })
+  }
+
+  private readonly eventCallbacks: Record<
+    EventType,
+    Set<(...args: any[]) => void>
+  > = {
+    request: new Set(),
+    response: new Set(),
+  }
   on(
     event: 'request',
     cb: (request: PlaywrightRequest) => void | Promise<void>
@@ -140,227 +309,126 @@ export class Playwright<TCurrent = undefined> {
     this.eventCallbacks[event]?.delete(cb)
   }
 
-  async setup(
-    browserName: string,
-    locale: string,
-    javaScriptEnabled: boolean,
-    ignoreHTTPSErrors: boolean,
-    headless: boolean,
-    userAgent: string | undefined
-  ) {
-    let device
-
-    if (process.env.DEVICE_NAME) {
-      device = devices[process.env.DEVICE_NAME]
-
-      if (!device) {
-        throw new Error(
-          `Invalid playwright device name ${process.env.DEVICE_NAME}`
-        )
-      }
-    }
-
-    if (browser) {
-      if (contextHasJSEnabled !== javaScriptEnabled) {
-        // If we have switched from having JS enable/disabled we need to recreate the context.
-        await teardown(this.teardownTracing.bind(this))
-        await context?.close()
-        context = await browser.newContext({
-          locale,
-          javaScriptEnabled,
-          ignoreHTTPSErrors,
-          ...(userAgent ? { userAgent } : {}),
-          ...device,
-        })
-        contextHasJSEnabled = javaScriptEnabled
-      }
-      return
-    }
-
-    browser = await this.launchBrowser(browserName, { headless })
-    context = await browser.newContext({
-      locale,
-      javaScriptEnabled,
-      ignoreHTTPSErrors,
-      ...(userAgent ? { userAgent } : {}),
-      ...device,
-    })
-    contextHasJSEnabled = javaScriptEnabled
-  }
-
-  async close(): Promise<void> {
-    await teardown(this.teardownTracing.bind(this))
-    await page?.close()
-  }
-
-  async launchBrowser(browserName: string, launchOptions: Record<string, any>) {
-    if (browserName === 'safari') {
-      return await webkit.launch(launchOptions)
-    } else if (browserName === 'firefox') {
-      return await firefox.launch({
-        ...launchOptions,
-        firefoxUserPrefs: {
-          ...launchOptions.firefoxUserPrefs,
-          // The "fission.webContentIsolationStrategy" pref must be
-          // set to 1 on Firefox due to the bug where a new history
-          // state is pushed on a page reload.
-          // See https://github.com/microsoft/playwright/issues/22640
-          // See https://bugzilla.mozilla.org/show_bug.cgi?id=1832341
-          'fission.webContentIsolationStrategy': 1,
-        },
-      })
-    } else {
-      return await chromium.launch({
-        devtools: !launchOptions.headless,
-        ...launchOptions,
-        ignoreDefaultArgs: ['--disable-back-forward-cache'],
-      })
-    }
-  }
-
-  async get(url: string): Promise<void> {
-    await page.goto(url)
-  }
-
-  async loadPage(
+  async goto(
     url: string,
-    opts?: {
-      disableCache?: boolean
-      cpuThrottleRate?: number
-      pushErrorAsConsoleLog?: boolean
-      beforePageLoad?: (page: Page) => void
+    options?: {
+      referer?: string
+      timeout?: number
+      waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit'
+      waitUntilHydration?: boolean
     }
   ) {
-    await this.close()
+    const defaultOptions = {
+      waitUntilHydration: true,
+    } as const
+    const { waitUntilHydration, ...gotoOptions } = Object.assign(
+      {},
+      defaultOptions,
+      options
+    )
 
-    // clean-up existing pages
-    for (const oldPage of context!.pages()) {
-      await oldPage.close()
-    }
+    // If the url is relative, we need to resolve it against the current page url.
+    // This is necessary to ensure that the url is always absolute and to avoid
+    // issues with relative urls in the browser.
+    const base = this.page.url()
+    const resolved =
+      base !== 'about:blank' &&
+      !(url.startsWith('http:') || url.startsWith('https:'))
+        ? new URL(url, this.page.url()).toString()
+        : url
 
-    await this.initContextTracing(url, context!)
-    page = await context!.newPage()
-
-    page.setDefaultTimeout(defaultTimeout)
-    page.setDefaultNavigationTimeout(defaultTimeout)
-
-    pageLogs = []
-    websocketFrames = []
-
-    page.on('console', (msg) => {
-      console.log('browser log:', msg)
-
-      pageLogs.push(
-        Promise.all(
-          msg.args().map((handle) => handle.jsonValue().catch(() => {}))
-        ).then((args) => ({ source: msg.type(), message: msg.text(), args }))
-      )
+    const response = await this.page.goto(resolved, {
+      // Unless overridden, we wait for the load event to fire before returning.
+      waitUntil: 'load',
+      ...gotoOptions,
     })
-    page.on('crash', () => {
-      console.error('page crashed')
-    })
-    page.on('pageerror', (error) => {
-      console.error('page error', error)
 
-      if (opts?.pushErrorAsConsoleLog) {
-        pageLogs.push({ source: 'error', message: error.message, args: [] })
+    if (waitUntilHydration) {
+      try {
+        await waitForHydration(this, url)
+      } catch (error) {
+        throw new Error('Failed to wait for hydration', { cause: error })
       }
-    })
-    page.on('request', (req) => {
-      this.eventCallbacks.request.forEach((cb) => cb(req))
-    })
-    page.on('response', (res) => {
-      this.eventCallbacks.response.forEach((cb) => cb(res))
-    })
-
-    if (opts?.disableCache) {
-      // TODO: this doesn't seem to work (dev tools does not check the box as expected)
-      const session = await context!.newCDPSession(page)
-      session.send('Network.setCacheDisabled', { cacheDisabled: true })
     }
 
-    if (opts?.cpuThrottleRate) {
-      const session = await context!.newCDPSession(page)
-      // https://chromedevtools.github.io/devtools-protocol/tot/Emulation/#method-setCPUThrottlingRate
-      session.send('Emulation.setCPUThrottlingRate', {
-        rate: opts.cpuThrottleRate,
-      })
-    }
-
-    page.on('websocket', (ws) => {
-      if (tracePlaywright) {
-        page
-          .evaluate(`console.log('connected to ws at ${ws.url()}')`)
-          .catch(() => {})
-
-        ws.on('close', () =>
-          page
-            .evaluate(`console.log('closed websocket ${ws.url()}')`)
-            .catch(() => {})
-        )
-      }
-      ws.on('framereceived', (frame) => {
-        websocketFrames.push({ payload: frame.payload })
-
-        if (tracePlaywright) {
-          page
-            .evaluate(`console.log('received ws message ${frame.payload}')`)
-            .catch(() => {})
-        }
-      })
-    })
-
-    opts?.beforePageLoad?.(page)
-
-    await page.goto(url, { waitUntil: 'load' })
+    return response
   }
 
   back(options?: Parameters<Page['goBack']>[0]) {
     // do not preserve the previous chained value, it might be invalid after a navigation.
     return this.startChain(async () => {
-      await page.goBack(options)
+      await this.page.goBack(options)
     })
   }
+
   forward(options?: Parameters<Page['goForward']>[0]) {
     // do not preserve the previous chained value, it might be invalid after a navigation.
     return this.startChain(async () => {
-      await page.goForward(options)
+      await this.page.goForward(options)
     })
   }
-  refresh() {
+
+  refresh(options?: {
+    waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit'
+    waitUntilHydration?: boolean
+  }) {
+    const defaultOptions = {
+      waitUntilHydration: true,
+      waitUntil: 'load',
+    } as const
+    const { waitUntilHydration, waitUntil } = Object.assign(
+      {},
+      defaultOptions,
+      options
+    )
+
     // do not preserve the previous chained value, it's likely to be invalid after a reload.
     return this.startChain(async () => {
-      await page.reload()
+      await this.page.reload({ waitUntil })
+
+      if (waitUntilHydration) {
+        try {
+          await waitForHydration(this, await this.url())
+        } catch (error) {
+          throw new Error('Failed to wait for hydration', { cause: error })
+        }
+      }
     })
   }
   setDimensions({ width, height }: { height: number; width: number }) {
-    return this.startOrPreserveChain(() =>
-      page.setViewportSize({ width, height })
-    )
+    return this.startOrPreserveChain(async () => {
+      await this.page.setViewportSize({ width, height })
+    })
   }
   addCookie(opts: { name: string; value: string }) {
     return this.startOrPreserveChain(async () =>
-      context!.addCookies([
+      this.page.context().addCookies([
         {
           path: '/',
-          domain: await page.evaluate('window.location.hostname'),
+          domain: await this.page?.evaluate('window.location.hostname'),
           ...opts,
         },
       ])
     )
   }
   deleteCookies() {
-    return this.startOrPreserveChain(async () => context!.clearCookies())
+    return this.startOrPreserveChain(async () =>
+      this.page.context().clearCookies()
+    )
   }
 
   private wrapElement(el: ElementHandle, selector: string): ElementHandleExt {
-    function getComputedCss(prop: string) {
-      return page.evaluate(
-        function (args) {
-          const style = getComputedStyle(document.querySelector(args.selector)!)
-          return style[args.prop] || null
-        },
-        { selector, prop }
+    const getComputedCss = (prop: string) => {
+      return (
+        this.page.evaluate(
+          function (args) {
+            const style = getComputedStyle(
+              document.querySelector(args.selector)!
+            )
+            return style[args.prop] || null
+          },
+          { selector, prop }
+        ) ?? Promise.resolve(null)
       )
     }
 
@@ -414,11 +482,15 @@ export class Playwright<TCurrent = undefined> {
   }
 
   keydown(key: string) {
-    return this.startOrPreserveChain(() => page.keyboard.down(key))
+    return this.startOrPreserveChain(
+      () => this.page?.keyboard.down(key) ?? Promise.resolve()
+    )
   }
 
   keyup(key: string) {
-    return this.startOrPreserveChain(() => page.keyboard.up(key))
+    return this.startOrPreserveChain(
+      () => this.page?.keyboard.up(key) ?? Promise.resolve()
+    )
   }
 
   click(this: Playwright<ElementHandleExt>) {
@@ -436,37 +508,36 @@ export class Playwright<TCurrent = undefined> {
   }
 
   elementsByCss(selector: string) {
-    return this.startChain(() =>
-      page.$$(selector).then((els) => {
-        return els.map((el) => {
-          const origGetAttribute = el.getAttribute.bind(el)
-          el.getAttribute = (name) => {
-            // ensure getAttribute defaults to empty string to
-            // match selenium
-            return origGetAttribute(name).then((val) => val || '')
-          }
-          return el
-        })
+    return this.startChain(async () => {
+      const els = await this.page.$$(selector)
+      return els.map((el) => {
+        const origGetAttribute = el.getAttribute.bind(el)
+        el.getAttribute = (name) => {
+          // ensure getAttribute defaults to empty string to
+          // match selenium
+          return origGetAttribute(name).then((val) => val || '')
+        }
+        return el
       })
-    )
+    })
   }
 
   waitForElementByCss(selector: string, timeout = 10_000) {
     return this.startChain(async () => {
-      const el = await page.waitForSelector(selector, {
+      const el = await this.page.waitForSelector(selector, {
         timeout,
         state: 'attached',
       })
       // it seems selenium waits longer and tests rely on this behavior
       // so we wait for the load event fire before returning
-      await page.waitForLoadState()
-      return this.wrapElement(el, selector)
+      await this.page.waitForLoadState()
+      return this.wrapElement(el!, selector)
     })
   }
 
   waitForCondition(snippet: string, timeout?: number) {
     return this.startOrPreserveChain(async () => {
-      await page.waitForFunction(snippet, { timeout })
+      await this.page.waitForFunction(snippet, { timeout })
     })
   }
 
@@ -485,8 +556,8 @@ export class Playwright<TCurrent = undefined> {
     fn: string | ((...args: any[]) => any),
     ...args: any[]
   ): Playwright<any> & Promise<any> {
-    return this.startChain(async () =>
-      page
+    return this.startChain(async () => {
+      return this.page
         .evaluate(fn, ...args)
         .catch((err) => {
           // TODO: gross, why are we doing this
@@ -494,17 +565,18 @@ export class Playwright<TCurrent = undefined> {
           return null!
         })
         .finally(async () => {
-          await page.waitForLoadState()
+          await this.page?.waitForLoadState()
         })
-    )
+    })
   }
 
+  private readonly _logs: Array<Promise<PageLog> | PageLog> = []
   async log<T extends boolean = false>(options?: { includeArgs?: T }) {
     return this.startChain(
       () =>
         options?.includeArgs
-          ? Promise.all(pageLogs)
-          : Promise.all(pageLogs).then((logs) =>
+          ? Promise.all(this._logs)
+          : Promise.all(this._logs).then((logs) =>
               logs.map(({ source, message }) => ({ source, message }))
             )
       // TODO: Starting with TypeScript 5.8 we might not need this type cast.
@@ -515,28 +587,37 @@ export class Playwright<TCurrent = undefined> {
     >
   }
 
-  async websocketFrames() {
-    return this.startChain(() => websocketFrames)
+  private readonly _websocketFrames: Array<WebSocketFrame> = []
+  async websocketFrames(): Promise<ReadonlyArray<WebSocketFrame>> {
+    return this.startChain(() => this._websocketFrames)
   }
 
   async url() {
-    return this.startChain(() => page.url())
+    return this.startChain(() => {
+      return this.page.url()
+    })
   }
 
   async waitForIdleNetwork() {
     return this.startOrPreserveChain(() => {
-      return page.waitForLoadState('networkidle')
+      return this.page.waitForLoadState('networkidle')
     })
   }
 
   locateRedbox(): Locator {
-    return page.locator(
+    if (!this.page) {
+      throw new Error('No page is loaded')
+    }
+    return this.page.locator(
       'nextjs-portal [aria-labelledby="nextjs__container_errors_label"]'
     )
   }
 
   locateDevToolsIndicator(): Locator {
-    return page.locator('nextjs-portal [data-nextjs-dev-tools-button]')
+    if (!this.page) {
+      throw new Error('No page is loaded')
+    }
+    return this.page.locator('nextjs-portal [data-nextjs-dev-tools-button]')
   }
 
   /** A call that expects to be chained after a previous call, because it needs its value. */

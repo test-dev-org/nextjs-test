@@ -2,7 +2,6 @@ import { createNext, FileRef } from 'e2e-utils'
 import { NextInstance } from 'e2e-utils'
 import { check } from 'next-test-utils'
 import { join } from 'path'
-import webdriver from 'next-webdriver'
 
 describe('link-with-api-rewrite', () => {
   let next: NextInstance
@@ -19,56 +18,44 @@ describe('link-with-api-rewrite', () => {
   afterAll(() => next.destroy())
 
   it('should perform hard navigation for rewritten urls', async () => {
-    const browser = await webdriver(next.url, '/')
+    const browser = await next.browser('/')
 
-    try {
-      // Click the link on the page, we expect that there will be a hard
-      // navigation later (we do this be checking that the window global is
-      // unset).
-      await browser.eval('window.beforeNav = "hi"')
-      await browser.elementById('rewrite').click()
-      await check(() => browser.eval('window.beforeNav'), {
-        test: (content) => content !== 'hi',
-      })
+    // Click the link on the page, we expect that there will be a hard
+    // navigation later (we do this be checking that the window global is
+    // unset).
+    await browser.eval('window.beforeNav = "hi"')
+    await browser.elementById('rewrite').click()
+    await check(() => browser.eval('window.beforeNav'), {
+      test: (content) => content !== 'hi',
+    })
 
-      // Check to see that we were in fact navigated to the correct page.
-      const pathname = await browser.eval('window.location.pathname')
-      expect(pathname).toBe('/some/route/for')
+    // Check to see that we were in fact navigated to the correct page.
+    const pathname = await browser.eval('window.location.pathname')
+    expect(pathname).toBe('/some/route/for')
 
-      // Check to see that the resulting data is coming from the right endpoint.
-      const text = await browser.eval(
-        'window.document.documentElement.innerText'
-      )
-      expect(text).toBe('{"from":"/some/route/for"}')
-    } finally {
-      await browser.close()
-    }
+    // Check to see that the resulting data is coming from the right endpoint.
+    const text = await browser.eval('window.document.documentElement.innerText')
+    expect(text).toBe('{"from":"/some/route/for"}')
   })
 
   it('should perform hard navigation for direct urls', async () => {
-    const browser = await webdriver(next.url, '/')
+    const browser = await next.browser('/')
 
-    try {
-      // Click the link on the page, we expect that there will be a hard
-      // navigation later (we do this be checking that the window global is
-      // unset).
-      await browser.eval('window.beforeNav = "hi"')
-      await browser.elementById('direct').click()
-      await check(() => browser.eval('window.beforeNav'), {
-        test: (content) => content !== 'hi',
-      })
+    // Click the link on the page, we expect that there will be a hard
+    // navigation later (we do this be checking that the window global is
+    // unset).
+    await browser.eval('window.beforeNav = "hi"')
+    await browser.elementById('direct').click()
+    await check(() => browser.eval('window.beforeNav'), {
+      test: (content) => content !== 'hi',
+    })
 
-      // Check to see that we were in fact navigated to the correct page.
-      const pathname = await browser.eval('window.location.pathname')
-      expect(pathname).toBe('/api/json')
+    // Check to see that we were in fact navigated to the correct page.
+    const pathname = await browser.eval('window.location.pathname')
+    expect(pathname).toBe('/api/json')
 
-      // Check to see that the resulting data is coming from the right endpoint.
-      const text = await browser.eval(
-        'window.document.documentElement.innerText'
-      )
-      expect(text).toBe('{"from":""}')
-    } finally {
-      await browser.close()
-    }
+    // Check to see that the resulting data is coming from the right endpoint.
+    const text = await browser.eval('window.document.documentElement.innerText')
+    expect(text).toBe('{"from":""}')
   })
 })

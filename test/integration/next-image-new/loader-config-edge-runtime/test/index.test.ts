@@ -49,13 +49,12 @@ describe('Image Loader Config with Edge Runtime', () => {
       beforeAll(async () => {
         appPort = await findPort()
         app = await launchApp(appDir, appPort)
-        browser = await webdriver(appPort, '/')
+        browser = await webdriver(appPort, '/', {
+          teardownPolicy: 'afterAll',
+        })
       })
       afterAll(async () => {
         await killApp(app)
-        if (browser) {
-          browser.close()
-        }
       })
       runTests()
     }
@@ -67,13 +66,12 @@ describe('Image Loader Config with Edge Runtime', () => {
         await nextBuild(appDir)
         appPort = await findPort()
         app = await nextStart(appDir, appPort)
-        browser = await webdriver(appPort, '/')
+        browser = await webdriver(appPort, '/', {
+          teardownPolicy: 'afterAll',
+        })
       })
       afterAll(async () => {
         await killApp(app)
-        if (browser) {
-          browser.close()
-        }
       })
       runTests()
     }

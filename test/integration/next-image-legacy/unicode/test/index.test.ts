@@ -74,13 +74,12 @@ describe('Image Component Unicode Image URL', () => {
       beforeAll(async () => {
         appPort = await findPort()
         app = await launchApp(appDir, appPort)
-        browser = await webdriver(appPort, '/')
+        browser = await webdriver(appPort, '/', {
+          teardownPolicy: 'afterAll',
+        })
       })
       afterAll(async () => {
         await killApp(app)
-        if (browser) {
-          browser.close()
-        }
       })
       runTests()
     }
@@ -92,13 +91,12 @@ describe('Image Component Unicode Image URL', () => {
         await nextBuild(appDir)
         appPort = await findPort()
         app = await nextStart(appDir, appPort)
-        browser = await webdriver(appPort, '/')
+        browser = await webdriver(appPort, '/', {
+          teardownPolicy: 'afterAll',
+        })
       })
       afterAll(async () => {
         await killApp(app)
-        if (browser) {
-          browser.close()
-        }
       })
       runTests()
     }

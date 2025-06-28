@@ -9,7 +9,6 @@ import {
   check,
   fetchViaHTTP,
 } from 'next-test-utils'
-import webdriver from 'next-webdriver'
 import {
   BUILD_MANIFEST,
   PAGES_MANIFEST,
@@ -41,7 +40,7 @@ describe('Production Usage', () => {
   })
 
   it('should navigate through history after query update', async () => {
-    const browser = await webdriver(next.appPort, '/')
+    const browser = await next.browser('/')
     await browser.eval('window.next.router.push("/about?a=b")')
     await browser.waitForElementByCss('.about-page')
     await browser.waitForCondition(`!!window.next.router.isReady`)
@@ -75,10 +74,7 @@ describe('Production Usage', () => {
     ])(
       'should handle query/hash correctly during query updating $hash $search',
       async ({ hash, search, query }) => {
-        const browser = await webdriver(
-          next.appPort,
-          `/${search || ''}${hash || ''}`
-        )
+        const browser = await next.browser(`/${search || ''}${hash || ''}`)
 
         await check(
           () =>
@@ -372,12 +368,12 @@ describe('Production Usage', () => {
 
     if (global.browserName === 'internet explorer') {
       it('should handle bad Promise polyfill', async () => {
-        const browser = await webdriver(next.appPort, '/bad-promise')
+        const browser = await next.browser('/bad-promise')
         expect(await browser.eval('window.didRender')).toBe(true)
       })
 
       it('should polyfill RegExp successfully', async () => {
-        const browser = await webdriver(next.appPort, '/regexp-polyfill')
+        const browser = await next.browser('/regexp-polyfill')
         expect(await browser.eval('window.didRender')).toBe(true)
         // wait a second for the script to be loaded
         await waitFor(1000)
@@ -389,7 +385,7 @@ describe('Production Usage', () => {
     }
 
     it('should polyfill Node.js modules', async () => {
-      const browser = await webdriver(next.appPort, '/node-browser-polyfills')
+      const browser = await next.browser('/node-browser-polyfills')
       await browser.waitForCondition('window.didRender')
 
       const data = await browser
@@ -720,7 +716,7 @@ describe('Production Usage', () => {
 
   describe('With navigation', () => {
     it('should navigate via client side', async () => {
-      const browser = await webdriver(next.appPort, '/')
+      const browser = await next.browser('/')
       const text = await browser
         .elementByCss('a')
         .click()
@@ -729,11 +725,10 @@ describe('Production Usage', () => {
         .text()
 
       expect(text).toBe('About Page')
-      await browser.close()
     })
 
     it('should navigate to nested index via client side', async () => {
-      const browser = await webdriver(next.appPort, '/another')
+      const browser = await next.browser('/another')
       await browser.eval('window.beforeNav = 1')
 
       const text = await browser
@@ -745,11 +740,10 @@ describe('Production Usage', () => {
 
       expect(text).toBe('Hello World')
       expect(await browser.eval('window.beforeNav')).toBe(1)
-      await browser.close()
     })
 
     it('should reload page successfully (on bad link)', async () => {
-      const browser = await webdriver(next.appPort, '/to-nonexistent')
+      const browser = await next.browser('/to-nonexistent')
       await browser.eval(function setup() {
         // @ts-expect-error Exists on window
         window.__DATA_BE_GONE = 'true'
@@ -762,7 +756,7 @@ describe('Production Usage', () => {
     })
 
     it('should reload page successfully (on bad data fetch)', async () => {
-      const browser = await webdriver(next.appPort, '/to-shadowed-page')
+      const browser = await next.browser('/to-shadowed-page')
       await browser.eval(function setup() {
         // @ts-expect-error Exists on window
         window.__DATA_BE_GONE = 'true'
@@ -776,7 +770,7 @@ describe('Production Usage', () => {
   })
 
   it('should navigate to external site and back', async () => {
-    const browser = await webdriver(next.appPort, '/external-and-back')
+    const browser = await next.browser('/external-and-back')
     const initialText = await browser.elementByCss('p').text()
     expect(initialText).toBe('server')
 
@@ -793,7 +787,7 @@ describe('Production Usage', () => {
   })
 
   it('should navigate to page with CSS and back', async () => {
-    const browser = await webdriver(next.appPort, '/css-and-back')
+    const browser = await next.browser('/css-and-back')
     const initialText = await browser.elementByCss('p').text()
     expect(initialText).toBe('server')
 
@@ -810,10 +804,7 @@ describe('Production Usage', () => {
   })
 
   it('should navigate to external site and back (with query)', async () => {
-    const browser = await webdriver(
-      next.appPort,
-      '/external-and-back?hello=world'
-    )
+    const browser = await next.browser('/external-and-back?hello=world')
     const initialText = await browser.elementByCss('p').text()
     expect(initialText).toBe('server')
 
@@ -830,7 +821,7 @@ describe('Production Usage', () => {
   })
 
   it('should change query correctly', async () => {
-    const browser = await webdriver(next.appPort, '/query?id=0')
+    const browser = await next.browser('/query?id=0')
     let id = await browser.elementByCss('#q0').text()
     expect(id).toBe('0')
 
@@ -847,7 +838,7 @@ describe('Production Usage', () => {
 
   describe('Runtime errors', () => {
     it('should render a server side error on the client side', async () => {
-      const browser = await webdriver(next.appPort, '/error-in-ssr-render')
+      const browser = await next.browser('/error-in-ssr-render')
       await waitFor(2000)
       const text = await browser.elementByCss('body').text()
       // this makes sure we don't leak the actual error to the client side in production
@@ -855,28 +846,22 @@ describe('Production Usage', () => {
       const headingText = await browser.elementByCss('h1').text()
       // This makes sure we render statusCode on the client side correctly
       expect(headingText).toBe('500')
-      await browser.close()
     })
 
     it('should render a client side component error', async () => {
-      const browser = await webdriver(next.appPort, '/error-in-browser-render')
+      const browser = await next.browser('/error-in-browser-render')
       await waitFor(2000)
       const text = await browser.elementByCss('body').text()
       expect(text).toMatch(
         /Application error: a client-side exception has occurred/
       )
-      await browser.close()
     })
 
     it('should call getInitialProps on _error page during a client side component error', async () => {
-      const browser = await webdriver(
-        next.appPort,
-        '/error-in-browser-render-status-code'
-      )
+      const browser = await next.browser('/error-in-browser-render-status-code')
       await waitFor(2000)
       const text = await browser.elementByCss('body').text()
       expect(text).toMatch(/This page could not be found\./)
-      await browser.close()
     })
   })
 
@@ -910,7 +895,7 @@ describe('Production Usage', () => {
     // a bug as other browsers do not behave this way.
     if (global.browserName !== 'firefox') {
       it('should reload the page on page script error', async () => {
-        const browser = await webdriver(next.appPort, '/counter')
+        const browser = await next.browser('/counter')
         const counter = await browser
           .elementByCss('#increase')
           .click()
@@ -932,8 +917,6 @@ describe('Production Usage', () => {
           .elementByCss('#counter')
           .text()
         expect(counterAfter404Page).toBe('Counter: 0')
-
-        await browser.close()
       })
     }
 
@@ -969,7 +952,7 @@ describe('Production Usage', () => {
     })
 
     it('should add prefetch tags when Link prefetch prop is used', async () => {
-      const browser = await webdriver(next.appPort, '/prefetch')
+      const browser = await next.browser('/prefetch')
 
       if (global.browserName === 'internet explorer') {
         // IntersectionObserver isn't present so we need to trigger manually
@@ -1000,13 +983,12 @@ describe('Production Usage', () => {
           expect(as).toBe('script')
         }
       }
-      await browser.close()
     })
 
     // This is a workaround to fix https://github.com/vercel/next.js/issues/5860
     // TODO: remove this workaround when https://bugs.webkit.org/show_bug.cgi?id=187726 is fixed.
     it('It does not add a timestamp to link tags with prefetch attribute', async () => {
-      const browser = await webdriver(next.appPort, '/prefetch')
+      const browser = await next.browser('/prefetch')
       const links = await browser.elementsByCss('link[rel=prefetch]')
 
       for (const element of links) {
@@ -1019,12 +1001,11 @@ describe('Production Usage', () => {
         const src = await element.getAttribute('src')
         expect(src).not.toMatch(/\?ts=/)
       }
-      await browser.close()
     })
 
     if (global.browserName === 'chrome') {
       it('should reload the page on page script error with prefetch', async () => {
-        const browser = await webdriver(next.appPort, '/counter')
+        const browser = await next.browser('/counter')
         if (global.browserName !== 'chrome') return
         const counter = await browser
           .elementByCss('#increase')
@@ -1050,8 +1031,6 @@ describe('Production Usage', () => {
           .elementByCss('#counter')
           .text()
         expect(counterAfter404Page).toBe('Counter: 0')
-
-        await browser.close()
       })
     }
   })
@@ -1118,29 +1097,22 @@ describe('Production Usage', () => {
   })
 
   it('should handle AMP correctly in IE', async () => {
-    const browser = await webdriver(next.appPort, '/some-amp')
+    const browser = await next.browser('/some-amp')
     const text = await browser.elementByCss('p').text()
     expect(text).toBe('Not AMP')
   })
 
   it('should warn when prefetch is true', async () => {
     if (global.browserName !== 'chrome') return
-    let browser
-    try {
-      browser = await webdriver(next.appPort, '/development-logs')
-      const browserLogs = await browser.log()
-      let found = false
-      browserLogs.forEach((log) => {
-        if (log.message.includes('Next.js auto-prefetches automatically')) {
-          found = true
-        }
-      })
-      expect(found).toBe(false)
-    } finally {
-      if (browser) {
-        await browser.close()
+    const browser = await next.browser('/development-logs')
+    const browserLogs = await browser.log()
+    let found = false
+    browserLogs.forEach((log) => {
+      if (log.message.includes('Next.js auto-prefetches automatically')) {
+        found = true
       }
-    }
+    })
+    expect(found).toBe(false)
   })
 
   it('should not emit stats', async () => {
@@ -1150,65 +1122,41 @@ describe('Production Usage', () => {
   })
 
   it('should contain the Next.js version in window export', async () => {
-    let browser
-    try {
-      browser = await webdriver(next.appPort, '/about')
-      const version = await browser.eval('window.next.version')
-      expect(version).toBeTruthy()
-      expect(version).toBe(
-        (await next.readJSON('node_modules/next/package.json')).version +
-          (process.env.IS_TURBOPACK_TEST ? '-turbo' : '')
-      )
-    } finally {
-      if (browser) {
-        await browser.close()
-      }
-    }
+    const browser = await next.browser('/about')
+    const version = await browser.eval('window.next.version')
+    expect(version).toBeTruthy()
+    expect(version).toBe(
+      (await next.readJSON('node_modules/next/package.json')).version +
+        (process.env.IS_TURBOPACK_TEST ? '-turbo' : '')
+    )
   })
 
   it('should clear all core performance marks', async () => {
-    let browser
-    try {
-      browser = await webdriver(next.appPort, '/fully-dynamic')
-
-      const currentPerfMarks = await browser.eval(
-        `window.performance.getEntriesByType('mark')`
+    const browser = await next.browser('/fully-dynamic')
+    const currentPerfMarks = await browser.eval(
+      `window.performance.getEntriesByType('mark')`
+    )
+    const allPerfMarks = [
+      'beforeRender',
+      'afterHydrate',
+      'afterRender',
+      'routeChange',
+    ]
+    allPerfMarks.forEach((name) =>
+      expect(currentPerfMarks).not.toContainEqual(
+        expect.objectContaining({ name })
       )
-      const allPerfMarks = [
-        'beforeRender',
-        'afterHydrate',
-        'afterRender',
-        'routeChange',
-      ]
-
-      allPerfMarks.forEach((name) =>
-        expect(currentPerfMarks).not.toContainEqual(
-          expect.objectContaining({ name })
-        )
-      )
-    } finally {
-      if (browser) {
-        await browser.close()
-      }
-    }
+    )
   })
 
   it('should not clear custom performance marks', async () => {
-    let browser
-    try {
-      browser = await webdriver(next.appPort, '/mark-in-head')
-
-      const customMarkFound = await browser.eval(
-        `window.performance.getEntriesByType('mark').filter(function(e) {
+    const browser = await next.browser('/mark-in-head')
+    const customMarkFound = await browser.eval(
+      `window.performance.getEntriesByType('mark').filter(function(e) {
         return e.name === 'custom-mark'
       }).length === 1`
-      )
-      expect(customMarkFound).toBe(true)
-    } finally {
-      if (browser) {
-        await browser.close()
-      }
-    }
+    )
+    expect(customMarkFound).toBe(true)
   })
 
   it('should have defer on all script tags', async () => {
@@ -1239,7 +1187,7 @@ describe('Production Usage', () => {
 
   if (global.browserName !== 'internet explorer') {
     it('should preserve query when hard navigating from page 404', async () => {
-      const browser = await webdriver(next.appPort, '/')
+      const browser = await next.browser('/')
       await browser.eval(`(function() {
       window.beforeNav = 1
       window.next.router.push({
@@ -1263,7 +1211,7 @@ describe('Production Usage', () => {
   }
 
   it('should remove placeholder for next/image correctly', async () => {
-    const browser = await webdriver(next.appPort, '/')
+    const browser = await next.browser('/')
 
     await browser.eval(`(function() {
       window.beforeNav = 1

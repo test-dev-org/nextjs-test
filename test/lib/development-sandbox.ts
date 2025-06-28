@@ -12,9 +12,9 @@ import {
   getRedboxDescriptionWarning,
   getRedboxErrorLink,
 } from './next-test-utils'
-import webdriver, { WebdriverOptions } from './next-webdriver'
+import { WebdriverOptions } from './next-webdriver'
 import { NextInstance } from './next-modes/base'
-import { Playwright } from 'next-webdriver'
+import { Playwright } from './browsers/playwright'
 
 export async function waitForHydration(browser: Playwright) {
   await browser.eval(() => {
@@ -50,7 +50,10 @@ export async function createSandbox(
     }
     await next.start()
 
-    const browser = await webdriver(next.url, initialUrl, webDriverOptions)
+    const browser = await next.browser(initialUrl, {
+      teardownPolicy: 'afterEach',
+      ...webDriverOptions,
+    })
 
     async function evaluate<TFn extends (...args: any[]) => any>(
       fn: TFn,
@@ -171,7 +174,6 @@ export async function createSandbox(
       get [Symbol.asyncDispose]() {
         unwrappedByTypeScriptUsingKeyword = true
         return async () => {
-          await browser.close()
           await next.stop()
           await next.clean()
         }

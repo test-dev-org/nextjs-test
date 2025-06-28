@@ -1,47 +1,57 @@
-import { getFullUrl, waitFor } from 'next-test-utils'
-import os from 'os'
-import { Playwright } from './browsers/playwright'
+import { getFullUrl, TestingLogger, waitFor } from 'next-test-utils'
+import os from 'node:os'
+import { Playwright, PlaywrightManager } from './browsers/playwright'
 import { Page } from 'playwright'
+import { BrowserManager } from './browser-manager'
+import waitForHydration from './wait-for-hydration'
 
-export type { Playwright }
+export type { Playwright, PlaywrightManager }
+
+// Constants
+const TURBOPACK_DELAY = 1_000
+const DEFAULT_BROWSER = 'chrome'
+const IPV4_FAMILY = 'IPv4' as const
+
+interface GlobalWithBrowser {
+  browserName: string
+}
+
+// Custom error classes
+class BrowserSetupError extends Error {
+  constructor(message: string, cause?: Error) {
+    super(message, { cause })
+    this.name = 'BrowserSetupError'
+  }
+}
 
 if (!process.env.TEST_FILE_PATH) {
   process.env.TEST_FILE_PATH = module.parent!.filename
 }
 
-let deviceIP: string
-const isBrowserStack = !!process.env.BROWSERSTACK
-;(global as any).browserName = process.env.BROWSER_NAME || 'chrome'
+const logger = new TestingLogger('next-webdriver')
 
-if (isBrowserStack) {
+// Utility functions
+function getDeviceIPv4Address(): string | undefined {
   const nets = os.networkInterfaces()
-  for (const key of Object.keys(nets)) {
-    let done = false
-
-    for (const item of nets[key]!) {
-      if (item.family === 'IPv4' && !item.internal) {
-        deviceIP = item.address
-        done = true
-        break
-      }
-    }
-    if (done) break
+  for (const interfaces of Object.values(nets)) {
+    const ipv4 = interfaces?.find(
+      (item) => item.family === IPV4_FAMILY && !item.internal
+    )
+    if (ipv4) return ipv4.address
   }
+  return undefined
 }
 
-let browserTeardown: (() => Promise<void>)[] = []
-let browserQuit: (() => Promise<void>) | undefined
+let deviceIP: string | undefined
+const isBrowserStack = !!process.env.BROWSERSTACK
+;(global as GlobalWithBrowser & typeof globalThis).browserName =
+  process.env.BROWSER_NAME || DEFAULT_BROWSER
 
-if (typeof afterAll === 'function') {
-  afterAll(async () => {
-    await Promise.all(browserTeardown.map((f) => f())).catch((e) =>
-      console.error('browser teardown', e)
-    )
-
-    if (browserQuit) {
-      await browserQuit()
-    }
-  })
+if (isBrowserStack) {
+  deviceIP = getDeviceIPv4Address()
+  if (!deviceIP) {
+    logger.warn('Could not detect IPv4 address for BrowserStack')
+  }
 }
 
 export interface WebdriverOptions {
@@ -83,13 +93,25 @@ export interface WebdriverOptions {
    * Override the user agent
    */
   userAgent?: string
+
+  /**
+   * The policy for tearing down the browser instance.
+   * @default 'afterEach'
+   */
+  teardownPolicy?: 'afterEach' | 'afterAll' | 'none'
 }
 
 /**
+ * Creates or reuses a browser instance for testing.
+ *
+ * The browser instance is managed as a singleton - multiple calls will reuse
+ * the same browser instance for performance. The browser is automatically
+ * cleaned up after all tests complete.
  *
  * @param appPortOrUrl can either be the port or the full URL
  * @param url the path/query to append when using appPort
- * @returns thenable browser instance
+ * @param options configuration options for the browser
+ * @returns thenable browser instance with the loaded page
  */
 export default async function webdriver(
   appPortOrUrl: string | number,
@@ -100,8 +122,9 @@ export default async function webdriver(
     waitHydration: true,
     retryWaitHydration: false,
     disableCache: false,
+    teardownPolicy: 'afterEach',
   }
-  options = Object.assign(defaultOptions, options)
+  const mergedOptions = Object.assign({}, defaultOptions, options)
   const {
     waitHydration,
     retryWaitHydration,
@@ -114,23 +137,11 @@ export default async function webdriver(
     cpuThrottleRate,
     pushErrorAsConsoleLog,
     userAgent,
-  } = options
+    teardownPolicy,
+  } = mergedOptions
 
-  const { Playwright, quit } = await import('./browsers/playwright')
-  browserQuit = quit
-
-  const browser = new Playwright()
-  const browserName = process.env.BROWSER_NAME || 'chrome'
-  await browser.setup(
-    browserName,
-    locale!,
-    !disableJavaScript,
-    Boolean(ignoreHTTPSErrors),
-    // allow headless to be overwritten for a particular test
-    typeof headless !== 'undefined' ? headless : !!process.env.HEADLESS,
-    userAgent
-  )
-  ;(global as any).browserName = browserName
+  const browserName = process.env.BROWSER_NAME || DEFAULT_BROWSER
+  ;(global as GlobalWithBrowser & typeof globalThis).browserName = browserName
 
   const fullUrl = getFullUrl(
     appPortOrUrl,
@@ -138,74 +149,52 @@ export default async function webdriver(
     isBrowserStack ? deviceIP : 'localhost'
   )
 
-  console.log(`\n> Loading browser with ${fullUrl}\n`)
+  try {
+    logger.debug(`Loading browser with ${fullUrl}`)
 
-  await browser.loadPage(fullUrl, {
-    disableCache,
-    cpuThrottleRate,
-    beforePageLoad,
-    pushErrorAsConsoleLog,
-  })
-  console.log(`\n> Loaded browser with ${fullUrl}\n`)
+    const playwright = await BrowserManager.getInstance({
+      browserName,
+      locale: locale || 'en-US',
+      javaScriptEnabled: !disableJavaScript,
+      ignoreHTTPSErrors: Boolean(ignoreHTTPSErrors),
+      // allow headless to be overwritten for a particular test
+      headless:
+        typeof headless !== 'undefined' ? headless : !!process.env.HEADLESS,
+      userAgent,
+      teardownPolicy,
+    })
 
-  browserTeardown.push(browser.close.bind(browser))
+    const page = await playwright.newPage(fullUrl, {
+      disableCache,
+      cpuThrottleRate,
+      beforePageLoad,
+      pushErrorAsConsoleLog,
+    })
+    logger.debug(`Loaded browser with ${fullUrl}`)
 
-  // Wait for application to hydrate
-  if (waitHydration) {
-    console.log(`\n> Waiting hydration for ${fullUrl}\n`)
-
-    const checkHydrated = async () => {
-      await browser.eval(() => {
-        return new Promise<void>((callback) => {
-          // if it's not a Next.js app return
-          if (
-            !document.documentElement.innerHTML.includes('__NEXT_DATA__') &&
-            // @ts-ignore next exists on window if it's a Next.js page.
-            typeof ((window as any).next && (window as any).next.version) ===
-              'undefined'
-          ) {
-            console.log('Not a next.js page, resolving hydrate check')
-            callback()
-          }
-
-          // TODO: should we also ensure router.isReady is true
-          // by default before resolving?
-          if ((window as any).__NEXT_HYDRATED) {
-            console.log('Next.js page already hydrated')
-            callback()
-          } else {
-            let timeout = setTimeout(callback, 10 * 1000)
-            ;(window as any).__NEXT_HYDRATED_CB = function () {
-              clearTimeout(timeout)
-              console.log('Next.js hydrate callback fired')
-              callback()
-            }
-          }
-        })
-      })
-    }
-
-    try {
-      await checkHydrated()
-    } catch (err) {
-      if (retryWaitHydration) {
-        // re-try in case the page reloaded during check
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-        await checkHydrated()
-      } else {
-        console.error('failed to check hydration')
-        throw err
+    // Wait for application to hydrate
+    if (waitHydration) {
+      try {
+        await waitForHydration(page, fullUrl, { retry: retryWaitHydration })
+      } catch (error) {
+        throw new BrowserSetupError(
+          'Failed to wait for hydration',
+          error as Error
+        )
       }
     }
 
-    console.log(`\n> Hydration complete for ${fullUrl}\n`)
-  }
+    // This is a temporary workaround for turbopack starting watching too late.
+    // So we delay file changes to give it some time
+    // to connect the WebSocket and start watching.
+    if (process.env.IS_TURBOPACK_TEST) {
+      await waitFor(TURBOPACK_DELAY)
+    }
 
-  // This is a temporary workaround for turbopack starting watching too late.
-  // So we delay file changes to give it some time
-  // to connect the WebSocket and start watching.
-  if (process.env.IS_TURBOPACK_TEST) {
-    await waitFor(1000)
+    return page
+  } catch (error) {
+    const errorMessage = `Failed to setup browser for ${fullUrl}`
+    logger.error(errorMessage, error as Error)
+    throw new BrowserSetupError(errorMessage, error as Error)
   }
-  return browser
 }
