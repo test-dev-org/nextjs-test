@@ -321,12 +321,13 @@ async function handleTrace(
     getSourceMappedStackFrames(entry.consoleMethodStack, ctx, distDir, false),
     getSourceMappedStackFrames(entry.consoleMethodStack, ctx, distDir),
   ])
+
   const location = getConsoleLocation(mappedIgnored)
   forwardConsole.log(
     browserPrefix,
     ...deserializedArgs,
     `\n${mapped.stack}`,
-    ...(location ? [`\n${location}`] : [])
+    ...(location ? [`\n${dim(`(${location})`)}`] : [])
   )
 }
 
