@@ -144,10 +144,11 @@ function processConsoleFormatStrings(args: any[]): any[] {
   return args
 }
 
-// in the case of logging errors, we want to ignore all css
-// passed since we apply our own custom coloring to error
-// stacks and code blocks
-function processConsoleFormatStringsNoCss(args: any[]): any[] {
+// in the case of logging errors, we want to strip formatting
+// modifiers since we apply our own custom coloring to error
+// stacks and code blocks, and otherwise it would conflict
+// and cause awful output
+function stripFormatSpecifiers(args: any[]): any[] {
   if (args.length === 0 || typeof args[0] !== 'string') return args
 
   const fmtIn = String(args[0])
@@ -156,7 +157,6 @@ function processConsoleFormatStringsNoCss(args: any[]): any[] {
   if (!fmtIn.includes('%')) return args
 
   let fmtOut = ''
-  const outArgs: any[] = []
   let argPtr = 0
 
   for (let i = 0; i < fmtIn.length; i++) {
@@ -166,34 +166,29 @@ function processConsoleFormatStringsNoCss(args: any[]): any[] {
     }
 
     if (fmtIn[i + 1] === '%') {
-      fmtOut += '%%'
+      fmtOut += '%'
       i++
       continue
     }
 
     const token = fmtIn[++i]
 
-    if (token === 'c') {
-      argPtr++
-      continue
-    }
-
-    if ('sdifoOj'.includes(token) || token === 'O') {
-      fmtOut += '%' + token
-      outArgs.push(rest[argPtr++])
+    if ('csdifoOj'.includes(token) || token === 'O') {
+      if (argPtr < rest.length) {
+        fmtOut += String(rest[argPtr++])
+      }
       continue
     }
 
     fmtOut += '%' + token
   }
 
-  if (argPtr < rest.length) outArgs.push(...rest.slice(argPtr))
-
-  try {
-    return [util.format(fmtOut, ...outArgs)]
-  } catch {
-    return args
+  const result = [fmtOut]
+  if (argPtr < rest.length) {
+    result.push(...rest.slice(argPtr))
   }
+
+  return result
 }
 
 async function prepareFormattedErrorArgs(
@@ -256,17 +251,22 @@ async function prepareConsoleErrorArgs(
    * - it will look overwhelming to see 2 stacks and 2 code blocks
    * - the user already knows where the console.error is at because we append the location
    */
+  const location = getConsoleLocation(mappedStack)
   if (entry.args.some((a) => a.kind === 'formatted-error-arg')) {
-    return [
-      ...processConsoleFormatStringsNoCss(deserialized),
-      dim(`(${getConsoleLocation(mappedStack)})`),
-    ]
+    const result = stripFormatSpecifiers(deserialized)
+    if (location) {
+      result.push(dim(`(${location})`))
+    }
+    return result
   }
-  return [
+  const result = [
     ...processConsoleFormatStrings(deserialized),
     colorError(mappedStack),
-    dim(`(${getConsoleLocation(mappedStack)})`),
   ]
+  if (location) {
+    result.push(dim(`(${location})`))
+  }
+  return result
 }
 
 async function handleTable(
