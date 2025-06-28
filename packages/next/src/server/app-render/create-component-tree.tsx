@@ -45,6 +45,7 @@ export function createComponentTree(props: {
   preloadCallbacks: PreloadCallbacks
   authInterrupts: boolean
   StreamingMetadataOutlet: React.ComponentType | null
+  shouldIncludeNotFoundSegment: boolean
 }): Promise<CacheNodeSeedData> {
   return getTracer().trace(
     NextNodeServerSpan.createComponentTree,
@@ -81,6 +82,7 @@ async function createComponentTreeInternal({
   preloadCallbacks,
   authInterrupts,
   StreamingMetadataOutlet,
+  shouldIncludeNotFoundSegment,
 }: {
   loaderTree: LoaderTree
   parentParams: Params
@@ -95,6 +97,7 @@ async function createComponentTreeInternal({
   preloadCallbacks: PreloadCallbacks
   authInterrupts: boolean
   StreamingMetadataOutlet: React.ComponentType | null
+  shouldIncludeNotFoundSegment: boolean
 }): Promise<CacheNodeSeedData> {
   const {
     renderOpts: { nextConfigOutput, experimental },
@@ -204,7 +207,7 @@ async function createComponentTreeInternal({
   const rootLayoutIncludedAtThisLevelOrAbove =
     rootLayoutIncluded || rootLayoutAtThisLevel
 
-  const [NotFound, notFoundStyles] = notFound
+  let [NotFound, notFoundStyles] = notFound
     ? await createComponentStylesAndScripts({
         ctx,
         filePath: notFound[1],
@@ -213,6 +216,11 @@ async function createComponentTreeInternal({
         injectedJS: injectedJSWithCurrentLayout,
       })
     : []
+
+  if (!shouldIncludeNotFoundSegment) {
+    NotFound = () => <>Lazy Not Found111</>
+    notFoundStyles = undefined
+  }
 
   const [Forbidden, forbiddenStyles] =
     authInterrupts && forbidden
@@ -443,6 +451,7 @@ async function createComponentTreeInternal({
         const isChildrenRouteKey = parallelRouteKey === 'children'
         const parallelRoute = parallelRoutes[parallelRouteKey]
 
+        // TODO: remove these from the router
         const notFoundComponent = isChildrenRouteKey
           ? notFoundElement
           : undefined
@@ -533,6 +542,7 @@ async function createComponentTreeInternal({
             StreamingMetadataOutlet: isChildrenRouteKey
               ? StreamingMetadataOutlet
               : null,
+            shouldIncludeNotFoundSegment,
           })
 
           childCacheNodeSeedData = seedData
@@ -577,7 +587,10 @@ async function createComponentTreeInternal({
             }
             templateStyles={templateStyles}
             templateScripts={templateScripts}
-            notFound={notFoundComponent}
+            lazyNotFound={!shouldIncludeNotFoundSegment}
+            notFound={
+              shouldIncludeNotFoundSegment ? notFoundComponent : undefined
+            }
             forbidden={forbiddenComponent}
             unauthorized={unauthorizedComponent}
             // Since gracefullyDegrade only applies to bots, only
@@ -853,6 +866,7 @@ async function createComponentTreeInternal({
               notFound={notfoundClientSegment}
               forbidden={forbiddenClientSegment}
               unauthorized={unauthorizedClientSegment}
+              lazyNotFound={!shouldIncludeNotFoundSegment}
             >
               {layerAssets}
               {clientSegment}
@@ -908,6 +922,7 @@ async function createComponentTreeInternal({
         segmentNode = (
           <HTTPAccessFallbackBoundary
             key={cacheNodeKey}
+            lazyNotFound={!shouldIncludeNotFoundSegment}
             notFound={
               notFoundElement ? (
                 <>

@@ -372,7 +372,7 @@ function InnerLayoutRouter({
       ? use(rsc)
       : rsc
 
-  if (!resolvedRsc) {
+  if (!resolvedRsc && segmentPath[0] !== '__not_found__') {
     // The data for this segment is not available, and there's no pending
     // navigation that will be able to fulfill it. We need to fetch more from
     // the server and patch the cache.
@@ -507,6 +507,7 @@ export default function OuterLayoutRouter({
   forbidden,
   unauthorized,
   gracefullyDegrade,
+  lazyNotFound,
 }: {
   parallelRouterKey: string
   error: ErrorComponent | undefined
@@ -519,6 +520,7 @@ export default function OuterLayoutRouter({
   forbidden: React.ReactNode | undefined
   unauthorized: React.ReactNode | undefined
   gracefullyDegrade?: boolean
+  lazyNotFound: boolean
 }) {
   const context = useContext(LayoutRouterContext)
   if (!context) {
@@ -637,6 +639,7 @@ export default function OuterLayoutRouter({
                   notFound={notFound}
                   forbidden={forbidden}
                   unauthorized={unauthorized}
+                  lazyNotFound={lazyNotFound}
                 >
                   <RedirectBoundary>
                     <InnerLayoutRouter
