@@ -245,15 +245,28 @@ async function prepareConsoleErrorArgs(
     })
   )
 
-  if (entry.args.some((a) => a.kind === 'formatted-error-arg')) {
-    return processConsoleFormatStringsNoCss(deserialized)
-  }
   const mappedStack = await getSourceMappedStackFrames(
     entry.consoleErrorStack,
     ctx,
     distDir
   )
-  return [...processConsoleFormatStrings(deserialized), colorError(mappedStack)]
+
+  /**
+   * don't show the stack + codeblock when there are errors present, since:
+   * - it will look overwhelming to see 2 stacks and 2 code blocks
+   * - the user already knows where the console.error is at because we append the location
+   */
+  if (entry.args.some((a) => a.kind === 'formatted-error-arg')) {
+    return [
+      ...processConsoleFormatStringsNoCss(deserialized),
+      dim(`(${getConsoleLocation(mappedStack)})`),
+    ]
+  }
+  return [
+    ...processConsoleFormatStrings(deserialized),
+    colorError(mappedStack),
+    dim(`(${getConsoleLocation(mappedStack)})`),
+  ]
 }
 
 async function handleTable(
