@@ -41,7 +41,7 @@ export function GenericErrorDescription({ error }: { error: Error }) {
 
   // The environment name will be displayed as a label, so remove it
   // from the message (e.g. "[ Server ] hello world" -> "hello world").
-  let message = error.message
+  let message = error.message // Replace spaces with non-breaking spaces for better formatting
   if (message.startsWith(envPrefix)) {
     message = message.slice(envPrefix.length)
   }

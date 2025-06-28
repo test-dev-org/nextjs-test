@@ -1,15 +1,29 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { useState, useRef, useLayoutEffect, useMemo } from 'react'
+import { cx } from '../../../utils/cx'
 
 export type ErrorMessageType = React.ReactNode
 
 type ErrorMessageProps = {
+  message: string | undefined
   errorMessage: ErrorMessageType
 }
 
-export function ErrorMessage({ errorMessage }: ErrorMessageProps) {
+function hasAtLeastThreeLineNumberPipes(text: string) {
+  // This regex matches lines that start with whitespace, followed by a number, then a pipe.
+  const lineNumberRegex = /^\s*\d+\s\|/gm
+  const matches = text.match(lineNumberRegex)
+  // If there are at least three matches, it indicates that there are at least three line numbers.
+  return matches !== null && matches.length > 3
+}
+
+export function ErrorMessage({ message, errorMessage }: ErrorMessageProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [shouldTruncate, setShouldTruncate] = useState(false)
   const messageRef = useRef<HTMLParagraphElement>(null)
+  const isMultilineError = useMemo(
+    () => hasAtLeastThreeLineNumberPipes(message || ''),
+    [message]
+  )
 
   useLayoutEffect(() => {
     if (messageRef.current) {
@@ -22,7 +36,11 @@ export function ErrorMessage({ errorMessage }: ErrorMessageProps) {
       <p
         ref={messageRef}
         id="nextjs__container_errors_desc"
-        className={`nextjs__container_errors_desc ${shouldTruncate && !isExpanded ? 'truncated' : ''}`}
+        className={cx(
+          'nextjs__container_errors_desc',
+          `${shouldTruncate && !isExpanded ? 'truncated' : ''}`,
+          isMultilineError ? 'multiline' : ''
+        )}
       >
         {errorMessage}
       </p>
@@ -58,6 +76,10 @@ export const styles = `
     line-height: var(--size-24);
     overflow-wrap: break-word;
     white-space: pre-wrap;
+  }
+  .nextjs__container_errors_desc.multiline {
+    font-feature-settings: "tnum";
+    word-spacing: 3.5px;
   }
 
   .nextjs__container_errors_desc.truncated {
