@@ -2074,6 +2074,7 @@ async function renderToStream(
         formState
       ),
       isStaticGeneration: generateStaticHTML,
+      allowStreamingDuringStaticGeneration: ctx.workStore.forceStatic,
       getServerInsertedHTML,
       getServerInsertedMetadata,
       validateRootLayout: dev,
@@ -2220,6 +2221,7 @@ async function renderToStream(
           formState
         ),
         isStaticGeneration: generateStaticHTML,
+        allowStreamingDuringStaticGeneration: ctx.workStore.forceStatic,
         getServerInsertedHTML: makeGetServerInsertedHTML({
           polyfills,
           renderServerInsertedHTML,
@@ -2317,17 +2319,14 @@ async function spawnDynamicValidationInDev(
     rootParams,
     implicitTags,
     renderSignal: initialServerRenderController.signal,
-    controller: initialServerPrerenderController,
-    // During the initial prerender we need to track all cache reads to ensure
-    // we render long enough to fill every cache it is possible to visit during
-    // the final prerender.
+    controller: initialServerRenderController,
     cacheSignal,
     dynamicTracking: null,
     allowEmptyStaticShell,
     revalidate: INFINITE_CACHE,
     expire: INFINITE_CACHE,
     stale: INFINITE_CACHE,
-    tags: [...implicitTags.tags],
+    tags: [],
     prerenderResumeDataCache,
     renderResumeDataCache: null,
     hmrRefreshHash,
@@ -2940,7 +2939,7 @@ async function prerenderToStream(
         rootParams,
         implicitTags,
         renderSignal: initialServerRenderController.signal,
-        controller: initialServerPrerenderController,
+        controller: initialServerRenderController,
         // During the initial prerender we need to track all cache reads to ensure
         // we render long enough to fill every cache it is possible to visit during
         // the final prerender.
@@ -3731,6 +3730,7 @@ async function prerenderToStream(
             formState
           ),
           isStaticGeneration: true,
+          allowStreamingDuringStaticGeneration: workStore.forceStatic,
           getServerInsertedHTML,
           getServerInsertedMetadata,
         }),
@@ -3909,6 +3909,7 @@ async function prerenderToStream(
             formState
           ),
           isStaticGeneration: true,
+          allowStreamingDuringStaticGeneration: workStore.forceStatic,
           getServerInsertedHTML: makeGetServerInsertedHTML({
             polyfills,
             renderServerInsertedHTML,
