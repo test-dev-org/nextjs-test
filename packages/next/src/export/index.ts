@@ -809,7 +809,7 @@ async function exportAppImpl(
               outDir,
               `${route}${
                 subFolders && route !== '/index' ? `${sep}index` : ''
-              }.txt`
+              }.rsc.txt`
             )
           : join(pagesDataDir, `${route}.json`)
 
