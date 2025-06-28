@@ -99,7 +99,7 @@ import { devIndicatorServerState } from './dev-indicator-server-state'
 import { getDisableDevIndicatorMiddleware } from '../../next-devtools/server/dev-indicator-middleware'
 import { getRestartDevServerMiddleware } from '../../next-devtools/server/restart-dev-server-middleware'
 import { backgroundLogCompilationEvents } from '../../shared/lib/turbopack/compilation-events'
-// import { getSupportedBrowsers } from '../../build/utils'
+import { receiveBrowserLogsTurbopack } from './browser-logs/receieve-logs'
 
 const wsServer = new ws.Server({ noServer: true })
 const isTestMode = !!(
@@ -757,7 +757,7 @@ export async function createHotReloaderTurbopack(
           clients.delete(client)
         })
 
-        client.addEventListener('message', ({ data }) => {
+        client.addEventListener('message', async ({ data }) => {
           const parsedData = JSON.parse(
             typeof data !== 'string' ? data.toString() : data
           )
@@ -785,6 +785,7 @@ export async function createHotReloaderTurbopack(
                 }
               )
               break
+
             case 'client-error': // { errorCount, clientId }
             case 'client-warning': // { warningCount, clientId }
             case 'client-success': // { clientId }
@@ -811,6 +812,20 @@ export async function createHotReloaderTurbopack(
             case 'client-added-page':
               // TODO
               break
+            case 'browser-logs': {
+              if (nextConfig.experimental.browserDebugInfoInTerminal) {
+                await receiveBrowserLogsTurbopack({
+                  entries: parsedData.entries,
+                  router: parsedData.router,
+                  sourceType: parsedData.sourceType,
+                  project,
+                  projectPath,
+                  distDir,
+                  config: nextConfig.experimental.browserDebugInfoInTerminal,
+                })
+              }
+              break
+            }
 
             default:
               // Might be a Turbopack message...
